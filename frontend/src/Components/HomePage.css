@@ -1,0 +1,72 @@
+/* Hero Section */
+.hero-section {
+  position: relative;
+  z-index: 1;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  color: white;
+  padding: 0 1rem;
+  overflow: hidden;
+}
+
+.hero-title {
+  font-size: 4rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+  background: linear-gradient(90deg, #7cff67, #b19eef, #5227ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  opacity: 0;
+  animation: fadeIn 1.5s ease forwards;
+}
+
+/* Subtitle typing effect */
+.hero-subtitle {
+  font-size: 1.25rem;
+  max-width: 700px;
+  line-height: 1.6;
+  white-space: nowrap;
+  overflow: hidden;
+  border-right: 3px solid #7cff67;
+  width: 0;
+  opacity: 0;
+  animation: typing 4s steps(40, end) 1.2s forwards,
+             blink 0.8s infinite step-end alternate;
+}
+
+/* Highlighted words */
+.highlight {
+  color: #7cff67;
+  font-weight: 600;
+}
+
+/* --- Animations --- */
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes typing {
+  from {
+    width: 0;
+    opacity: 1;
+  }
+  to {
+    width: 100%;
+    opacity: 1;
+  }
+}
+
+@keyframes blink {
+  from {
+    border-color: transparent;
+  }
+  to {
+    border-color: #7cff67;
+  }
+}

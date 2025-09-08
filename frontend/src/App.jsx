@@ -1,4 +1,14 @@
 import { useEffect, useState } from "react";
+//import {motion, useScroll, useTransfrom} from "framer-motion";
+
+
+
+
+
+import NavBar from './Components/NavBar'
+import Aurora from './Components/Aurora';
+import HomePage from "./Components/HomePage";
+import AboutUs from "./Components/AboutUs";
 
 export default function App() {
   const [users, setUsers] = useState([]);
@@ -9,8 +19,25 @@ export default function App() {
       .then((data) => setUsers(data));
   }, []);
 
+  // const { scrollY } = useScroll();
+
+  // const homePageScale = useTransfrom(scrollY, [0,400], [1, 0.8]);
+  // const homePageOpacity = useTransfrom[scrollY, [0,400], [1, 0]];
+
+
   return (
-    <div className="p-4">
+    <div>
+      
+      <Aurora
+        colorStops={["#7CFF67", "#B19EEF", "#5227FF"]}
+        blend={0.5}
+        amplitude={1.0}
+        speed={0.5}
+      />
+      <NavBar/>
+      <HomePage />
+      <AboutUs/>
+      {/*<div className="p-4">
       <h1 className="text-2xl font-bold text-blue-600">Users</h1>
       <ul className="mt-2">
         {users.map((u) => (
@@ -19,6 +46,11 @@ export default function App() {
           </li>
         ))}
       </ul>
+    </div>*/}
+
     </div>
+
+   
+    
   );
 }
