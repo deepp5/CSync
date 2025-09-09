@@ -5,5 +5,5 @@
   width: 100vw;    /* full viewport width */
   height: 100vh;   /* full viewport height */
   z-index: -1;     /* behind navbar/content */
-  background-color: black; /* fallback color */
+  background-color: #080808; /* fallback color */
 }

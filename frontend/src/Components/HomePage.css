@@ -16,10 +16,8 @@
 .hero-title {
   font-size: 4rem;
   font-weight: 800;
-  margin-bottom: 1rem; 
-  background: linear-gradient(90deg, #fa4efd, #9172f8, #21daf2);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  margin-bottom: 1rem;
+  color: white;
   opacity: 0;
   animation: fadeIn 1.5s ease forwards;
 }
@@ -28,20 +26,31 @@
 .hero-subtitle {
   font-size: 1.25rem;
   max-width: 700px;
-  line-height: 1.6;
+
   white-space: nowrap;
   overflow: hidden;
-  border-right: 3px solid #7cff67;
   width: 0;
   opacity: 0;
-  animation: typing 4s steps(40, end) 1.2s forwards,
-             blink 0.8s infinite step-end alternate;
+
+  /*NEEDS FIXING!!!!!!!!*/
+  /* border-right: 2px solid #7cff67; */
+  animation: typing 9s steps(100, end) 0.4s forwards,
+             blink 1s infinite step-end alternate;
 }
 
 /* Highlighted words */
 .highlight {
-  color: #7cff67;
+  color: #bbbbbb;
   font-weight: 600;
+}
+
+/* Comma */
+.comma{
+  color: #fa4efd;
+}
+/* Period */
+.period{
+  color: #21daf2;
 }
 
 /* --- Animations --- */
@@ -62,11 +71,12 @@
   }
 }
 
-@keyframes blink {
+/*NEEDS FIXING!!!!!!!!*/
+/* @keyframes blink {
   from {
-    border-color: transparent;
+    border-color: white;
   }
   to {
     border-color: #7cff67;
   }
-}
+} */

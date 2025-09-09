@@ -18,12 +18,13 @@ export default function HomePage() {
 
 
         <main className="hero-section">
-            <h1 className="hero-title">CSync</h1>
-            <p className="hero-subtitle">"Empowering the collaborate in <br/>
+            <h1 className="hero-title">Built by engineers<span className="comma">,</span> <br></br>for engineers<span className="period">.</span></h1>
+            {/* <p className="hero-subtitle">"Empowering the collaborate in <br/>
                 <span className="highlight">build</span>,{" "}
                 <span className="highlight">learn</span> and{" "}
                 <span className="highlight">collaborate</span>."
-            </p>
+            </p> */}
+            <p className="hero-subtitle">Created to bring people closer, one project at a time.</p>
         </main>
 
 
