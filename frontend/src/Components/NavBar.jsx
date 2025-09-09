@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import Logo from '../assets/logo.png';
+import whiteCSync from '../assets/whiteCSync.png';
 import './NavBar.css';
 
 
@@ -23,7 +23,7 @@ export default function NavBar() {
                 {/* Logo */}
                 <div className="logo">
                 <a href="/" onClick={(e) => { e.preventDefault(); handleNavClick('home'); }}>
-                    <img src={Logo} alt="Logo" className="logo-img" />
+                    <img src={whiteCSync} alt="Logo" className="logo-img" />
                     <span className="logo-text">CSync</span>
                 </a>
                 </div>
