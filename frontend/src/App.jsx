@@ -29,7 +29,7 @@ export default function App() {
     <div>
       
       <Aurora
-        colorStops={["#7CFF67", "#B19EEF", "#5227FF"]}
+        colorStops={['#fa4efd', '#9172f8', '#21daf2']}
         blend={0.5}
         amplitude={1.0}
         speed={0.5}
