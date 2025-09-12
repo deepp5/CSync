@@ -5,10 +5,10 @@ import { useEffect, useState } from "react";
 
 
 
-import NavBar from './Components/NavBar'
-import Aurora from './Components/Aurora';
-import HomePage from "./Components/HomePage";
-import AboutUs from "./Components/AboutUs";
+import NavBar from './Components/LandingPage/NavBar'
+import Aurora from './Components/LandingPage/Aurora';
+import HomePage from "./Components/LandingPage/HomePage";
+import AboutUs from "./Components/LandingPage/AboutUs";
 
 export default function App() {
   const [users, setUsers] = useState([]);
@@ -35,7 +35,7 @@ export default function App() {
         speed={0.6}
       />
       <NavBar/>
-      <HomePage />
+      <HomePage/>
       <AboutUs/>
       {/*<div className="p-4">
       <h1 className="text-2xl font-bold text-blue-600">Users</h1>

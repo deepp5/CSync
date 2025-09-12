@@ -31,11 +31,11 @@
   overflow: hidden;
   width: 0;
   opacity: 0;
+  color: #c0c0c0;
 
   /*NEEDS FIXING!!!!!!!!*/
   /* border-right: 2px solid #7cff67; */
-  animation: typing 9s steps(100, end) 0.4s forwards,
-             blink 1s infinite step-end alternate;
+  animation: typing 9s steps(100, end) 0.4s forwards;
 }
 
 /* Highlighted words */
@@ -68,6 +68,18 @@
   to {
     width: 100%;
     opacity: 1;
+  }
+}
+.blinking-cursor {
+  font-weight: bold;
+  font-size: 1.2rem;
+  color: #c0c0c0; /* adjust color */
+  animation: blink 1s step-start infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
   }
 }
 

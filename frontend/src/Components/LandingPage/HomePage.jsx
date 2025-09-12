@@ -24,7 +24,7 @@ export default function HomePage() {
                 <span className="highlight">learn</span> and{" "}
                 <span className="highlight">collaborate</span>."
             </p> */}
-            <p className="hero-subtitle">Created to bring people closer, one project at a time.</p>
+            <p className="hero-subtitle">Created to bring people closer, one project at a time.<span className='blinking-cursor'>|</span></p>
         </main>
 
 

@@ -1,9 +1,9 @@
 import {React, useState, useRef } from "react"
 import {motion} from "framer-motion";
 import './AboutUs.css'
-import Deep from '../assets/D.png'
-import Jay from '../assets/J.png'
-import Vishrut from '../assets/V.jpeg'
+import Deep from '../../assets/D.png'
+import Jay from '../../assets/J.png'
+import Vishrut from '../../assets/V.jpeg'
 
 
 
@@ -25,10 +25,12 @@ export default function AboutUs() {
                 {/* Deep */}
                 <motion.div 
                     className="founder-card"
-                    initial={{ opacity: 0, y: 80 }}
+                    initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 1}}
-                    whileHover={{ scale: 1.05 }}
+                    whileHover={{ 
+                        scale: 1.05, 
+                        transition: {duration: .005},
+                    }}
                 >
                     <img src={Deep} alt="Deep" className="founder-img" />
                     <div className="founder-box">
@@ -44,10 +46,12 @@ export default function AboutUs() {
                 {/* Jay */}
                 <motion.div 
                     className="founder-card"
-                    initial={{ opacity: 0, y: 80 }}
+                    initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 1 }}
-                    whileHover={{ scale: 1.05 }}
+                    whileHover={{ 
+                        scale: 1.05, 
+                        transition: {duration: .005},
+                    }}
                 >
                     <img src={Jay} alt="Jay" className="founder-img" />
                     <div className="founder-box">
@@ -62,10 +66,12 @@ export default function AboutUs() {
                 {/* Vishrut */}
                 <motion.div 
                     className="founder-card"
-                    initial={{ opacity: 0, y: 80 }}
+                    initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 1}}
-                    whileHover={{ scale: 1.05 }}
+                    whileHover={{ 
+                        scale: 1.05, 
+                        transition: {duration: .005},
+                    }}
                 >
                     <img src={Vishrut} alt="Vishrut" className="founder-img" />
                     <div className="founder-box">

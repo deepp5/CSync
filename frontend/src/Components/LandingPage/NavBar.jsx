@@ -1,28 +1,36 @@
 import React, { useState, useRef } from 'react';
-import whiteCSync from '../assets/whiteCSync.png';
+import { useEffect } from 'react';
+import whiteCSync from '../../assets/whiteCSync.png';
 import './NavBar.css';
 
 
 
 export default function NavBar() {
     
-    //use this for login/signup part of the navigation for backend maybe?
-    //const handleNavBarClick = (section) => {
-        // slowly move to the section that was clicked on
-    //}
     
-    const sectionRef = useRef(null);
-    const handleNavClick = () => {
-        sectionRef.current?.scrollIntoView(
-            {behavior: 'smooth'}
-        );
-    }
+    //const [scrollY, setScrollY] = useState(0);
+    const sectionRefs = useRef({});
+    const sections = ['home', 'about', 'features', 'faq', 'contact'];
+    
+    const handleNavClick = (sectionName) => {
+    
+      const element = document.getElementById(sectionName);
+      
+      if (element) {
+        element.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+          inline: 'nearest'
+        });
+      }
+    
+  };
     return(
         <nav className="navbar">
             <div className="navbar-container">
                 {/* Logo */}
                 <div className="logo">
-                <a href="/" onClick={(e) => { e.preventDefault(); handleNavClick('home'); }}>
+                <a href="#home" onClick={(e) => { e.preventDefault(); handleNavClick('home'); }}>
                     <img src={whiteCSync} alt="Logo" className="logo-img" />
                     <span className="logo-text">CSync</span>
                 </a>
