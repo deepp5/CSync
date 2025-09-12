@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { Link } from "react-router-dom";
 import { useEffect } from 'react';
 import whiteCSync from '../assets/whiteCSync.png';
 import './NavBar.css';
@@ -56,8 +57,8 @@ export default function NavBar() {
 
                 {/* Auth Buttons */}
                 <div className="auth-buttons">
-                <button className="auth-btn login-btn" onClick={() => handleNavClick('login')}>Login</button>
-                <button className="auth-btn signup-btn" onClick={() => handleNavClick('signup')}>Sign Up</button>
+                    <Link className="auth-btn login-btn" to="/login">Sign In</Link>
+                    <Link className="auth-btn login-btn" to="/register">Sign Up</Link>
                 </div>
             </div>
         </nav>
