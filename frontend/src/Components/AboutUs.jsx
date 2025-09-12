@@ -1,9 +1,9 @@
 import {React, useState, useRef } from "react"
 import {motion} from "framer-motion";
 import './AboutUs.css'
-import Deep from '../../assets/D.png'
-import Jay from '../../assets/J.png'
-import Vishrut from '../../assets/V.jpeg'
+import Deep from '../assets/D.png'
+import Jay from '../assets/J.png'
+import Vishrut from '../assets/V.jpeg'
 
 
 

@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useEffect } from 'react';
-import whiteCSync from '../../assets/whiteCSync.png';
+import whiteCSync from '../assets/whiteCSync.png';
 import './NavBar.css';
 
 
