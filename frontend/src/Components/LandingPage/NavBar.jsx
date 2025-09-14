@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Link } from "react-router-dom";
 import { useEffect } from 'react';
-import whiteCSync from '../assets/whiteCSync.png';
+import whiteCSync from '../../assets/whiteCSync.png';
 import './NavBar.css';
 
 

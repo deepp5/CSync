@@ -1,0 +1,304 @@
+/* login-form.css */
+
+.clear-box-container {
+  /* Crystal Clear Glassmorphism Box */
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  
+  /* Layout */
+  width: 100%;
+  max-width: 400px;
+  padding: 40px 30px;
+  margin: 0 auto;
+  
+  /* Centering */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  
+  /* Positioning */
+  position: relative;
+  
+  /* Smooth transitions */
+  transition: all 0.3s ease;
+}
+
+.clear-box-container:hover {
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 
+    0 12px 40px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+/* Logo Container */
+#logo-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 30px;
+  width: 100%;
+}
+
+#logo-container img {
+  width: 60px;
+  height: 60px;
+  margin-bottom: 15px;
+  border-radius: 50%;
+  /* Optional: Add a subtle glow to logo */
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+}
+
+#logo-container .title {
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0;
+  text-align: center;
+  letter-spacing: -0.5px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Form Styling */
+.sign-option {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-bottom: 25px;
+}
+
+/* Input Containers */
+.userName-container,
+.password-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+/* Labels */
+.userName-container label,
+.password-container label {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  letter-spacing: 0.3px;
+}
+
+/* Password Container with Forgot Password */
+.password-container {
+  position: relative;
+}
+
+.password-container::after {
+  content: "Forgot Password?";
+  position: absolute;
+  top: 0;
+  right: 0;
+  color: rgba(135, 206, 235, 0.9);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.password-container:hover::after {
+  color: rgba(135, 206, 235, 1);
+  text-decoration: underline;
+}
+
+/* Input Fields */
+.UserName,
+.Password {
+  width: 100%;
+  padding: 12px 16px;
+  
+  /* Glassmorphism Input Style */
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  
+  /* Typography */
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 14px;
+  font-weight: 400;
+  
+  /* Effects */
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  outline: none;
+}
+
+.UserName:focus,
+.Password:focus {
+  border-color: rgba(135, 206, 235, 0.6);
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 
+    inset 0 2px 4px rgba(0, 0, 0, 0.1),
+    0 0 0 3px rgba(135, 206, 235, 0.1);
+}
+
+.UserName::placeholder,
+.Password::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+}
+
+/* Submit Button Container */
+.submit-container {
+  width: 100%;
+  margin-top: 10px;
+}
+
+.submit-container button {
+  width: 100%;
+  padding: 14px 20px;
+  
+  /* Gradient Button */
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 12px;
+  
+  /* Typography */
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  
+  /* Effects */
+  cursor: pointer;
+  box-shadow: 
+    0 4px 15px rgba(102, 126, 234, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+  
+  /* Prevent text selection */
+  user-select: none;
+}
+
+.submit-container button:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 8px 25px rgba(102, 126, 234, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.submit-container button:active {
+  transform: translateY(0);
+}
+
+/* OR Divider */
+.or {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  margin: 20px 0;
+  position: relative;
+}
+
+.or::before,
+.or::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(
+    to right, 
+    transparent, 
+    rgba(255, 255, 255, 0.3), 
+    transparent
+  );
+}
+
+.or p {
+  margin: 0;
+  padding: 0 20px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  font-weight: 500;
+  text-transform: lowercase;
+}
+
+/* Alternative Sign-in Options */
+.auth-with-different-signins {
+  width: 100%;
+}
+
+.google-signin-btn {
+  width: 100%;
+  padding: 12px 20px;
+  
+  /* Glass Button Style */
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  
+  /* Layout */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  
+  /* Typography */
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  font-weight: 500;
+  
+  /* Effects */
+  cursor: pointer;
+  transition: all 0.3s ease;
+  user-select: none;
+}
+
+.google-signin-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.google-signin-btn .google-icon {
+  width: 18px;
+  height: 18px;
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+  .clear-box-container {
+    max-width: 350px;
+    padding: 30px 25px;
+    margin: 20px;
+  }
+  
+  #logo-container .title {
+    font-size: 22px;
+  }
+  
+  .UserName,
+  .Password {
+    padding: 10px 14px;
+  }
+  
+  .submit-container button {
+    padding: 12px 18px;
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 360px) {
+  .clear-box-container {
+    max-width: 320px;
+    padding: 25px 20px;
+  }
+  
+  #logo-container .title {
+    font-size: 20px;
+  }
+}

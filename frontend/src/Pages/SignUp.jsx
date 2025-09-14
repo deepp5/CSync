@@ -1,5 +1,5 @@
 import React from "react";
-import Aurora from "../Components/Aurora";
+import Aurora from "../Components/LandingPage/Aurora";
 
 export default function SignUp(){
     return(

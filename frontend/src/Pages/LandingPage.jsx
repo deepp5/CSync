@@ -1,8 +1,8 @@
 import React from "react";
-import Aurora from "../Components/Aurora";
-import NavBar from "../Components/NavBar";
-import HomePage from "../Components/HomePage";
-import AboutUs from "../Components/AboutUs";
+import Aurora from "../Components/LandingPage/Aurora";
+import NavBar from "../Components/LandingPage/NavBar";
+import HomePage from "../Components/LandingPage/HomePage";
+import AboutUs from "../Components/LandingPage/AboutUs";
 
 export default function LandingPage(){
     return(
