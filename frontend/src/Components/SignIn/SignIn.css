@@ -79,7 +79,7 @@
 }
 
 /* Input Containers */
-.userName-container,
+.username-container,
 .password-container {
   display: flex;
   flex-direction: column;
@@ -87,7 +87,7 @@
 }
 
 /* Labels */
-.userName-container label,
+.username-container label,
 .password-container label {
   color: rgba(255, 255, 255, 0.9);
   font-size: 14px;
@@ -119,8 +119,8 @@
 }
 
 /* Input Fields */
-.UserName,
-.Password {
+.username,
+.password {
   width: 100%;
   padding: 12px 16px;
   
@@ -145,8 +145,8 @@
   will-change: border-color, background-color;
 }
 
-.UserName:focus,
-.Password:focus {
+.username:focus,
+.password:focus {
   border-color: rgba(135, 206, 235, 0.6);
   background: rgba(255, 255, 255, 0.15);
   box-shadow: 
@@ -154,8 +154,8 @@
     0 0 0 3px rgba(135, 206, 235, 0.1);
 }
 
-.UserName::placeholder,
-.Password::placeholder {
+.username::placeholder,
+.password::placeholder {
   color: rgba(255, 255, 255, 0.6);
   font-size: 14px;
 }
@@ -289,8 +289,8 @@
     font-size: 22px;
   }
   
-  .UserName,
-  .Password {
+  .username,
+  .password {
     padding: 10px 14px;
   }
   
