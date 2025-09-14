@@ -13,9 +13,9 @@ export default function SignInBox(){
         password: ''
     });
 
-    const {errors, setErrors} = useState({});
-    const {isLoading, setIsLoading} = useState(false);
-    const {showPassword, setShowPassword} = useState(false);
+    const [errors, setErrors] = useState({});
+    const [isLoading, setIsLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
     
     const handleInputChange = (e) => {
         const {name, value } = e.target;
@@ -37,7 +37,7 @@ export default function SignInBox(){
 
         if(!formData.password){
             newErrors.password = 'Password is required';
-        }else if(formData.username.length < 8){
+        }else if(formData.password.length < 8){
             newErrors.password = 'Password must be atleast 8 characters long';
         }
 
@@ -117,20 +117,20 @@ export default function SignInBox(){
                     <h3 className='title'>Sign in to CSync</h3>
                 </div>
 
-                <form className='sign-option' id='sign-option'>
+                <form className='sign-option' id='sign-option' onSubmit={handleSubmit}>
                     <div className='username-container'>
-                        <label htmlFor="username">Username or email address</label>
+                        <label htmlFor="username">Email address</label>
 
                         <input 
                         type='text' 
                         id='username' 
                         name='username' 
-                        //className={`UserName ${errors.username ? 'errors': ''}`} 
-                        placeholder='Enter your username or email address' 
+                        className='username'
+                        placeholder='Enter your email address' 
                         value={formData.username}
                         onChange={handleInputChange}
                         autoComplete="username"
-
+                        disabled={isLoading}
                         />
                         {/*errors.username && (<span className="error-message">{errors.username}</span>)*/}
 
@@ -143,7 +143,7 @@ export default function SignInBox(){
                         type={showPassword ? 'text' : 'password'}
                         id='password' 
                         name='password'
-                        //className={`Password ${errors.password ? 'error' : ''}`} 
+                        className='password' 
                         placeholder='Enter your password' 
                         value={formData.password}
                         onChange={handleInputChange}
@@ -153,9 +153,9 @@ export default function SignInBox(){
                         <button
                             type="button"
                             className="toggle-password"
-                            onClick={() => setShowPassword(!showPassword)}
+                            // onClick={() => setShowPassword(!showPassword)}
                             disabled={isLoading}>
-                            {showPassword ? '👁️' : '👁️‍🗨️'}
+                            {/* {showPassword ? '👁️' : '👁️‍🗨️'} */}
                         </button>
                         {/* {errors.password && (
                         <span className="error-message">{errors.password}</span>

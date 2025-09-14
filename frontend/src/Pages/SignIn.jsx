@@ -1,10 +1,11 @@
-import React from "react";
+import React, {useState} from "react";
 import Aurora from "../Components/LandingPage/Aurora";
 import SignInBox from "../Components/SignIn/SignIn";
 
 export default function SignIn(){
+    const [username, setUsername] = useState("");
     return(
-        <body>
+        <div>
             <Aurora
                 colorStops={['#fa4efd', '#9172f8', '#21daf2']}
                 blend={0.5}
@@ -13,8 +14,7 @@ export default function SignIn(){
             />
            
             <SignInBox/>
-           
             
-        </body>
+        </div>
     );
 }

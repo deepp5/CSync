@@ -1,6 +1,6 @@
 import React from "react";
 import Aurora from "../Components/LandingPage/Aurora";
-
+import LoginForm from "../Components/SignIn/SignUp"
 export default function SignUp(){
     return(
         <div>
@@ -10,6 +10,7 @@ export default function SignUp(){
                 amplitude={1.15}
                 speed={0.6}
             />
+            <LoginForm/>
         </div>
     );
 }
