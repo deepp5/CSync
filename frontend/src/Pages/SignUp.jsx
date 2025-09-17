@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import Aurora from "../Components/LandingPage/Aurora";
-import LoginForm from "../Components/SignIn/SignUp";
+import LoginForm from "../Components/SignIn/SignUpBox";
 
 export default function SignUp() {
   const [message, setMessage] = useState("");

@@ -1,7 +1,7 @@
 import React, {useState} from 'react'
 
 import colorLogo from '../../assets/colorCSync.png'
-import './SignIn.css'
+import './SignInBox.css'
 
 
 
