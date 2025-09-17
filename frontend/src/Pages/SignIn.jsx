@@ -6,9 +6,11 @@ export default function SignIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
 
     try {
       const res = await fetch("http://localhost:5000/api/auth/signin", {
@@ -21,14 +23,15 @@ export default function SignIn() {
 
       if (res.ok && data.token) {
         localStorage.setItem("token", data.token);
-        setMessage("Login successful!");
-        // ✅ redirect to dashboard or home
-        // window.location.href = "/dashboard";
+        setMessage("✅ Login successful!");
+        // window.location.href = "/dashboard"; // optional redirect
       } else {
-        setMessage(data.message || "Login failed");
+        setMessage(data.message || "❌ Login failed");
       }
     } catch (err) {
-      setMessage("Something went wrong. Please try again.");
+      setMessage("⚠️ Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -41,7 +44,7 @@ export default function SignIn() {
         speed={0.6}
       />
 
-      {/* Wrap SignInBox in a form */}
+      {}
       <form onSubmit={handleSubmit}>
         <SignInBox
           email={email}
@@ -49,7 +52,9 @@ export default function SignIn() {
           password={password}
           setPassword={setPassword}
         />
-        <button type="submit">Sign In</button>
+        <button type="submit" disabled={loading}>
+          {loading ? "Signing in..." : "Sign In"}
+        </button>
       </form>
 
       {message && <p>{message}</p>}
