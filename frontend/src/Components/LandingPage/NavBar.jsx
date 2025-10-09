@@ -24,17 +24,16 @@ export default function NavBar() {
           inline: 'nearest'
         });
       }
-    
   };
     return(
         <nav className="navbar">
             <div className="navbar-container">
                 {/* Logo */}
                 <div className="logo">
-                <a href="#home" onClick={(e) => { e.preventDefault(); handleNavClick('home'); }}>
-                    <img src={whiteCSync} alt="Logo" className="logo-img" />
-                    <span className="logo-text">CSync</span>
-                </a>
+                    <a href="#home" onClick={(e) => { e.preventDefault(); handleNavClick('home'); }}>
+                        <img src={whiteCSync} alt="Logo" className="logo-img" />
+                        <span className="logo-text">CSync</span>
+                    </a>
                 </div>
 
                 {/* Navigation Links */}

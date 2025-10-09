@@ -36,8 +36,7 @@ export default function AboutUs() {
                     <div className="founder-box">
                         <h3>Deep</h3>
                         <p>
-                        Short description about Founder 1. Passionate about building, 
-                        learning, and collaborating.
+                        Short description about Founder 1. Passionate about building, learning, and collaborating.
                         </p>
                     </div>
                 </motion.div>

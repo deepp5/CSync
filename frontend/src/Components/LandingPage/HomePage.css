@@ -72,9 +72,14 @@
 }
 .blinking-cursor {
   font-weight: bold;
-  font-size: 1.2rem;
+  /* font-size: 1rem; */
+  justify-content: baseline;
+  width: .1rem;
+  height: 80rem;
   color: #c0c0c0; /* adjust color */
   animation: blink 1s step-start infinite;
+  background-color: #c0c0c0;
+  background-size: 0.5rem;
 }
 
 @keyframes blink {

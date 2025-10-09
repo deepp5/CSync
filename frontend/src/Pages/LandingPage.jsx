@@ -3,6 +3,7 @@ import Aurora from "../Components/LandingPage/Aurora";
 import NavBar from "../Components/LandingPage/NavBar";
 import HomePage from "../Components/LandingPage/HomePage";
 import AboutUs from "../Components/LandingPage/AboutUs";
+import FeaturesPage from "../Components/LandingPage/Features";
 
 export default function LandingPage(){
     return(
@@ -16,6 +17,7 @@ export default function LandingPage(){
         <NavBar/>
         <HomePage/>
         <AboutUs/>
+        <FeaturesPage/>
     </div>);
 }
 

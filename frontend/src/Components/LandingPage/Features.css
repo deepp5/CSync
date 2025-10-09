@@ -1,0 +1,203 @@
+.features-page {
+  min-height: 100vh;
+  display: flex;
+  background: #000000;
+  color: white;
+  overflow: hidden;
+}
+
+/* Left Side - 30% */
+.features-left {
+  width: 30%;
+  padding: 60px 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.02);
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.features-content {
+  max-width: 100%;
+}
+
+.features-title {
+  font-size: 3.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  background: linear-gradient(45deg, #fff, #888);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.features-subtitle {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  margin-bottom: 2rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+
+/* Right Side - 70% */
+.features-right {
+    width: 70%;
+    max-width: 100%;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0px;
+    overflow: hidden;
+}
+
+/* Feature Card Content Styling */
+.feature-card .card-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.feature-card .card-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.feature-card .card-title {
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.feature-card .card-body {
+  flex: 1;
+  margin-bottom: 1.5rem;
+}
+
+.feature-card .card-description {
+  font-size: 1rem;
+  line-height: 1.5;
+  margin-bottom: 1.5rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.feature-card .card-features {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.feature-card .feature-point {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.feature-card .check-mark {
+  color: #10b981;
+  font-weight: bold;
+  margin-right: 0.75rem;
+  font-size: 1.1rem;
+}
+
+.feature-card .card-footer {
+  text-align: center;
+  padding-top: 1rem;
+}
+
+.feature-card .learn-more-btn {
+  padding: 10px 20px;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.feature-card .learn-more-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+/* Card styling for content layout */
+.feature-card {
+    max-height: 90%;
+    max-width: 90%;        
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 30px;
+
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .features-page {
+    flex-direction: column;
+  }
+
+  .features-left,
+  .features-right {
+    width: 100%;
+  }
+
+  .features-left {
+    padding: 40px 20px;
+  }
+
+  .features-title {
+    font-size: 2.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .features-left {
+    padding: 30px 20px;
+  }
+
+  .features-title {
+    font-size: 2rem;
+  }
+
+  .features-right {
+    padding: 20px;
+  }
+
+  .feature-card {
+    padding: 25px;
+  }
+
+  .feature-card .card-title {
+    font-size: 1.5rem;
+  }
+
+  .feature-card .card-icon {
+    font-size: 2.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .features-left {
+    width: 100%;
+    padding: 20px 15px;
+  }
+
+  .features-title {
+    font-size: 1.8rem;
+  }
+
+  .features-subtitle {
+    font-size: 1rem;
+  }
+
+  .features-right {
+    padding: 15px;
+  }
+}
