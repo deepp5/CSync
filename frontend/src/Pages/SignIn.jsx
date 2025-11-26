@@ -10,7 +10,7 @@ export default function SignIn() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: "http://localhost:5173/auth/callback", // where Supabase sends user after login
+        redirectTo: "http://localhost:5173/home", // where Supabase sends user after login
       },
     });
 
