@@ -12,8 +12,10 @@
   },
   "dependencies": {
     "@emailjs/browser": "^4.4.1",
+    "@supabase/supabase-js": "^2.86.0",
     "framer-motion": "^12.23.12",
     "gsap": "^3.13.0",
+    "jose": "^6.1.2",
     "ogl": "^1.0.11",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",

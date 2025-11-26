@@ -1,37 +1,22 @@
 import React, { useState } from "react";
 import Aurora from "../Components/LandingPage/Aurora";
 import SignInBox from "../Components/SignIn/SignInBox";
+import { supabase } from "../supabaseClient";
 
 export default function SignIn() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  const loginWithGoogle = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: "http://localhost:5173/auth/callback", // where Supabase sends user after login
+      },
+    });
 
-    try {
-      const res = await fetch("http://localhost:5000/api/auth/signin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok && data.token) {
-        localStorage.setItem("token", data.token);
-        setMessage("✅ Login successful!");
-        // window.location.href = "/dashboard"; // optional redirect
-      } else {
-        setMessage(data.message || "❌ Login failed");
-      }
-    } catch (err) {
-      setMessage("⚠️ Something went wrong. Please try again.");
-    } finally {
-      setLoading(false);
+    if (error) {
+      console.error(error);
+      setMessage("Failed to sign in with Google!");
     }
   };
 
@@ -44,20 +29,29 @@ export default function SignIn() {
         speed={0.6}
       />
 
-      {}
-      <form onSubmit={handleSubmit}>
-        <SignInBox
-          email={email}
-          setEmail={setEmail}
-          password={password}
-          setPassword={setPassword}
-        />
-        <button type="submit" disabled={loading}>
-          {loading ? "Signing in..." : "Sign In"}
-        </button>
-      </form>
+      {/* Your existing sign-in card */}
+      <SignInBox />
 
-      {message && <p>{message}</p>}
+      {/* Google Login Button */}
+      <div style={{ textAlign: "center", marginTop: "20px" }}>
+        <button
+          onClick={loginWithGoogle}
+          style={{
+            padding: "12px 20px",
+            backgroundColor: "#ffffff",
+            border: "1px solid #ccc",
+            borderRadius: "8px",
+            cursor: "pointer",
+            fontWeight: "600",
+          }}
+        >
+          🔥 Continue with Google
+        </button>
+      </div>
+
+      {message && (
+        <p style={{ textAlign: "center", marginTop: "10px" }}>{message}</p>
+      )}
     </div>
   );
 }
