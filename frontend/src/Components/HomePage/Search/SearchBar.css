@@ -23,7 +23,6 @@
 .search-input:focus {
     outline: none;
     border-color: #21daf2;
-    box-shadow: 0 0 6px rgba(33, 218, 242, 0.4);
 }
   
 .filter-btn {
