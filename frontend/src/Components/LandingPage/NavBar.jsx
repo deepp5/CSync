@@ -7,9 +7,6 @@ import './NavBar.css';
 
 
 export default function NavBar() {
-    
-    
-    //const [scrollY, setScrollY] = useState(0);
     const sectionRefs = useRef({});
     const sections = ['home', 'about', 'features', 'faq', 'contact'];
     
