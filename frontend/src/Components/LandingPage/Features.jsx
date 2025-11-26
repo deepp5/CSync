@@ -52,9 +52,7 @@ export default function FeaturesPage(){
             <div className="features-left">
                 <div className="features-content">
                     <h1 className="features-title">Features</h1>
-                    <p className="features-subtitle">
-                        Discover the powerful capabilities that make CSync the perfect solution for your workflow needs.
-                    </p>
+                   
                     
                     {/* <div className="features-list">
                         <div className="feature-item">

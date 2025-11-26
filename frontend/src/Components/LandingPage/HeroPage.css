@@ -70,6 +70,7 @@
     opacity: 1;
   }
 }
+
 .blinking-cursor {
   font-weight: bold;
   /* font-size: 1rem; */
@@ -88,12 +89,12 @@
   }
 }
 
-/*NEEDS FIXING!!!!!!!!*/
-/* @keyframes blink {
+/* NEEDS FIXING!!!!!!!!*/
+@keyframes blink {
   from {
     border-color: white;
   }
   to {
     border-color: #7cff67;
   }
-} */
+}

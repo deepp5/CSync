@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 //import {motion, useScroll, useTransfrom} from "framer-motion";
 
-import './HomePage.css'
+import './HeroPage.css'
 import Aurora from './Aurora';
 import Typewriter from 'typewriter-effect'
 
