@@ -7,24 +7,9 @@ import Typewriter from 'typewriter-effect'
 
 
 export default function HomePage() {
-
-    // const { scrollY } = useScroll();
-
-    // const homePageScale = useTransfrom(scrollY, [0,400], [1, 0.8]);
-    // const homePageOpacity = useTransfrom[scrollY, [0,400], [1, 0]];
-
-
-
     return (
-
-
         <main className="hero-section" id="home" href="home">
             <h1 className="hero-title">Built by engineers<span className="comma">,</span> <br></br>for engineers<span className="period">.</span></h1>
-            {/* <p className="hero-subtitle">"Empowering the collaborate in <br/>
-                <span className="highlight">build</span>,{" "}
-                <span className="highlight">learn</span> and{" "}
-                <span className="highlight">collaborate</span>."
-            </p> */}
             <Typewriter 
             options={{
                 strings: ["Created to bring people closer, one project at a time."],
@@ -32,11 +17,6 @@ export default function HomePage() {
                 loop: true,
                 
             }}></Typewriter>
-            {/* <p className="hero-subtitle">Created to bring people closer, one project at a time.<span className='blinking-cursor'>|</span></p> */}
         </main>
-
-
-
-    )
-
+    );
 }

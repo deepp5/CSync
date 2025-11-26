@@ -1,10 +1,14 @@
+import React from "react";
+import { useEffect, useState } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+
 import LandingPage from "./Pages/LandingPage";
 import SignIn from "./Pages/SignIn";
 import SignUp from "./Pages/SignUp";
 import AuthCallback from "./Pages/AuthCallback";
 
 import ProtectedRoute from "./Components/ProtectedRoute";
+import HomePage from "./Pages/HomePage";
 
 export default function App() {
   return (
@@ -27,6 +31,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="/home" element={<HomePage />} />
       </Routes>
     </Router>
   );

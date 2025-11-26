@@ -1,0 +1,30 @@
+.project-card {
+    background: #141416;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 20px;
+    transition: 0.25s ease;
+    cursor: pointer;
+}
+  
+.project-card:hover {
+    border-color: #21daf2;
+    opacity: 90%;
+    transform: translateY(-3px);
+}
+  
+.project-card h3 {
+    font-size: 18px;
+    margin-bottom: 8px;
+}
+  
+.desc {
+    color: #c7c7c7;
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+  
+.skills {
+    font-size: 12px;
+    color: rgb(206, 205, 205);
+}
