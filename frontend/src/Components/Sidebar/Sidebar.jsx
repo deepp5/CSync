@@ -1,7 +1,7 @@
 import React from "react";
 import "./Sidebar.css";
 import whiteCSync from '../../assets/colorCSync.png';
-import { FiHome, FiMessageSquare, FiPlusSquare, FiUser, FiSettings } from "react-icons/fi";
+import { FiHome, FiMessageSquare, FiPlusSquare, FiUser, FiSettings, FiList } from "react-icons/fi";
 
 const Sidebar = () => {
   return (
@@ -16,11 +16,15 @@ const Sidebar = () => {
       {/* Navigation */}
       <div className="sidebar-links">
         <button className="sidebar-btn">
-          <FiHome className="icon" /> Projects
+          <FiHome className="icon" /> Home
         </button>
 
         <button className="sidebar-btn">
           <FiMessageSquare className="icon" /> Messages
+        </button>
+
+        <button className="sidebar-btn">
+            <FiList className="icon" /> My Projects
         </button>
 
         <button className="sidebar-btn">
