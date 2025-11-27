@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import colorLogo from "../../assets/colorCSync.png";
 import "./SignUpBox.css";
 
-export default function SignUpBox({ onSubmit, loading }) {
+export default function LoginForm({ onSubmit, onGoogle, loading }) {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -14,14 +14,11 @@ export default function SignUpBox({ onSubmit, loading }) {
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
 
-  // --------------------------------
-  // Handle Input Changes
-  // --------------------------------
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
 
     if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: "" })); // clear error while typing
+      setErrors((prev) => ({ ...prev, [name]: "" }));
     }
 
     setFormData((prev) => ({
@@ -30,33 +27,22 @@ export default function SignUpBox({ onSubmit, loading }) {
     }));
   };
 
-  // --------------------------------
-  // Validation
-  // --------------------------------
   const validateForm = () => {
     const newErrors = {};
 
     if (!formData.email.trim()) newErrors.email = "Email is required";
-
-    if (!formData.password) newErrors.password = "Password is required";
-
+    if (!formData.password.trim()) newErrors.password = "Password is required";
     if (!formData.username.trim()) newErrors.username = "Username is required";
-
     if (!formData.school.trim()) newErrors.school = "School is required";
 
     setErrors(newErrors);
-
     return Object.keys(newErrors).length === 0;
   };
 
-  // --------------------------------
-  // Submit Handler
-  // --------------------------------
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!validateForm()) return;
-
-    onSubmit(formData); // ⬅️ parent handles Supabase signup
+    onSubmit(formData);
   };
 
   return (
@@ -70,10 +56,9 @@ export default function SignUpBox({ onSubmit, loading }) {
         <form className="signup-form" onSubmit={handleSubmit}>
           {/* Email */}
           <div className="signup-input-group">
-            <label htmlFor="email">Email*</label>
+            <label>Email*</label>
             <input
               type="email"
-              id="email"
               name="email"
               className="signup-input"
               placeholder="Enter your email"
@@ -88,30 +73,23 @@ export default function SignUpBox({ onSubmit, loading }) {
 
           {/* Password */}
           <div className="signup-input-group">
-            <label htmlFor="password">Password*</label>
-
-            <div className="password-wrapper">
-              <input
-                type={showPassword ? "text" : "password"}
-                id="password"
-                name="password"
-                className="signup-input"
-                placeholder="Enter your password"
-                value={formData.password}
-                onChange={handleInputChange}
-                disabled={loading}
-              />
-
-              {/* Password visibility toggle */}
-              <button
-                type="button"
-                className="toggle-password"
-                onClick={() => setShowPassword((v) => !v)}
-                disabled={loading}
-              >
-                {showPassword ? "🙈" : "👁️"}
-              </button>
-            </div>
+            <label>Password*</label>
+            <input
+              type={showPassword ? "text" : "password"}
+              name="password"
+              className="signup-input"
+              placeholder="Enter your password"
+              value={formData.password}
+              onChange={handleInputChange}
+              disabled={loading}
+            />
+            <button
+              type="button"
+              className="toggle-password"
+              onClick={() => setShowPassword(!showPassword)}
+            >
+              {showPassword ? "🙈" : "👁️"}
+            </button>
 
             {errors.password && (
               <small className="error-message">{errors.password}</small>
@@ -120,13 +98,12 @@ export default function SignUpBox({ onSubmit, loading }) {
 
           {/* Username */}
           <div className="signup-input-group">
-            <label htmlFor="username">Username*</label>
+            <label>Username*</label>
             <input
               type="text"
-              id="username"
               name="username"
               className="signup-input"
-              placeholder="Enter your username"
+              placeholder="Choose a username"
               value={formData.username}
               onChange={handleInputChange}
               disabled={loading}
@@ -138,10 +115,9 @@ export default function SignUpBox({ onSubmit, loading }) {
 
           {/* School */}
           <div className="signup-input-group">
-            <label htmlFor="school">Your school*</label>
+            <label>School*</label>
             <input
               type="text"
-              id="school"
               name="school"
               className="signup-input"
               placeholder="Enter your school"
@@ -154,7 +130,7 @@ export default function SignUpBox({ onSubmit, loading }) {
             )}
           </div>
 
-          {/* Email Updates */}
+          {/* Checkbox */}
           <div className="signup-checkbox">
             <label>
               <input
@@ -164,17 +140,35 @@ export default function SignUpBox({ onSubmit, loading }) {
                 onChange={handleInputChange}
                 disabled={loading}
               />
-              Receive occasional product updates and announcements
+              Receive product updates
             </label>
           </div>
 
           {/* Submit */}
           <div className="signup-submit">
             <button type="submit" disabled={loading}>
-              {loading ? "Creating account..." : "Sign up"}
+              {loading ? "Creating..." : "Sign up"}
             </button>
           </div>
         </form>
+
+        {/* Divider */}
+        <div className="or">
+          <p>or</p>
+        </div>
+
+        {/* GOOGLE BUTTON */}
+        <button onClick={onGoogle} className="google-login-btn">
+          <div className="google-icon-wrapper">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+              <path fill="#EA4335" d="M24 9.5c3.54..." />
+              <path fill="#4285F4" d="M46.98 24.55..." />
+              <path fill="#FBBC05" d="M10.53 28.59..." />
+              <path fill="#34A853" d="M24 48c6.48..." />
+            </svg>
+          </div>
+          <span className="btn-text">Continue with Google</span>
+        </button>
       </div>
     </div>
   );
