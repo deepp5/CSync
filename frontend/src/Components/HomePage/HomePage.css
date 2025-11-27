@@ -1,0 +1,17 @@
+.home-container {
+    display: flex;
+    background: #0a0a0b;
+    min-height: 100vh;
+}
+  
+.home-content {
+    flex: 1;
+    margin-left: 230px;
+    padding-left: 30px;
+    padding-right: 30px;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow-y: auto;
+}

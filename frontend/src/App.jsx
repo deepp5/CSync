@@ -1,24 +1,45 @@
-import { useEffect, useState } from "react";
+import React from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+
+import LandingPage from "./Pages/LandingPage";
+import SignIn from "./Pages/SignIn";
+import SignUp from "./Pages/SignUp";
+import HomePage from "./Pages/HomePage";
+import Setup from "./Pages/Setup"; // ✅ <-- Import Setup page
+import CreatePost from "./Pages/CreatePost";
+import AuthCallback from "./Pages/AuthCallback";
+import ProtectedRoute from "./Components/ProtectedRoute";
 
 export default function App() {
-  const [users, setUsers] = useState([]);
-
-  useEffect(() => {
-    fetch("http://localhost:5000/users")
-      .then((res) => res.json())
-      .then((data) => setUsers(data));
-  }, []);
-
   return (
-    <div className="p-4">
-      <h1 className="text-2xl font-bold text-blue-600">Users</h1>
-      <ul className="mt-2">
-        {users.map((u) => (
-          <li key={u.id}>
-            {u.name} - {u.email}
-          </li>
-        ))}
-      </ul>
-    </div>
+    <Router>
+      <Routes>
+        {/* Public pages */}
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/register" element={<SignUp />} />
+        <Route path="/login" element={<SignIn />} />
+        <Route path="/home" element={<HomePage />} />
+        <Route path="/createpost" element={<CreatePost />} />
+
+        {/* Required for Google OAuth */}
+        <Route path="/auth/callback" element={<AuthCallback />} />
+
+        {/* Protected example */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <h1>Welcome to the dashboard!</h1>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* 👇 Logged-in home page */}
+        <Route path="/home" element={<HomePage />} />
+
+        {/* 👇 NEW → Google login sends users here to create username */}
+        <Route path="/setup" element={<Setup />} />
+      </Routes>
+    </Router>
   );
 }

@@ -1,0 +1,321 @@
+/* login-form.css */
+
+.login-page-container {
+  min-height: 100vh; /* Takes full viewport height */
+  width: 100%;
+  display: flex;
+  align-items: center; /* Vertically center */
+  justify-content: center; /* Horizontally center */
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.clear-box-container {
+  /* Crystal Clear Glassmorphism Box */
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 2px solid rgba(255, 255, 255, 0.101);
+  border-radius: 20px;
+
+  /* Layout */
+  width: 100%;
+  max-width: 400px;
+  padding: 40px 30px; /* Consistent padding */
+  
+  /* Flex styling */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+/* Ensure password wrapper allows absolute positioning of the toggle button */
+.password-wrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.toggle-password {
+  position: absolute;
+  right: 12px;
+  top: 50%;                
+  transform: translateY(-50%); 
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  display: flex;          
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.8);
+  transition: color 0.2s;
+  z-index: 10;
+}
+
+.toggle-password:hover {
+  color: #fff;
+  transform: scale(1.1);
+}
+
+/* ... existing hover effects ... */
+.clear-box-container:hover {
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+/* Logo Container */
+#logo-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 25px; /* Adjusted spacing */
+  width: 100%;
+}
+
+#logo-container img {
+  width: 60px;
+  height: 50px;
+  margin-bottom: 15px;
+  border-radius: 50%;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+}
+
+#logo-container .title {
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0;
+  text-align: center;
+}
+
+/* Form Styling */
+.sign-option {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 18px; /* Adjusted gap */
+  margin-bottom: 12px;
+}
+
+/* Input Containers */
+.username-container,
+.password-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.username-container label,
+.password-container label {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  letter-spacing: 0.3px;
+}
+
+.username,
+.password {
+  width: 100%;
+  padding: 12px 16px;
+  padding-right: 40px; /* Make space for eye icon */
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.username:focus,
+.password:focus {
+  border-color: rgba(135, 206, 235, 0.6);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.username::placeholder,
+.password::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Submit Button */
+.submit-container {
+  width: 100%;
+  margin-top: 10px;
+}
+
+.submit-container button {
+  width: 100%;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 12px;
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  transition: all 0.3s ease;
+}
+
+.submit-container button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+}
+
+/* OR Divider */
+.or {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  margin: 15px 0;
+  gap: 8px;
+}
+
+.or::before,
+.or::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.or p {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+}
+
+/* Google Button */
+.google-login-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.google-login-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 12px;
+  background-color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.google-login-btn:hover {
+  background-color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.google-icon-wrapper {
+  position: absolute;
+  left: 16px;
+  width: 20px;
+  height: 20px;
+}
+
+.btn-text {
+  padding-left: 24px;
+  font-weight: 600;
+  color: #333;
+  font-size: 15px;
+}
+
+/* Toggle Link */
+.auth-toggle-text {
+  margin-top: 1.5rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.auth-toggle-link {
+  color: #fa4efd;
+  text-decoration: none;
+  font-weight: 600;
+  margin-left: 5px;
+  transition: color 0.3s;
+}
+
+.auth-toggle-link:hover {
+  color: #21daf2;
+  text-decoration: underline;
+}
+
+.error-message {
+  color: #ff6b6b;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+  /* ... existing code ... */
+  .google-login-container { margin-top: 6px; }
+  .clear-box-container { padding: 20px 16px; }
+  .auth-toggle-text { margin-top: 1rem; }
+}
+
+
+/* Responsive Design */
+@media (max-width: 480px) {
+  .login-page-container {
+    justify-items: center;
+  }
+  .clear-box-container {
+    max-width: 350px;
+    padding: 30px 25px;
+    margin: 20px;
+  }
+
+  #logo-container .title {
+    font-size: 22px;
+  }
+
+  .username,
+  .password {
+    padding: 10px 14px;
+  }
+
+  .submit-container button {
+    padding: 12px 18px;
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .sign-option { gap: 10px; margin-bottom: 10px; }
+  .or { margin: 8px 0; }
+  .or p { padding: 0 8px; font-size: 12px; }
+  .submit-container { margin-top: 6px; }
+  .google-login-container { margin-top: 6px; }
+  .clear-box-container { padding: 20px 16px; }
+}
+
+@media (max-width: 400px) {
+  .login-page-container {
+    justify-items: center;
+  }
+
+  .clear-box-container {
+    max-width: 320px;
+    padding: 25px 20px;
+  }
+
+  #logo-container .title {
+    font-size: 20px;
+  }
+}

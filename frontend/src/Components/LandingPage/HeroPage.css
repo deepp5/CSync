@@ -1,0 +1,108 @@
+/* Hero Section */
+.hero-section {
+  position: relative;
+  z-index: 1;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  color: white;
+  padding: 0 1rem;
+  overflow: hidden;
+}
+
+.hero-title {
+  font-size: 4rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+  color: white;
+  opacity: 0;
+  animation: fadeIn 1.5s ease forwards;
+}
+
+/* Subtitle typing effect */
+.hero-subtitle {
+  font-size: 1.25rem;
+  max-width: 700px;
+
+  white-space: nowrap;
+  overflow: hidden;
+  width: 0;
+  opacity: 0;
+  color: #c0c0c0;
+
+  /*NEEDS FIXING!!!!!!!!*/
+  /* border-right: 2px solid #7cff67; */
+  animation: typing 9s steps(100, end) 0.4s forwards;
+}
+
+/* Highlighted words */
+.highlight {
+  color: #bbbbbb;
+  font-weight: 600;
+}
+
+/* Comma */
+.comma{
+  color: #fa4efd;
+}
+/* Period */
+.period{
+  color: #21daf2;
+}
+
+/* --- Animations --- */
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes typing {
+  from {
+    width: 0;
+    opacity: 1;
+  }
+  to {
+    width: 100%;
+    opacity: 1;
+  }
+}
+
+.blinking-cursor {
+  font-weight: bold;
+  /* font-size: 1rem; */
+  justify-content: baseline;
+  width: .1rem;
+  height: 80rem;
+  color: #c0c0c0; /* adjust color */
+  animation: blink 1s step-start infinite;
+  background-color: #c0c0c0;
+  background-size: 0.5rem;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* NEEDS FIXING!!!!!!!!*/
+@keyframes blink {
+  from {
+    border-color: white;
+  }
+  to {
+    border-color: #7cff67;
+  }
+}
+
+@media (max-width: 480px) {
+
+  .hero-title{
+    font-size: 2rem;
+  }
+
+}

@@ -1,0 +1,9 @@
+.aurora-container {
+  position: fixed; /* stay fixed behind everything */
+  top: 0;
+  left: 0;
+  width: 100vw;    /* full viewport width */
+  height: 100vh;   /* full viewport height */
+  z-index: -1;     /* behind navbar/content */
+  background-color: #080808; /* fallback color */
+}
