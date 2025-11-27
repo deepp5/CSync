@@ -1,6 +1,6 @@
 /* login-form.css */
 
-.login-page-container{
+.login-page-container {
   padding-top: 40px;
 }
 
@@ -14,22 +14,22 @@
   /* box-shadow: 
     0 8px 32px rgba(0, 0, 0, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.2); */
-  
+
   /* Layout */
   width: 100%;
   max-width: 400px;
   padding: 40px 30px;
   margin: 0 auto;
-  
+
   /* Centering */
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  
+
   /* Positioning */
   position: relative;
-  
+
   /* Smooth transitions */
   transition: all 0.3s ease;
 }
@@ -46,8 +46,7 @@
 
 .clear-box-container:hover {
   border-color: rgba(255, 255, 255, 0.25);
-  box-shadow: 
-    0 12px 40px rgba(0, 0, 0, 0.15),
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15),
     inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
@@ -133,23 +132,23 @@
 .password {
   width: 100%;
   padding: 12px 16px;
-  
+
   /* Glassmorphism Input Style - Optimized */
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(6px); /* Reduced blur for performance */
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
-  
+
   /* Typography */
   color: rgba(255, 255, 255, 0.95);
   font-size: 14px;
   font-weight: 400;
-  
+
   /* Effects - Optimized */
   /* box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1); */
   transition: border-color 0.2s ease, background-color 0.2s ease;
   outline: none;
-  
+
   /* Performance optimization */
   transform: translateZ(0);
   will-change: border-color, background-color;
@@ -159,8 +158,7 @@
 .password:focus {
   border-color: rgba(135, 206, 235, 0.6);
   background: rgba(255, 255, 255, 0.15);
-  box-shadow: 
-    inset 0 2px 4px rgba(0, 0, 0, 0.1),
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1),
     0 0 0 3px rgba(135, 206, 235, 0.1);
 }
 
@@ -179,33 +177,31 @@
 .submit-container button {
   width: 100%;
   padding: 14px 20px;
-  
+
   /* Gradient Button */
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border: none;
   border-radius: 12px;
-  
+
   /* Typography */
   color: white;
   font-size: 16px;
   font-weight: 600;
   letter-spacing: 0.3px;
-  
+
   /* Effects */
   cursor: pointer;
-  box-shadow: 
-    0 4px 15px rgba(102, 126, 234, 0.3),
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
   transition: all 0.3s ease;
-  
+
   /* Prevent text selection */
   user-select: none;
 }
 
 .submit-container button:hover {
   transform: translateY(-2px);
-  box-shadow: 
-    0 8px 25px rgba(102, 126, 234, 0.4),
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4),
     inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
@@ -224,13 +220,13 @@
 
 .or::before,
 .or::after {
-  content: '';
+  content: "";
   flex: 1;
   height: 1px;
   background: linear-gradient(
-    to right, 
-    transparent, 
-    rgba(255, 255, 255, 0.3), 
+    to right,
+    transparent,
+    rgba(255, 255, 255, 0.3),
     transparent
   );
 }
@@ -252,24 +248,24 @@
 .google-signin-btn {
   width: 100%;
   padding: 12px 20px;
-  
+
   /* Glass Button Style */
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
-  
+
   /* Layout */
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  
+
   /* Typography */
   color: rgba(255, 255, 255, 0.9);
   font-size: 14px;
   font-weight: 500;
-  
+
   /* Effects */
   cursor: pointer;
   transition: all 0.3s ease;
@@ -289,25 +285,24 @@
 
 /* Responsive Design */
 @media (max-width: 480px) {
-  .login-page-container{
+  .login-page-container {
     justify-items: center;
   }
   .clear-box-container {
-
     max-width: 350px;
     padding: 30px 25px;
     margin: 20px;
   }
-  
+
   #logo-container .title {
     font-size: 22px;
   }
-  
+
   .username,
   .password {
     padding: 10px 14px;
   }
-  
+
   .submit-container button {
     padding: 12px 18px;
     font-size: 15px;
@@ -315,15 +310,15 @@
 }
 
 @media (max-width: 400px) {
-  .login-page-container{
+  .login-page-container {
     justify-items: center;
   }
-  
+
   .clear-box-container {
     max-width: 320px;
     padding: 25px 20px;
   }
-  
+
   #logo-container .title {
     font-size: 20px;
   }

@@ -1,115 +1,62 @@
 import React, { useState } from "react";
+import colorLogo from "../../assets/colorCSync.png";
+import "./SignUpBox.css";
 
-import colorLogo from '../../assets/whiteCSync.png'
-import "./SignUpBox.css"
-
-export default function LoginForm() {
+export default function SignUpBox({ onSubmit, loading }) {
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    username: '',
-    school: '',
-    emailPrefs: false,
+    email: "",
+    password: "",
+    username: "",
+    school: "",
+    receiveUpdates: false,
   });
 
   const [errors, setErrors] = useState({});
-  const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // ------------------------
-  // Input Change Handler
-  // ------------------------
+  // --------------------------------
+  // Handle Input Changes
+  // --------------------------------
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
 
     if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: '' }));
+      setErrors((prev) => ({ ...prev, [name]: "" })); // clear error while typing
     }
 
     setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: type === "checkbox" ? checked : value,
     }));
   };
 
-  // ------------------------
-  // Validation Rules
-  // ------------------------
+  // --------------------------------
+  // Validation
+  // --------------------------------
   const validateForm = () => {
     const newErrors = {};
 
-    // Email
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(formData.email)) {
-      newErrors.email = 'Invalid email format';
-    }
+    if (!formData.email.trim()) newErrors.email = "Email is required";
 
-    // Password
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-    } else {
-      const pass = formData.password;
-      const hasNum = /\d/.test(pass);
-      const hasLower = /[a-z]/.test(pass);
+    if (!formData.password) newErrors.password = "Password is required";
 
-      if (pass.length < 15) {
-        if (!(pass.length >= 8 && hasNum && hasLower)) {
-          newErrors.password =
-            'Password must be at least 15 characters OR at least 8 with a number and lowercase letter';
-        }
-      }
-    }
+    if (!formData.username.trim()) newErrors.username = "Username is required";
 
-    // Username
-    if (!formData.username.trim()) {
-      newErrors.username = 'Username is required';
-    } else if (!/^[a-zA-Z0-9]+(-[a-zA-Z0-9]+)*$/.test(formData.username)) {
-      newErrors.username =
-        'Username may only contain letters, numbers, or single hyphens (no start/end hyphen)';
-    }
-
-    // School
-    if (!formData.school.trim()) {
-      newErrors.school = 'School is required';
-    }
+    if (!formData.school.trim()) newErrors.school = "School is required";
 
     setErrors(newErrors);
+
     return Object.keys(newErrors).length === 0;
   };
 
-  // ------------------------
-  // Form Submit
-  // ------------------------
-  const handleSubmit = async (e) => {
+  // --------------------------------
+  // Submit Handler
+  // --------------------------------
+  const handleSubmit = (e) => {
     e.preventDefault();
-
     if (!validateForm()) return;
 
-    setIsLoading(true);
-
-    try {
-      console.log('Form submitted:', formData);
-
-      // Example backend call (replace with real endpoint)
-      // const response = await fetch('/api/auth/signup', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(formData),
-      // });
-      // if (response.ok) {
-      //   const data = await response.json();
-      //   console.log('Signup successful:', data);
-      // } else {
-      //   const errorData = await response.json();
-      //   setErrors({ submit: errorData.message || 'Signup failed' });
-      // }
-    } catch (error) {
-        console.error('Signup error:', error);
-        setErrors({ submit: 'Network error. Please try again.' });
-    } finally {
-        setIsLoading(false);
-    }
+    onSubmit(formData); // ⬅️ parent handles Supabase signup
   };
 
   return (
@@ -132,27 +79,43 @@ export default function LoginForm() {
               placeholder="Enter your email"
               value={formData.email}
               onChange={handleInputChange}
-              required
+              disabled={loading}
             />
+            {errors.email && (
+              <small className="error-message">{errors.email}</small>
+            )}
           </div>
 
           {/* Password */}
           <div className="signup-input-group">
             <label htmlFor="password">Password*</label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              className="signup-input"
-              placeholder="Enter your password"
-              value={formData.password}
-              onChange={handleInputChange}
-              required
-            />
-            <small className="signup-hint">
-              Password should be at least 15 characters OR at least 8 characters
-              including a number and a lowercase letter.
-            </small>
+
+            <div className="password-wrapper">
+              <input
+                type={showPassword ? "text" : "password"}
+                id="password"
+                name="password"
+                className="signup-input"
+                placeholder="Enter your password"
+                value={formData.password}
+                onChange={handleInputChange}
+                disabled={loading}
+              />
+
+              {/* Password visibility toggle */}
+              <button
+                type="button"
+                className="toggle-password"
+                onClick={() => setShowPassword((v) => !v)}
+                disabled={loading}
+              >
+                {showPassword ? "🙈" : "👁️"}
+              </button>
+            </div>
+
+            {errors.password && (
+              <small className="error-message">{errors.password}</small>
+            )}
           </div>
 
           {/* Username */}
@@ -166,12 +129,11 @@ export default function LoginForm() {
               placeholder="Enter your username"
               value={formData.username}
               onChange={handleInputChange}
-              required
+              disabled={loading}
             />
-            <small className="signup-hint">
-              Username may only contain alphanumeric characters or single
-              hyphens, and cannot begin or end with a hyphen.
-            </small>
+            {errors.username && (
+              <small className="error-message">{errors.username}</small>
+            )}
           </div>
 
           {/* School */}
@@ -185,11 +147,14 @@ export default function LoginForm() {
               placeholder="Enter your school"
               value={formData.school}
               onChange={handleInputChange}
-              required
+              disabled={loading}
             />
+            {errors.school && (
+              <small className="error-message">{errors.school}</small>
+            )}
           </div>
 
-          {/* Email Preferences */}
+          {/* Email Updates */}
           <div className="signup-checkbox">
             <label>
               <input
@@ -197,6 +162,7 @@ export default function LoginForm() {
                 name="receiveUpdates"
                 checked={formData.receiveUpdates}
                 onChange={handleInputChange}
+                disabled={loading}
               />
               Receive occasional product updates and announcements
             </label>
@@ -204,11 +170,12 @@ export default function LoginForm() {
 
           {/* Submit */}
           <div className="signup-submit">
-            <button type="submit">Sign up</button>
+            <button type="submit" disabled={loading}>
+              {loading ? "Creating account..." : "Sign up"}
+            </button>
           </div>
         </form>
       </div>
     </div>
   );
 }
-

@@ -5,6 +5,10 @@
     padding: 20px;
     transition: 0.25s ease;
     cursor: pointer;
+    min-height: 275px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
 }
   
 .project-card:hover {

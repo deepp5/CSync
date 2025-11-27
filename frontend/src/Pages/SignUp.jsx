@@ -1,35 +1,60 @@
 import React, { useState } from "react";
 import Aurora from "../Components/LandingPage/Aurora";
 import LoginForm from "../Components/SignIn/SignUpBox";
+import { supabase } from "../supabaseClient";
 
 export default function SignUp() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (formData) => {
+  const handleSignup = async (formData) => {
     setLoading(true);
+    setMessage("");
+
+    const { email, password, username, school } = formData;
+
     try {
-      const res = await fetch("http://localhost:5000/api/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+      // --- Supabase signup ---
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            username,
+            school,
+          },
+        },
       });
 
-      const data = await res.json();
+      if (error) {
+        setMessage(`❌ ${error.message}`);
+        return;
+      }
 
-      if (res.ok && data.token) {
-        localStorage.setItem("token", data.token);
-        setMessage("✅ Account created successfully!");
-      } else {
-        setMessage(data.message || "❌ Signup failed");
+      // --- EMAIL CONFIRMATION MODE ---
+      if (data?.user && !data.session) {
+        setMessage("📬 Check your email to confirm your account!");
+
+        // Redirect to login after 1.5 seconds
+        setTimeout(() => {
+          window.location.href = "/login";
+        }, 1500);
+
+        return;
+      }
+
+      // --- AUTO-LOGIN MODE (if email confirmations OFF) ---
+      if (data?.session) {
+        setMessage("🎉 Account created! Redirecting...");
+        window.location.href = "/home";
       }
     } catch (err) {
-      setMessage("⚠️ Something went wrong. Please try again.");
+      console.error(err);
+      setMessage("⚠️ Something went wrong. Try again.");
     } finally {
       setLoading(false);
     }
   };
-  ``;
 
   return (
     <div>
@@ -40,10 +65,11 @@ export default function SignUp() {
         speed={0.6}
       />
 
-      {}
-      <LoginForm onSubmit={handleSubmit} loading={loading} />
+      <LoginForm onSubmit={handleSignup} loading={loading} />
 
-      {message && <p>{message}</p>}
+      {message && (
+        <p style={{ textAlign: "center", marginTop: "12px" }}>{message}</p>
+      )}
     </div>
   );
 }
