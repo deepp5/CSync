@@ -9,6 +9,20 @@ import './NavBar.css';
 export default function NavBar() {
     const sectionRefs = useRef({});
     const sections = ['home', 'about', 'features', 'faq', 'contact'];
+    const [isScrolled, setIsScrolled] = useState(false);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            const hero = document.getElementById("home");
+            if (!hero) return;
+            const heroHeight = hero.offsetHeight;
+            setIsScrolled(window.scrollY > heroHeight - 350); // adjust "-50" as needed
+        };
+        window.addEventListener("scroll", handleScroll);
+        handleScroll();
+
+        return () => window.removeEventListener("scroll", handleScroll);
+    }, []);
     
     const handleNavClick = (sectionName) => {
     
@@ -21,9 +35,9 @@ export default function NavBar() {
           inline: 'nearest'
         });
       }
-  };
+    };
     return(
-        <nav className="navbar">
+        <nav className={`navbar ${isScrolled ? 'scrolled' : ''}`}>
             <div className="navbar-container">
                 {/* Logo */}
                 <div className="logo">

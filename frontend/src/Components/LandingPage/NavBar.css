@@ -7,7 +7,13 @@
   background: transparent; /* shows aurora */
   z-index: 1000;
   padding: 0 2rem;
-  
+  transition: background-color 0.4s ease, box-shadow 0.4s ease, padding 0.4s ease;
+}
+
+.navbar.scrolled{
+  background-color: #000000;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  /* padding: 0.5rem 2rem; */
 }
 
 /* Inner container to align flex items */
@@ -106,7 +112,8 @@
 }
 
 .login-btn:hover {
-  background-color: #3b82f6;
+  border-color: #ffffff;
+  /* background-color: #3b82f6; */
 }
 
 .signup-btn {
@@ -138,6 +145,16 @@
 @media (max-width: 640px) {
   .nav-menu {
     display: none; /* hide nav links on mobile */
+  }
+
+  .logo-text{
+    font-size: .75rem;
+  }
+
+  .logo-img{
+    height: 15px;
+    width: 16px;
+    margin-right: 0.25rem;
   }
 }
 
