@@ -48,6 +48,7 @@
     border: none;
     color: white;
     transition: 0.25s ease;
+    width: 100%;
 }
 
 .sidebar-btn:hover {
