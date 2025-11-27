@@ -1,34 +1,79 @@
 .project-card {
     background: #141416;
-    border: 1px solid rgba(255,255,255,0.08);
     border-radius: 12px;
     padding: 20px;
-    transition: 0.25s ease;
     cursor: pointer;
     min-height: 275px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.25s ease;
 }
-  
+
+.project-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1.5px;
+
+    background: linear-gradient(
+        90deg,
+        #cf40d1 0%,
+        #1696a7 50%,
+        #cf40d1 100%
+    );
+    background-size: 300% 300%;
+    -webkit-mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+
+    opacity: 15%;
+    transition: opacity 0.3s ease;
+}
+
+.project-card:hover::before {
+    opacity: 1;
+    animation: borderFlow 4s linear infinite;
+}
+
+@keyframes borderFlow {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
 .project-card:hover {
-    border-color: #21daf2;
-    opacity: 90%;
-    transform: translateY(-3px);
+    transform: translateY(-4px);
 }
-  
+
 .project-card h3 {
     font-size: 18px;
     margin-bottom: 8px;
 }
-  
+
 .desc {
     color: #c7c7c7;
-    font-size: 14px;
+    font-size: 16px;
     margin-bottom: 10px;
 }
-  
+
 .skills {
-    font-size: 12px;
+    font-size: 14px;
     color: rgb(206, 205, 205);
+}
+
+.cardBottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+}
+
+.ownerName {
+    font-size: 13px;
+    color: rgb(160, 160, 160);
 }
