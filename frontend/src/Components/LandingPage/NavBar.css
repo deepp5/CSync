@@ -145,6 +145,16 @@
   .nav-menu {
     display: none; /* hide nav links on mobile */
   }
+
+  .logo-text{
+    font-size: .75rem;
+  }
+
+  .logo-img{
+    height: 15px;
+    width: 16px;
+    margin-right: 0.25rem;
+  }
 }
 
 @keyframes fadeIn {

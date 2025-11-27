@@ -16,7 +16,7 @@ export default function NavBar() {
             const hero = document.getElementById("home");
             if (!hero) return;
             const heroHeight = hero.offsetHeight;
-            setIsScrolled(window.scrollY > heroHeight - 150); // adjust "-50" as needed
+            setIsScrolled(window.scrollY > heroHeight - 350); // adjust "-50" as needed
         };
         window.addEventListener("scroll", handleScroll);
         handleScroll();

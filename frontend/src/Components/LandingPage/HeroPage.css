@@ -98,3 +98,11 @@
     border-color: #7cff67;
   }
 }
+
+@media (max-width: 480px) {
+
+  .hero-title{
+    font-size: 2rem;
+  }
+
+}
