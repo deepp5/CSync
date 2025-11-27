@@ -290,6 +290,7 @@
 /* Responsive Design */
 @media (max-width: 480px) {
   .clear-box-container {
+
     max-width: 350px;
     padding: 30px 25px;
     margin: 20px;
