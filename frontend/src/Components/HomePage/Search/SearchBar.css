@@ -19,10 +19,15 @@
     color: white;
     transition: 0.2s ease;
 }
+
+.search-input:hover{
+    outline: none;
+    border-color: #ffffff;
+}
   
 .search-input:focus {
     outline: none;
-    border-color: #21daf2;
+    border-color: #ffffff;
 }
   
 .filter-btn {
@@ -37,6 +42,5 @@
 }
   
 .filter-btn:hover {
-    border-color: #fa4efd;
-    box-shadow: 0 0 6px rgba(250, 78, 253, 0.4);
+    border-color: #ffffff;
 }
