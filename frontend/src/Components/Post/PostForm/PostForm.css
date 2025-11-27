@@ -1,0 +1,107 @@
+.postform {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    width: 100%;
+  }
+  
+  .form-columns {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 60px;
+    width: 100%;
+  }
+  
+  .left-col {
+    flex: 1.15;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  
+  .right-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  
+  .form-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .form-section label {
+    font-size: 15px;
+    color: #d8d8d8;
+    font-weight: 500;
+  }
+  
+  .postform input,
+  .postform textarea,
+  .postform select {
+    width: 95%;
+    padding: 12px 14px;
+    background: #0f0f11;
+    border: 1px solid rgba(255,255,255,0.12);
+    color: white;
+    border-radius: 8px;
+    font-size: 15px;
+    transition: border 0.25s ease, box-shadow 0.25s ease;
+  }
+  
+  .postform input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+  }
+  
+  .postform textarea {
+    min-height: 95px;
+    resize: vertical;
+  }
+  
+  .postform input:focus,
+  .postform select:focus,
+  .postform textarea:focus {
+    border-color: #21daf2;
+    box-shadow: 0 0 8px rgba(33,218,242,0.3);
+    outline: none;
+  }
+  
+  .submit-btn {
+    width: fit-content;
+    padding: 12px 24px;
+    background: linear-gradient(90deg, #fa4efd, #21daf2);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.25s ease, opacity 0.25s ease;
+  }
+  
+  .submit-btn:hover {
+    transform: translateY(-3px);
+    opacity: 0.9;
+  }
+  
+@media (max-width: 990px) {
+    .form-columns {
+      flex-direction: column;
+      gap: 40px;
+    }
+  
+    .left-col,
+    .right-col {
+      flex: none;
+      width: 100%;
+    }
+  
+    .postform input,
+    .postform textarea,
+    .postform select {
+      width: 100%;
+    }
+}

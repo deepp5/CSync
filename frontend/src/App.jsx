@@ -5,10 +5,10 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import LandingPage from "./Pages/LandingPage";
 import SignIn from "./Pages/SignIn";
 import SignUp from "./Pages/SignUp";
-import AuthCallback from "./Pages/AuthCallback";
-
-import ProtectedRoute from "./Components/ProtectedRoute";
 import HomePage from "./Pages/HomePage";
+import CreatePost from "./Pages/CreatePost";
+import AuthCallback from "./Pages/AuthCallback";
+import ProtectedRoute from "./Components/ProtectedRoute";
 
 export default function App() {
   return (
@@ -18,6 +18,8 @@ export default function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/register" element={<SignUp />} />
         <Route path="/login" element={<SignIn />} />
+        <Route path="/home" element={<HomePage />} />
+        <Route path="/createpost" element={<CreatePost />} />
 
         {/* Required for Google OAuth */}
         <Route path="/auth/callback" element={<AuthCallback />} />
