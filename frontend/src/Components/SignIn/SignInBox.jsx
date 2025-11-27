@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import colorLogo from "../../assets/colorCSync.png";
 import "./SignInBox.css";
 import {supabase} from "../../supabaseClient"
+import { Link } from "react-router-dom";
 
 export default function SignInBox({ onSubmit, loading }) {
   const [formData, setFormData] = useState({
@@ -106,6 +107,7 @@ export default function SignInBox({ onSubmit, loading }) {
           {/* PASSWORD FIELD */}
           <div className="password-container">
             <label htmlFor="password">Password</label>
+            
 
             <div style={{ position: "relative" }}>
               <input
@@ -128,6 +130,7 @@ export default function SignInBox({ onSubmit, loading }) {
               >
                 {showPassword ? "🙈" : "👁️"}
               </button>
+           
             </div>
 
             {errors.password && (
@@ -174,6 +177,11 @@ export default function SignInBox({ onSubmit, loading }) {
         {message && (
             <p style={{ textAlign: "center", marginTop: "10px" }}>{message}</p>
         )}
+
+        <p className="auth-toggle-text">
+            New to CSync? 
+            <Link to="/register" className="auth-toggle-link">Create an account</Link>
+        </p>
 
       </div>
     </div>
