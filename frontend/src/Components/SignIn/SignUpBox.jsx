@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-import colorLogo from '../../assets/colorCSync.png'
+import colorLogo from '../../assets/whiteCSync.png'
 import "./SignUpBox.css"
 
 export default function LoginForm() {

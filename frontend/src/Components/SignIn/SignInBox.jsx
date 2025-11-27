@@ -1,10 +1,7 @@
 import React, {useState} from 'react'
 
-import colorLogo from '../../assets/colorCSync.png'
+import colorLogo from '../../assets/whiteCSync.png'
 import './SignInBox.css'
-
-
-
 
 export default function SignInBox(){
 
@@ -177,12 +174,8 @@ export default function SignInBox(){
                     </button> */}
                     {/* add more sign in options in the future */}
                 </div>
-
-
-
             </div>
 
         </div>
-
     )
 }
