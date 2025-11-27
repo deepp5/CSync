@@ -3,41 +3,38 @@ import CardSwap, {Card} from './CardSwap';
 import './Features.css'
 
 
+//Do we want to keep features?
+
 export default function FeaturesPage(){
     const featureCards = [
         {
             id: 1,
             title: "Post & Share Ideas",
             description: "Easily publish your CS project ideas and get collaborators on board.",
-            icon: "💡",
             features: ["Project board", "Live posting", "Tagging system"]
         },
         {
             id: 2,
             title: "Real-time Collaboration",
             description: "Work together on projects with instant updates and communication tools.",
-            icon: "👥",
             features: ["Team chat", "Code/document sharing", "Live notifications"]
         },
         {
             id: 3,
             title: "Skill Building",
             description: "Pick up projects to practice real-world CS skills and grow your portfolio.",
-            icon: "📚",
             features: ["Skill tags", "Experience points", "Portfolio tracking"]
         },
         {
             id: 4,
             title: "Secure & Reliable",
             description: "Your ideas and messages are safe with enterprise-grade security.",
-            icon: "🔒",
             features: ["End-to-end encryption", "Two-factor authentication", "Safe project storage"]
         },
         {
             id: 5,
             title: "Community Driven",
             description: "Join a vibrant hub of students helping each other succeed in tech.",
-            icon: "🌐",
             features: ["Community feed", "Upvotes & comments", "Peer recognition"]
         }
     ];
