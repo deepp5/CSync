@@ -15,7 +15,7 @@ export default function SignIn() {
     setMessage("");
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -24,7 +24,6 @@ export default function SignIn() {
         setMessage(`❌ ${error.message}`);
       } else {
         setMessage("✅ Login successful!");
-        // Redirect after login
         setTimeout(() => (window.location.href = "/home"), 800);
       }
     } catch (err) {
@@ -35,13 +34,15 @@ export default function SignIn() {
   };
 
   // -------------------------
-  // 2. Google OAuth Sign In
+  // 2. Google OAuth Sign In → redirect to /setup
   // -------------------------
   const loginWithGoogle = async () => {
+    setMessage("");
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: "http://localhost:5173/home", // After OAuth success
+        redirectTo: "http://localhost:5173/setup",
       },
     });
 
@@ -60,29 +61,16 @@ export default function SignIn() {
         speed={0.6}
       />
 
-      {/* Email/password login card */}
-      <SignInBox onSubmit={loginWithEmail} loading={loading} />
-
-      {/* Google Login Button */}
-      {/* <div style={{ textAlign: "center", marginTop: "20px" }}>
-        <button
-          onClick={loginWithGoogle}
-          style={{
-            padding: "12px 20px",
-            backgroundColor: "#ffffff",
-            border: "1px solid #ccc",
-            borderRadius: "8px",
-            cursor: "pointer",
-            fontWeight: "600",
-          }}
-        >
-          🔥 Continue with Google
-        </button>
-      </div>
+      {/* Your UI card handles both email login + Google login */}
+      <SignInBox
+        onSubmit={loginWithEmail}
+        onGoogle={loginWithGoogle}
+        loading={loading}
+      />
 
       {message && (
         <p style={{ textAlign: "center", marginTop: "10px" }}>{message}</p>
-      )} */}
+      )}
     </div>
   );
 }

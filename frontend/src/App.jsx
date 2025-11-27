@@ -1,5 +1,4 @@
 import React from "react";
-import { useEffect, useState } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
 import LandingPage from "./Pages/LandingPage";
@@ -9,6 +8,7 @@ import AuthCallback from "./Pages/AuthCallback";
 
 import ProtectedRoute from "./Components/ProtectedRoute";
 import HomePage from "./Pages/HomePage";
+import Setup from "./Pages/Setup"; // ✅ <-- Import Setup page
 
 export default function App() {
   return (
@@ -22,7 +22,7 @@ export default function App() {
         {/* Required for Google OAuth */}
         <Route path="/auth/callback" element={<AuthCallback />} />
 
-        {/* Example protected page — only logged-in users can access */}
+        {/* Protected example */}
         <Route
           path="/dashboard"
           element={
@@ -31,7 +31,12 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
+        {/* 👇 Logged-in home page */}
         <Route path="/home" element={<HomePage />} />
+
+        {/* 👇 NEW → Google login sends users here to create username */}
+        <Route path="/setup" element={<Setup />} />
       </Routes>
     </Router>
   );

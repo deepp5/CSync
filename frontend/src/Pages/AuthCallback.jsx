@@ -3,32 +3,30 @@ import { supabase } from "../supabaseClient";
 
 export default function AuthCallback() {
   useEffect(() => {
-    const handleLogin = async () => {
+    const handleAuth = async () => {
       const {
-        data: { session },
-        error,
-      } = await supabase.auth.getSession();
+        data: { user },
+      } = await supabase.auth.getUser();
 
-      if (error) {
-        console.error(error);
+      if (!user) {
+        window.location.href = "/login";
         return;
       }
 
-      if (session) {
-        // Save token to localStorage for use with backend
-        localStorage.setItem("sb_token", session.access_token);
+      // Check if user has username set in metadata
+      const username = user.user_metadata?.username;
 
-        // Optional: send user to dashboard
-        window.location.href = "/dashboard";
+      if (!username) {
+        // Go to setup page first
+        window.location.href = "/setup";
+      } else {
+        // Already set → send to home
+        window.location.href = "/home";
       }
     };
 
-    handleLogin();
+    handleAuth();
   }, []);
 
-  return (
-    <div style={{ textAlign: "center", marginTop: "80px" }}>
-      <h2>⏳ Signing you in...</h2>
-    </div>
-  );
+  return <p>Loading...</p>;
 }
