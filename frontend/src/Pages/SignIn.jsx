@@ -5,18 +5,49 @@ import { supabase } from "../supabaseClient";
 
 export default function SignIn() {
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
+  // -------------------------
+  // 1. Email + Password Sign In
+  // -------------------------
+  const loginWithEmail = async ({ email, password }) => {
+    setLoading(true);
+    setMessage("");
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        setMessage(`❌ ${error.message}`);
+      } else {
+        setMessage("✅ Login successful!");
+        // Redirect after login
+        setTimeout(() => (window.location.href = "/home"), 800);
+      }
+    } catch (err) {
+      setMessage("⚠️ Something went wrong. Try again.");
+    }
+
+    setLoading(false);
+  };
+
+  // -------------------------
+  // 2. Google OAuth Sign In
+  // -------------------------
   const loginWithGoogle = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: "http://localhost:5173/home", // where Supabase sends user after login
+        redirectTo: "http://localhost:5173/home", // After OAuth success
       },
     });
 
     if (error) {
       console.error(error);
-      setMessage("Failed to sign in with Google!");
+      setMessage("❌ Failed to sign in with Google.");
     }
   };
 
@@ -29,8 +60,8 @@ export default function SignIn() {
         speed={0.6}
       />
 
-      {/* Your existing sign-in card */}
-      <SignInBox />
+      {/* Email/password login card */}
+      <SignInBox onSubmit={loginWithEmail} loading={loading} />
 
       {/* Google Login Button */}
       <div style={{ textAlign: "center", marginTop: "20px" }}>
