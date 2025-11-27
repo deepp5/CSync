@@ -18,7 +18,7 @@
   /* Layout */
   width: 100%;
   max-width: 400px;
-  padding: 40px 30px;
+  padding: 32px 24px;
   margin: 0 auto;
 
   /* Centering */
@@ -84,7 +84,7 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
-  margin-bottom: 25px;
+  margin-bottom: 12px;
 }
 
 /* Input Containers */
@@ -171,7 +171,7 @@
 /* Submit Button Container */
 .submit-container {
   width: 100%;
-  margin-top: 10px;
+  margin-top: 6px;
 }
 
 .submit-container button {
@@ -214,8 +214,9 @@
   width: 100%;
   display: flex;
   align-items: center;
-  margin: 20px 0;
+  margin: 10px 0;
   position: relative;
+  gap: 8px;
 }
 
 .or::before,
@@ -233,7 +234,7 @@
 
 .or p {
   margin: 0;
-  padding: 0 20px;
+  padding: 0 10px;
   color: rgba(255, 255, 255, 0.7);
   font-size: 14px;
   font-weight: 500;
@@ -283,6 +284,71 @@
   height: 18px;
 }
 
+.google-login-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 8px; /* 20px */
+}
+
+.google-login-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 24rem; /* 384px */
+  padding: 0.6rem 1.1rem;
+  
+  /* Glassmorphism & Theme Colors */
+  background-color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  color: #333;
+  
+  font-weight: 600;
+  font-size: 1.125rem; /* 18px */
+  border-radius: 9999px; /* Fully rounded pill shape */
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  transition: all 0.3s ease-in-out;
+}
+
+.google-login-btn:hover {
+  background-color: #ffffff;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
+}
+
+.google-icon-wrapper {
+  position: absolute;
+  left: 1rem; /* 16px */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem; /* 24px */
+  height: 1.5rem; /* 24px */
+}
+
+.google-icon-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.btn-text {
+  padding-left: 1.5rem; /* Space for the icon */
+}
+
+.login-message {
+  text-align: center;
+  margin-top: 0.75rem; /* 12px */
+  font-size: 0.875rem; /* 14px */
+  color: #d1d5db; /* Light gray text */
+  font-weight: 300;
+  letter-spacing: 0.025em;
+}
+
 /* Responsive Design */
 @media (max-width: 480px) {
   .login-page-container {
@@ -307,6 +373,15 @@
     padding: 12px 18px;
     font-size: 15px;
   }
+}
+
+@media (max-width: 480px) {
+  .sign-option { gap: 10px; margin-bottom: 10px; }
+  .or { margin: 8px 0; }
+  .or p { padding: 0 8px; font-size: 12px; }
+  .submit-container { margin-top: 6px; }
+  .google-login-container { margin-top: 6px; }
+  .clear-box-container { padding: 20px 16px; }
 }
 
 @media (max-width: 400px) {

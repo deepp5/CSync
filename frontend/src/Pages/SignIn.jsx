@@ -64,7 +64,7 @@ export default function SignIn() {
       <SignInBox onSubmit={loginWithEmail} loading={loading} />
 
       {/* Google Login Button */}
-      <div style={{ textAlign: "center", marginTop: "20px" }}>
+      {/* <div style={{ textAlign: "center", marginTop: "20px" }}>
         <button
           onClick={loginWithGoogle}
           style={{
@@ -82,7 +82,7 @@ export default function SignIn() {
 
       {message && (
         <p style={{ textAlign: "center", marginTop: "10px" }}>{message}</p>
-      )}
+      )} */}
     </div>
   );
 }
