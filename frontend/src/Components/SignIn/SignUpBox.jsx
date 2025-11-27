@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import colorLogo from "../../assets/colorCSync.png";
 import "./SignUpBox.css";
+import { Link } from "react-router-dom";
 
 export default function LoginForm({ onSubmit, onGoogle, loading }) {
   const [formData, setFormData] = useState({
@@ -169,6 +170,12 @@ export default function LoginForm({ onSubmit, onGoogle, loading }) {
           </div>
           <span className="btn-text">Continue with Google</span>
         </button>
+        <p className="auth-toggle-text">
+          Already have an account?
+          <Link to="/login" className="auth-toggle-link">
+            Sign in →
+          </Link>
+        </p>
       </div>
     </div>
   );
