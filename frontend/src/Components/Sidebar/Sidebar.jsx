@@ -28,7 +28,7 @@ const Sidebar = () => {
         </button>
 
         <button className="sidebar-btn">
-          <FiPlusSquare className="icon" /> Create Listing
+          <FiPlusSquare className="icon" /> Create Post
         </button>
       </div>
 
