@@ -8,6 +8,7 @@ import Setup from "./Pages/Setup";
 import CreatePost from "./Pages/CreatePost";
 import AuthCallback from "./Pages/AuthCallback";
 import ProtectedRoute from "./Components/ProtectedRoute";
+import ProfilePage from "./Pages/ProfilePage"
 
 export default function App() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
         <Route path="/login" element={<SignIn />} />
         <Route path="/home" element={<HomePage />} />
         <Route path="/createpost" element={<CreatePost />} />
+        <Route path="/profile" element={<ProfilePage/>}/>
 
         {/* Required for Google OAuth */}
         <Route path="/auth/callback" element={<AuthCallback />} />

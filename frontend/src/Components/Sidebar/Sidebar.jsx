@@ -35,9 +35,10 @@ const Sidebar = () => {
 
       {/* Bottom Section */}
       <div className="sidebar-bottom">
-        <button className="sidebar-btn profile-btn">
+
+        <Link className="sidebar-btn profile-btn" to="/profile">
           <FiUser className="icon" /> Profile
-        </button>
+        </Link>
 
         <button className="sidebar-btn">
           <FiSettings className="icon" /> Settings

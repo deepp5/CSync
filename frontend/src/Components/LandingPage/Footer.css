@@ -1,55 +1,68 @@
 .footer-container {
-    width: 100%;
-    background-color: #000000;
-    color: #9ca3af; /* Gray-400 for a subtle look */
-    padding: 2rem 2rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: space-between;
-    border-top: 1px solid rgba(255, 255, 255, 0.1); /* Subtle divider */
-    position: relative;
-    z-index: 10;
+  width: 100%;
+  background-color: #000000;
+  color: #9ca3af;
+  padding: 2.5rem 2rem;
+  display: flex;
+  justify-content: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  z-index: 10;
+  height: 100px;
 }
 
 .footer-content {
-    width: 100%;
-    height: 100px;
-    max-width: 1750px; /* Matches NavBar max-width */
-    display: flex;
-    flex-direction: column-reverse;
-    align-items: center;
-    gap: 1rem;
+  width: 100%;
+  max-width: 1750px; /* Same as Navbar */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  text-align: center;
+  padding: 0 1rem;
+  height: 100px;
+}
+
+/* Footer links container */
+.footer-links {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap; /* Prevents overflow on small screens */
+  justify-content: center;
 }
 
 /* Desktop Layout */
 @media (min-width: 768px) {
-    .footer-content {
+  .footer-content {
     flex-direction: row;
     justify-content: space-between;
-    }
-}
+    text-align: left;
+    padding: 0 2rem;
+  }
 
-.copyright {
-    font-size: 0.875rem; /* 14px */
-    font-weight: 400;
-    color: #9ca3af;
-    padding-left: 100px;
-}
-
-.footer-links {
-    display: flex;
+  .footer-links {
+    justify-content: flex-end;
     gap: 2rem;
+    flex-wrap: wrap;
+  }
+
 }
 
 .footer-link {
-    color: #9ca3af;
-    text-decoration: none;
-    font-size: 0.875rem;
-    transition: color 0.2s ease;
+  color: #9ca3af;
+  text-decoration: none;
+  font-size: 0.875rem;
+  transition: color 0.2s ease;
 }
 
 .footer-link:hover {
-    color: #ffffff; /* White on hover */
-    text-decoration: underline;
+  color: #ffffff;
+  text-decoration: underline;
+}
+
+.copyright {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: #9ca3af;
+  margin: 0; /* Ensures clean alignment */
 }

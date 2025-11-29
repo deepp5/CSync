@@ -95,7 +95,12 @@ export default function Setup() {
 
   return (
     <div>
-      <Aurora/>
+      <Aurora
+              colorStops={["#fa4efd", "#9172f8", "#21daf2"]}
+              blend={0.5}
+              amplitude={1.15}
+              speed={0.6}
+            />
       <div className="setup-clear-box">
           <h2 className="setup-title">Finish setting up your account</h2>
 
