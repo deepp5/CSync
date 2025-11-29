@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
+import "../Components/SetUp/SetUpBox.css"
+import Aurora from "../Components/LandingPage/Aurora.jsx"
 
 export default function Setup() {
   const [user, setUser] = useState(null);
@@ -92,36 +94,50 @@ export default function Setup() {
   if (!user) return <p>Loading...</p>;
 
   return (
-    <div style={{ padding: 40 }}>
-      <h2>Finish setting up your account</h2>
+    <div>
+      <Aurora/>
+      <div className="setup-clear-box">
+          <h2 className="setup-title">Finish setting up your account</h2>
 
-      <form onSubmit={handleSetup}>
-        {/* Username */}
-        <label>Username</label>
-        <input
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          required
-        />
+          <form onSubmit={handleSetup} className="setup-form">
+            {/* Username */}
+            <div className="setup-input-group">
+              <label>Username</label>
+              <input
+                type="text"
+                className="setup-input"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Choose a username"
+                required
+                disabled={loading}
+              />
+            </div>
 
-        <br />
-        <br />
+            {/* School */}
+            <div className="setup-input-group">
+              <label>School</label>
+              <input
+                type="text"
+                className="setup-input"
+                value={school}
+                onChange={(e) => setSchool(e.target.value)}
+                placeholder="Enter your school name"
+                required
+                disabled={loading}
+              />
+            </div>
 
-        {/* School */}
-        <label>School</label>
-        <input
-          value={school}
-          onChange={(e) => setSchool(e.target.value)}
-          required
-        />
+            <div className="setup-submit">
+              <button type="submit" disabled={loading}>
+                {loading ? "Saving..." : "Continue"}
+              </button>
+            </div>
+          </form>
 
-        <br />
-        <br />
+        {error && <p className="error-message">{error}</p>}
+      </div>
 
-        <button disabled={loading}>{loading ? "Saving..." : "Continue"}</button>
-      </form>
-
-      {error && <p style={{ color: "red" }}>{error}</p>}
     </div>
   );
 }
