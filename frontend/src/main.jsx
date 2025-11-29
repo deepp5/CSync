@@ -1,9 +1,8 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App.jsx";
-import "./index.css"; // ✅ pulls Tailwind into the bundle
+import "./index.css";
 
-// used to render the App.jsx into the sever?
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
