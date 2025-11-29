@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import colorLogo from "../../assets/colorCSync.png";
 import "./SignUpBox.css";
 import { Link } from "react-router-dom";
+import show from "../../assets/ShowPasswordWhite.png";
+import hide from "../../assets/HidePasswordWhite.png";
 
 export default function LoginForm({ onSubmit, onGoogle, loading }) {
   const [formData, setFormData] = useState({
@@ -89,7 +91,14 @@ export default function LoginForm({ onSubmit, onGoogle, loading }) {
               className="toggle-password"
               onClick={() => setShowPassword(!showPassword)}
             >
-              {showPassword ? "🙈" : "👁️"}
+              <img 
+                src={showPassword ? hide : show }
+                alt={showPassword ? "Hide Password" : "Show Password"}
+              
+              />
+               
+             
+              
             </button>
 
             {errors.password && (

@@ -3,6 +3,8 @@ import colorLogo from "../../assets/colorCSync.png";
 import "./SignInBox.css";
 import {supabase} from "../../supabaseClient"
 import { Link } from "react-router-dom";
+import show from "../../assets/ShowPasswordWhite.png";
+import hide from "../../assets/HidePasswordWhite.png";
 
 export default function SignInBox({ onSubmit, onGoogle, loading }) {
   const [formData, setFormData] = useState({
@@ -109,11 +111,14 @@ export default function SignInBox({ onSubmit, onGoogle, loading }) {
               {/* Toggle password */}
               <button
                 type="button"
-                className="toggle-password"
+                className="toggle-password-signin"
                 onClick={() => setShowPassword(!showPassword)}
                 disabled={loading}
               >
-                {showPassword ? "🙈" : "👁️"}
+                <img
+                  src={showPassword ? hide : show }
+                  alt={showPassword ? "Hide Password" : "Show Password"}
+                />
               </button>
            
             </div>
