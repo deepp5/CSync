@@ -6,6 +6,7 @@ import AboutUs from "../Components/LandingPage/AboutUs";
 import FeaturesPage from "../Components/LandingPage/Features";
 import FAQ from "../Components/LandingPage/FAQ";
 import ContactUs from "../Components/LandingPage/ContactUs"
+import Footer from "../Components/LandingPage/Footer"
 
 export default function LandingPage(){
     return(
@@ -22,6 +23,8 @@ export default function LandingPage(){
             <FeaturesPage/>
             <FAQ/>
             <ContactUs/>
+            <Footer/>
+
         </div>
     );
 }
