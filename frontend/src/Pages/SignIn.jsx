@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import Aurora from "../Components/LandingPage/Aurora";
-import SignInBox from "../Components/SignIn/SignInBox";
+import SignInBox from "../Components/Registration/SignInBox";
 import { supabase } from "../supabaseClient";
 
 export default function SignIn() {
