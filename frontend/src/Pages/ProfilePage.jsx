@@ -1,10 +1,12 @@
 import React from "react";
-import Profile from "../Components/HomePage/Profile/profile.jsx"
+import Profile from "../Components/Profile/profile.jsx"
+import Sidebar from "../Components/Sidebar/Sidebar";
 
 export default function ProfilePage(){
     return (
         <div className="profile-root">
-            <Profile/>
+            <Sidebar />
+            <Profile />
         </div>
     );
 }
