@@ -92,10 +92,11 @@ const Sidebar = () => {
             {isOpen && <span>Profile</span>}
           </Link>
 
-          <button className="sidebar-btn">
+          <Link className="sidebar-btn profile-btn" to="/settings">
             <FiSettings className="icon" />
             {isOpen && <span>Settings</span>}
-          </button>
+          </Link>
+          
         </div>
       </div>
 
