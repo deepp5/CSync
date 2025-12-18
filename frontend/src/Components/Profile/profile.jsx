@@ -1,285 +1,319 @@
-import React, { useState } from "react";
-import "./Profile.css";
+// ProfilePage.jsx
+import React, { useState } from 'react';
+import './Profile.css';
+import { FiEdit2, FiGithub, FiLinkedin, FiMail } from 'react-icons/fi';
 
-export default function Profile() {
+const ProfilePage = () => {
   const [isEditing, setIsEditing] = useState(false);
-
-  // Simple local state – later you can hook this up to your backend
-  const [bio, setBio] = useState(
-    "CS student who loves backend systems, React, and learning Rust. Always excited to collaborate on innovative projects and learn new technologies."
-  );
-
-  const [currentSkills, setCurrentSkills] = useState([
-    "React",
-    "Node",
-    "Postgres",
-    "Lua",
-  ]);
-  const [learningSkills, setLearningSkills] = useState(["Rust", "Go"]);
-
-  const [socials, setSocials] = useState({
-    github: "https://github.com/jaydev",
-    linkedin: "https://www.linkedin.com/in/jaydev",
-    discord: "jaydev#1234",
-    website: "https://jaydev.dev",
+  const [profileData, setProfileData] = useState({
+    profileName: 'Profile Name',
+    username: 'Username',
+    schoolCompany: 'School/Company',
+    github: 'https://github.com/username',
+    linkedin: 'https://linkedin.com/in/username',
+    email: 'user@example.com',
+    bio: 'This is where a short concise bio of the user will be',
+    skills: ['React', 'Node.js', 'SQL', 'JavaScript', 'Python'],
+    followers: 10,
+    following: 10
   });
 
-  // In a real app you’d check logged-in user vs profile user
-  const isOwner = true;
+  const [projects, setProjects] = useState([
+    {
+      id: 1,
+      title: 'Project Title',
+      description: 'Sample description for this project. Brief and clean.',
+      skills: ['React', 'Node', 'SQL'],
+      author: 'Jay'
+    },
+    {
+      id: 2,
+      title: 'Project Title',
+      description: 'Sample description for this project. Brief and clean.',
+      skills: ['React', 'Node', 'SQL'],
+      author: 'Jay'
+    }
+  ]);
 
-  const handleToggleEdit = () => {
-    setIsEditing((prev) => !prev);
-    // here you could call an API when turning editing off
+  const [editForm, setEditForm] = useState({ ...profileData });
+  const [skillsInput, setSkillsInput] = useState('');
+
+  const handleEditToggle = () => {
+    if (isEditing) {
+      // Save changes
+      setProfileData(editForm);
+    } else {
+      // Start editing
+      setEditForm({ ...profileData });
+      setSkillsInput(profileData.skills.join(', '));
+    }
+    setIsEditing(!isEditing);
   };
 
-  const handleSkillsChange = (type, value) => {
-    const list = value
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-    if (type === "current") setCurrentSkills(list);
-    else setLearningSkills(list);
+  const handleInputChange = (field, value) => {
+    setEditForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
-  const handleSocialChange = (field, value) => {
-    setSocials((prev) => ({ ...prev, [field]: value }));
+  const handleSkillsInputChange = (e) => {
+    const value = e.target.value;
+    setSkillsInput(value);
+    
+    // Only update skills array when comma is typed (but keep comma in input)
+    const skills = value.split(',').map(s => s.trim()).filter(s => s.length > 0);
+    setEditForm(prev => ({
+      ...prev,
+      skills: skills
+    }));
+  };
+
+  const handleCancelEdit = () => {
+    setEditForm({ ...profileData });
+    setSkillsInput(profileData.skills.join(', '));
+    setIsEditing(false);
+  };
+
+  // Extract display names from URLs
+  const getDisplayName = (url, type) => {
+    if (!url) return type;
+    
+    try {
+      if (type === 'GitHub') {
+        const match = url.match(/github\.com\/([^\/]+)/);
+        return match ? match[1] : 'GitHub';
+      } else if (type === 'LinkedIn') {
+        const match = url.match(/linkedin\.com\/in\/([^\/]+)/);
+        return match ? match[1] : 'LinkedIn';
+      } else if (type === 'Email') {
+        return url.includes('@') ? url : 'Email';
+      }
+    } catch (e) {
+      return type;
+    }
+    return url;
   };
 
   return (
-    <div className="profile-container">
-      <main className="profile-content">
-        {/* Header Section */}
-        <section className="profile-header">
-          <div className="header-left">
-            <div className="avatar-wrapper">
-              <div className="avatar">JD</div>
+    <div className="profile-page">
+      <div className="profile-container">
+        {/* Profile Header Section */}
+        <div className="profile-header">
+          <div className="profile-header-left">
+            <div className="profile-picture-container">
+              <div className="profile-picture">
+                <span className="profile-initial">
+                  {profileData.profileName.charAt(0)}
+                </span>
+              </div>
+              {isEditing && (
+                <button className="edit-picture-btn">
+                  <FiEdit2 />
+                </button>
+              )}
             </div>
+
             <div className="profile-info">
-              <h1 className="display-name">Jay Developer</h1>
-              <p className="username">@jaydev</p>
-              <p className="affiliation">University of Illinois • CS Major</p>
+              {isEditing ? (
+                <>
+                  <input
+                    type="text"
+                    className="edit-input profile-name-input"
+                    value={editForm.profileName}
+                    onChange={(e) => handleInputChange('profileName', e.target.value)}
+                    placeholder="Profile Name"
+                  />
+                  <input
+                    type="text"
+                    className="edit-input username-input"
+                    value={editForm.username}
+                    onChange={(e) => handleInputChange('username', e.target.value)}
+                    placeholder="Username"
+                  />
+                  <input
+                    type="text"
+                    className="edit-input school-input"
+                    value={editForm.schoolCompany}
+                    onChange={(e) => handleInputChange('schoolCompany', e.target.value)}
+                    placeholder="School/Company"
+                  />
+                </>
+              ) : (
+                <>
+                  <h1 className="profile-name">{profileData.profileName}</h1>
+                  <p className="username">{profileData.username}</p>
+                  <p className="school-company">{profileData.schoolCompany}</p>
+                </>
+              )}
             </div>
           </div>
 
-          {isOwner && (
-            <button className="edit-profile-btn" onClick={handleToggleEdit}>
-              {isEditing ? "Save Changes" : "Edit Profile"}
-            </button>
-          )}
-        </section>
+          <div className="profile-header-right">
+            <div className="follow-stats">
+              <div className="stat">
+                <span className="stat-label">Followers:</span>
+                <span className="stat-value">{profileData.followers}</span>
+              </div>
+              <div className="stat">
+                <span className="stat-label">Following:</span>
+                <span className="stat-value">{profileData.following}</span>
+              </div>
+            </div>
 
-        {/* Bio & Skills Section */}
-        <section className="profile-section bio-skills-section">
-          {/* Bio */}
-          <div className="bio-block">
-            <h2 className="section-title">About</h2>
+            <div className="edit-profile-btn-container">
+              {isEditing ? (
+                <div className="edit-actions">
+                  <button className="save-btn" onClick={handleEditToggle}>
+                    Save
+                  </button>
+                  <button className="cancel-btn" onClick={handleCancelEdit}>
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button className="edit-profile-btn" onClick={handleEditToggle}>
+                  <FiEdit2 /> Edit
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Content Below Line - Centered */}
+        <div className="profile-content-centered">
+          {/* Social Links */}
+          <div className="social-links">
             {isEditing ? (
-              <textarea
-                className="profile-textarea"
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
-                rows={4}
-              />
+              <>
+                <div className="social-input-group">
+                  <FiGithub className="social-icon" />
+                  <input
+                    type="text"
+                    className="edit-input"
+                    value={editForm.github}
+                    onChange={(e) => handleInputChange('github', e.target.value)}
+                    placeholder="GitHub URL"
+                  />
+                </div>
+                <div className="social-input-group">
+                  <FiLinkedin className="social-icon" />
+                  <input
+                    type="text"
+                    className="edit-input"
+                    value={editForm.linkedin}
+                    onChange={(e) => handleInputChange('linkedin', e.target.value)}
+                    placeholder="LinkedIn URL"
+                  />
+                </div>
+                <div className="social-input-group">
+                  <FiMail className="social-icon" />
+                  <input
+                    type="text"
+                    className="edit-input"
+                    value={editForm.email}
+                    onChange={(e) => handleInputChange('email', e.target.value)}
+                    placeholder="Email address"
+                  />
+                </div>
+              </>
             ) : (
-              <p className="bio-text">{bio}</p>
+              <>
+                <a 
+                  href={profileData.github} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="social-link"
+                >
+                  <FiGithub className="social-icon" />
+                  <span>{getDisplayName(profileData.github, 'GitHub')}</span>
+                </a>
+                <a 
+                  href={profileData.linkedin} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="social-link"
+                >
+                  <FiLinkedin className="social-icon" />
+                  <span>{getDisplayName(profileData.linkedin, 'LinkedIn')}</span>
+                </a>
+                <a 
+                  href={`mailto:${profileData.email}`}
+                  className="social-link"
+                >
+                  <FiMail className="social-icon" />
+                  <span>{getDisplayName(profileData.email, 'Email')}</span>
+                </a>
+              </>
             )}
           </div>
 
-          {/* Skills */}
-          <div className="skills-block">
-            <h2 className="section-title">Skills</h2>
+          {/* Bio Section */}
+          <div className="bio-section">
+            <h3 className="section-title">Bio</h3>
+            {isEditing ? (
+              <textarea
+                className="edit-textarea"
+                value={editForm.bio}
+                onChange={(e) => handleInputChange('bio', e.target.value)}
+                placeholder="Write a short bio about yourself..."
+                rows="3"
+              />
+            ) : (
+              <p className="bio-text">{profileData.bio}</p>
+            )}
+          </div>
 
-            <div className="skills-group">
-              <span className="skill-label">Current:</span>
-              {isEditing ? (
+          {/* Skills Section */}
+          <div className="skills-section">
+            <h3 className="section-title">Skills</h3>
+            {isEditing ? (
+              <div className="skills-edit">
                 <input
-                  className="profile-input"
-                  placeholder="Comma-separated (e.g. React, Node, Postgres)"
-                  value={currentSkills.join(", ")}
-                  onChange={(e) =>
-                    handleSkillsChange("current", e.target.value)
-                  }
+                  type="text"
+                  className="edit-input"
+                  value={skillsInput}
+                  onChange={handleSkillsInputChange}
+                  placeholder="Enter skills separated by commas"
                 />
-              ) : (
-                <div className="skill-tags">
-                  {currentSkills.map((skill) => (
-                    <span key={skill} className="skill-tag">
-                      {skill}
-                    </span>
-                  ))}
+                <p className="helper-text">Separate skills with commas</p>
+              </div>
+            ) : (
+              <div className="skills-list">
+                {profileData.skills.map((skill, index) => (
+                  <span key={index} className="skill-tag">
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Projects Section */}
+          <div className="projects-section">
+            <h3 className="section-title">Projects</h3>
+            <div className="projects-grid">
+              {projects.map((project) => (
+                <div key={project.id} className="project-card">
+                  <div className="project-header">
+                    <h4 className="project-title">{project.title}</h4>
+                  </div>
+                  <p className="project-description">{project.description}</p>
+                  <div className="project-footer">
+                    <div className="project-skills">
+                      <span className="skills-label">Skills:</span>
+                      <span className="skills-text">{project.skills.join(', ')}</span>
+                    </div>
+                    <span className="project-author">{project.author}</span>
+                  </div>
                 </div>
-              )}
-            </div>
-
-            <div className="skills-group">
-              <span className="skill-label">Learning:</span>
-              {isEditing ? (
-                <input
-                  className="profile-input"
-                  placeholder="Comma-separated (e.g. Rust, Go)"
-                  value={learningSkills.join(", ")}
-                  onChange={(e) =>
-                    handleSkillsChange("learning", e.target.value)
-                  }
-                />
-              ) : (
-                <div className="skill-tags">
-                  {learningSkills.map((skill) => (
-                    <span key={skill} className="skill-tag learning-tag">
-                      {skill}
-                    </span>
-                  ))}
-                </div>
-              )}
+              ))}
             </div>
           </div>
-        </section>
-
-        {/* Links Section */}
-        <section className="profile-section links-section">
-          <h2 className="section-title">Links & Contact</h2>
-
-          <div className="links-grid">
-            {/* GitHub */}
-            <div className="link-row">
-              <div className="link-label">
-                <span className="social-chip">GitHub</span>
-              </div>
-              {isEditing ? (
-                <input
-                  className="profile-input"
-                  value={socials.github}
-                  onChange={(e) => handleSocialChange("github", e.target.value)}
-                  placeholder="GitHub URL"
-                />
-              ) : (
-                socials.github && (
-                  <a
-                    href={socials.github}
-                    className="social-link"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    <span>View GitHub</span>
-                  </a>
-                )
-              )}
-            </div>
-
-            {/* LinkedIn */}
-            <div className="link-row">
-              <div className="link-label">
-                <span className="social-chip">LinkedIn</span>
-              </div>
-              {isEditing ? (
-                <input
-                  className="profile-input"
-                  value={socials.linkedin}
-                  onChange={(e) =>
-                    handleSocialChange("linkedin", e.target.value)
-                  }
-                  placeholder="LinkedIn URL"
-                />
-              ) : (
-                socials.linkedin && (
-                  <a
-                    href={socials.linkedin}
-                    className="social-link"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    <span>View LinkedIn</span>
-                  </a>
-                )
-              )}
-            </div>
-
-            {/* Discord */}
-            <div className="link-row">
-              <div className="link-label">
-                <span className="social-chip">Discord</span>
-              </div>
-              {isEditing ? (
-                <input
-                  className="profile-input"
-                  value={socials.discord}
-                  onChange={(e) =>
-                    handleSocialChange("discord", e.target.value)
-                  }
-                  placeholder="Discord handle (e.g. jaydev#1234)"
-                />
-              ) : (
-                socials.discord && (
-                  <div className="social-text">{socials.discord}</div>
-                )
-              )}
-            </div>
-
-            {/* Website */}
-            <div className="link-row">
-              <div className="link-label">
-                <span className="social-chip">Website</span>
-              </div>
-              {isEditing ? (
-                <input
-                  className="profile-input"
-                  value={socials.website}
-                  onChange={(e) =>
-                    handleSocialChange("website", e.target.value)
-                  }
-                  placeholder="Personal website URL"
-                />
-              ) : (
-                socials.website && (
-                  <a
-                    href={socials.website}
-                    className="social-link"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    <span>Visit Website</span>
-                  </a>
-                )
-              )}
-            </div>
-          </div>
-        </section>
-
-        {/* Settings Section */}
-        <section className="profile-section settings-section">
-          <h2 className="section-title">Settings</h2>
-
-          <div className="settings-group">
-            <h3 className="settings-subtitle">Account Settings</h3>
-            <button className="settings-option">
-              <span>Edit Profile Info</span>
-              <span className="chevron">›</span>
-            </button>
-            <button className="settings-option">
-              <span>Edit Social Links</span>
-              <span className="chevron">›</span>
-            </button>
-            <button className="settings-option">
-              <span>Change Avatar</span>
-              <span className="chevron">›</span>
-            </button>
-          </div>
-
-          <div className="settings-group">
-            <h3 className="settings-subtitle">Privacy Settings</h3>
-            <div className="settings-option locked">
-              <div>
-                <span>Project Visibility</span>
-                <span className="visibility-badge">PUBLIC</span>
-              </div>
-              <div className="locked-indicator">
-                <span className="lock-icon">🔒</span>
-                <span className="locked-text">Cannot be changed</span>
-              </div>
-            </div>
-          </div>
-        </section>
-      </main>
+        </div>
+      </div>
     </div>
   );
-}
+};
+
+export default ProfilePage;
