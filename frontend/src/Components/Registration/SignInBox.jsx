@@ -78,7 +78,7 @@ export default function SignInBox({ onSubmit, onGoogle, loading }) {
               type="email"
               id="email"
               name="email"
-              className="username"
+              className="username-signIn"
               placeholder="Enter your email address"
               value={formData.email}
               onChange={handleInputChange}

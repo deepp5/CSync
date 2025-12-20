@@ -10,6 +10,8 @@
     position: relative;
     overflow: hidden;
     transition: transform 0.25s ease;
+
+    
 }
 
 .project-card::before {
@@ -39,6 +41,7 @@
 .project-card:hover::before {
     opacity: 1;
     animation: borderFlow 4s linear infinite;
+    
 }
 
 @keyframes borderFlow {
