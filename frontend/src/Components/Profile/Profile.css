@@ -399,7 +399,7 @@ body[data-sidebar-open="false"] .profile-page {
   margin-top: 20px;
 }
 
-.project-card {
+.project-card-profile {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
@@ -408,7 +408,7 @@ body[data-sidebar-open="false"] .profile-page {
   cursor: pointer;
 }
 
-.project-card:hover {
+.project-card-profile:hover {
   background: rgba(255, 255, 255, 0.05);
   border-color: rgba(255, 255, 255, 0.15);
   transform: translateY(-2px);
@@ -636,7 +636,7 @@ body[data-sidebar-open="false"] .profile-page {
     gap: 15px;
   }
 
-  .project-card {
+  .project-card-profile {
     padding: 20px;
   }
 

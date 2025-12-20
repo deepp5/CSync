@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import './Profile.css';
 import { FiEdit2, FiGithub, FiLinkedin, FiMail } from 'react-icons/fi';
+import Card from '../HomePage/Cards/Card';
 
 const ProfilePage = () => {
   const [isEditing, setIsEditing] = useState(false);
@@ -291,10 +292,12 @@ const ProfilePage = () => {
 
           {/* Projects Section */}
           <div className="projects-section">
-            <h3 className="section-title">Projects</h3>
+            <Card/>
+            <Card/>
+            {/* <h3 className="section-title">Projects</h3>
             <div className="projects-grid">
               {projects.map((project) => (
-                <div key={project.id} className="project-card">
+                <div key={project.id} className="project-card-profile">
                   <div className="project-header">
                     <h4 className="project-title">{project.title}</h4>
                   </div>
@@ -308,7 +311,7 @@ const ProfilePage = () => {
                   </div>
                 </div>
               ))}
-            </div>
+            </div> */}
           </div>
         </div>
       </div>
