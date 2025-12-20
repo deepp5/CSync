@@ -70,14 +70,14 @@ export default function PostForm({ mode = "create", initialData = {}, createPost
             />
           </div>
 
-          <div className="form-section">
+          {/* <div className="form-section">
             <label>Description</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Explain the idea, your goals, and what you're looking for..."
             />
-          </div>
+          </div> */}
         </div>
 
         {/* RIGHT COLUMN */}
@@ -112,6 +112,15 @@ export default function PostForm({ mode = "create", initialData = {}, createPost
           </div>
         </div>
 
+      </div>
+
+      <div className="form-section full-width">
+        <label>Description</label>
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Explain the idea, your goals, and what you're looking for..."
+        />
       </div>
 
       <button type="submit" className="submit-btn">
