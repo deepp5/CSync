@@ -1,26 +1,48 @@
-// backend/src/utils/authMiddleware.js
 import jwt from "jsonwebtoken";
-import dotenv from "dotenv";
+import jwksClient from "jwks-rsa";
 
-dotenv.config();
+const client = jwksClient({
+  jwksUri: `${process.env.SUPABASE_URL}/auth/v1/.well-known/jwks.json`,
+});
 
-// Use a simple local secret instead of JWKS
-const SECRET = process.env.JWT_SECRET || "local_dev_secret";
+function getKey(header, callback) {
+  client.getSigningKey(header.kid, (err, key) => {
+    if (err) return callback(err);
+    const signingKey = key.getPublicKey();
+    callback(null, signingKey);
+  });
+}
 
 export const verifySupabaseToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
 
-  if (!authHeader)
+  if (!authHeader) {
     return res.status(401).json({ error: "Missing Authorization header" });
+  }
 
   const token = authHeader.split(" ")[1];
 
-  try {
-    const decoded = jwt.verify(token, SECRET);
-    req.user = decoded;
-    next();
-  } catch (err) {
-    console.error("JWT verification failed:", err.message);
-    return res.status(403).json({ error: "Invalid or expired token" });
-  }
+  jwt.verify(
+    token,
+    getKey,
+    {
+      audience: "authenticated",
+      issuer: `${process.env.SUPABASE_URL}/auth/v1`,
+      algorithms: ["ES256"],
+    },
+    (err, decoded) => {
+      if (err) {
+        console.error("JWT verification failed:", err.message);
+        return res.status(403).json({ error: "Invalid token" });
+      }
+
+      // Supabase user id
+      req.user = {
+        id: decoded.sub,
+        email: decoded.email,
+      };
+
+      next();
+    }
+  );
 };

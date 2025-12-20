@@ -1,185 +1,137 @@
-// MessagingPage.jsx
-import React, { useState } from 'react';
-import './Messages.css';
-import { 
-  FiSearch, 
-  FiMoreVertical, 
-  FiSend, 
+import React, { useEffect, useState } from "react";
+import "./Messages.css";
+import {
+  FiSearch,
+  FiMoreVertical,
+  FiSend,
   FiPaperclip,
   FiSmile,
   FiPhone,
   FiVideo,
   FiCheck,
-  FiCheckCircle
-} from 'react-icons/fi';
+  FiCheckCircle,
+} from "react-icons/fi";
+import { useAuth } from "../../context/AuthContext";
 
 const Messages = () => {
-  const [selectedChat, setSelectedChat] = useState(null);
-  const [messageInput, setMessageInput] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
+  const { user, accessToken, loading } = useAuth();
 
-  // Mock data for conversations
-  const [conversations] = useState([
-    {
-      id: 1,
-      name: 'Sarah Chen',
-      username: 'sarah_c',
-      avatar: 'S',
-      lastMessage: 'Hey! Did you see the new project I posted?',
-      timestamp: '2m ago',
-      unread: 2,
-      online: true
-    },
-    {
-      id: 2,
-      name: 'Mike Rodriguez',
-      username: 'mike_r',
-      avatar: 'M',
-      lastMessage: 'Thanks for the feedback!',
-      timestamp: '15m ago',
-      unread: 0,
-      online: true
-    },
-    {
-      id: 3,
-      name: 'Alex Johnson',
-      username: 'alexj_dev',
-      avatar: 'A',
-      lastMessage: 'Can we schedule a call tomorrow?',
-      timestamp: '1h ago',
-      unread: 1,
-      online: false
-    },
-    {
-      id: 4,
-      name: 'Emma Wilson',
-      username: 'emma_w',
-      avatar: 'E',
-      lastMessage: 'Sure, I\'d love to collaborate!',
-      timestamp: '3h ago',
-      unread: 0,
-      online: false
-    },
-    {
-      id: 5,
-      name: 'David Kim',
-      username: 'david_k',
-      avatar: 'D',
-      lastMessage: 'Check out this article I found',
-      timestamp: '1d ago',
-      unread: 0,
-      online: false
-    }
-  ]);
+  const [conversations, setConversations] = useState([]);
+  const [selectedChatId, setSelectedChatId] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [messageInput, setMessageInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
-  // Mock messages for selected chat
-  const [messages, setMessages] = useState({
-    1: [
-      {
-        id: 1,
-        sender: 'Sarah Chen',
-        content: 'Hey! How are you doing?',
-        timestamp: '10:30 AM',
-        isOwn: false
-      },
-      {
-        id: 2,
-        sender: 'You',
-        content: 'Hi Sarah! I\'m doing great, thanks for asking!',
-        timestamp: '10:32 AM',
-        isOwn: true,
-        read: true
-      },
-      {
-        id: 3,
-        sender: 'Sarah Chen',
-        content: 'Did you see the new project I posted? I think you might find it interesting.',
-        timestamp: '10:35 AM',
-        isOwn: false
-      },
-      {
-        id: 4,
-        sender: 'You',
-        content: 'Not yet, but I\'ll check it out right away!',
-        timestamp: '10:36 AM',
-        isOwn: true,
-        read: true
-      },
-      {
-        id: 5,
-        sender: 'Sarah Chen',
-        content: 'Awesome! Let me know what you think. I\'d love to get your feedback.',
-        timestamp: '10:38 AM',
-        isOwn: false
-      }
-    ],
-    2: [
-      {
-        id: 1,
-        sender: 'Mike Rodriguez',
-        content: 'Thanks for the feedback on my project!',
-        timestamp: '9:15 AM',
-        isOwn: false
-      },
-      {
-        id: 2,
-        sender: 'You',
-        content: 'No problem! It looks really solid.',
-        timestamp: '9:20 AM',
-        isOwn: true,
-        read: true
-      }
-    ]
-  });
+  /* ===============================
+     FETCH CONVERSATIONS
+  =============================== */
+  useEffect(() => {
+    if (!accessToken) return;
 
-  const handleSendMessage = (e) => {
-    e.preventDefault();
-    if (!messageInput.trim() || !selectedChat) return;
+    const fetchConversations = async () => {
+      const res = await fetch("http://localhost:5051/conversations", {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
 
-    const newMessage = {
-      id: Date.now(),
-      sender: 'You',
-      content: messageInput,
-      timestamp: new Date().toLocaleTimeString('en-US', { 
-        hour: 'numeric', 
-        minute: '2-digit',
-        hour12: true 
-      }),
-      isOwn: true,
-      read: false
+      const data = await res.json();
+
+      // 🔥 Normalize backend → UI format (ONCE)
+      const formatted = data.map((c) => ({
+        id: c.userId,
+        name: `User ${c.userId}`,
+        username: c.userId,
+        avatar: c.userId?.[0]?.toUpperCase() || "?",
+        lastMessage: c.lastMessage || "",
+        timestamp: new Date(c.createdAt).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        unread: 0,
+        online: false,
+      }));
+
+      setConversations(formatted);
     };
 
-    setMessages(prev => ({
-      ...prev,
-      [selectedChat]: [...(prev[selectedChat] || []), newMessage]
-    }));
+    fetchConversations();
+  }, [accessToken]);
 
-    setMessageInput('');
+  /* ===============================
+     FETCH MESSAGES
+  =============================== */
+  useEffect(() => {
+    if (!selectedChatId || !accessToken) return;
+
+    const fetchMessages = async () => {
+      const res = await fetch(
+        `http://localhost:5051/messages/${selectedChatId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+
+      const data = await res.json();
+      setMessages(data);
+    };
+
+    fetchMessages();
+  }, [selectedChatId, accessToken]);
+
+  /* ===============================
+     SEND MESSAGE
+  =============================== */
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    if (!messageInput.trim() || !selectedChatId) return;
+
+    const res = await fetch("http://localhost:5051/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        receiverId: selectedChatId,
+        content: messageInput,
+      }),
+    });
+
+    const newMessage = await res.json();
+    setMessages((prev) => [...prev, newMessage]);
+    setMessageInput("");
   };
 
-  const filteredConversations = conversations.filter(conv =>
-    conv.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    conv.username.toLowerCase().includes(searchQuery.toLowerCase())
+  /* ===============================
+     FILTER CONVERSATIONS
+  =============================== */
+  const filteredConversations = conversations.filter(
+    (c) =>
+      c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.username.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const selectedConversation = conversations.find(c => c.id === selectedChat);
-  const currentMessages = selectedChat ? messages[selectedChat] || [] : [];
+  const selectedConversation = conversations.find(
+    (c) => c.id === selectedChatId
+  );
+
+  if (loading) return null;
 
   return (
     <div className="messaging-page">
       <div className="messaging-container">
-        
-        {/* Left Side - Conversations List */}
+        {/* LEFT PANEL */}
         <div className="conversations-panel">
           <div className="conversations-header">
             <h2 className="conversations-title">Messages</h2>
           </div>
 
-          {/* Search Bar */}
           <div className="search-container">
             <FiSearch className="search-icon" />
             <input
-              type="text"
               className="search-input"
               placeholder="Search conversations..."
               value={searchQuery}
@@ -187,31 +139,35 @@ const Messages = () => {
             />
           </div>
 
-          {/* Conversations List */}
           <div className="conversations-list">
             {filteredConversations.map((conversation) => (
               <div
                 key={conversation.id}
-                className={`conversation-item ${selectedChat === conversation.id ? 'active' : ''}`}
-                onClick={() => setSelectedChat(conversation.id)}
+                className={`conversation-item ${
+                  selectedChatId === conversation.id ? "active" : ""
+                }`}
+                onClick={() => setSelectedChatId(conversation.id)}
               >
                 <div className="conversation-avatar-container">
                   <div className="conversation-avatar">
                     {conversation.avatar}
                   </div>
-                  {conversation.online && <div className="online-indicator"></div>}
                 </div>
-                
+
                 <div className="conversation-details">
                   <div className="conversation-header">
-                    <span className="conversation-name">{conversation.name}</span>
-                    <span className="conversation-time">{conversation.timestamp}</span>
+                    <span className="conversation-name">
+                      {conversation.name}
+                    </span>
+                    <span className="conversation-time">
+                      {conversation.timestamp}
+                    </span>
                   </div>
+
                   <div className="conversation-preview">
-                    <span className="last-message">{conversation.lastMessage}</span>
-                    {conversation.unread > 0 && (
-                      <span className="unread-badge">{conversation.unread}</span>
-                    )}
+                    <span className="last-message">
+                      {conversation.lastMessage}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -219,94 +175,85 @@ const Messages = () => {
           </div>
         </div>
 
-        {/* Right Side - Chat Window */}
+        {/* RIGHT PANEL */}
         <div className="chat-panel">
           {selectedConversation ? (
             <>
               {/* Chat Header */}
               <div className="chat-header">
                 <div className="chat-header-info">
-                  <div className="chat-avatar-container">
-                    <div className="chat-avatar">
-                      {selectedConversation.avatar}
-                    </div>
-                    {selectedConversation.online && <div className="online-indicator"></div>}
+                  <div className="chat-avatar">
+                    {selectedConversation.avatar}
                   </div>
                   <div className="chat-user-info">
-                    <h3 className="chat-user-name">{selectedConversation.name}</h3>
-                    <p className="chat-user-status">
-                      {selectedConversation.online ? 'Online' : 'Offline'}
-                    </p>
+                    <h3 className="chat-user-name">
+                      {selectedConversation.name}
+                    </h3>
+                    <p className="chat-user-status">Offline</p>
                   </div>
                 </div>
-                
+
                 <div className="chat-actions">
-                  <button className="chat-action-btn">
-                    <FiPhone />
-                  </button>
-                  <button className="chat-action-btn">
-                    <FiVideo />
-                  </button>
-                  <button className="chat-action-btn">
-                    <FiMoreVertical />
-                  </button>
+                  <FiPhone />
+                  <FiVideo />
+                  <FiMoreVertical />
                 </div>
               </div>
 
-              {/* Messages Area */}
+              {/* Messages */}
               <div className="messages-container">
                 <div className="messages-list">
-                  {currentMessages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`message ${message.isOwn ? 'message-own' : 'message-other'}`}
-                    >
-                      {!message.isOwn && (
-                        <div className="message-avatar">
-                          {selectedConversation.avatar}
-                        </div>
-                      )}
-                      <div className="message-bubble">
-                        <p className="message-content">{message.content}</p>
-                        <div className="message-footer">
-                          <span className="message-time">{message.timestamp}</span>
-                          {message.isOwn && (
-                            <span className="message-status">
-                              {message.read ? (
-                                <FiCheckCircle className="read-icon" />
-                              ) : (
-                                <FiCheck className="sent-icon" />
-                              )}
+                  {messages.map((msg) => {
+                    const isOwn = msg.senderId === user.id;
+
+                    return (
+                      <div
+                        key={msg.id}
+                        className={`message ${
+                          isOwn ? "message-own" : "message-other"
+                        }`}
+                      >
+                        {!isOwn && (
+                          <div className="message-avatar">
+                            {selectedConversation.avatar}
+                          </div>
+                        )}
+
+                        <div className="message-bubble">
+                          <p className="message-content">{msg.content}</p>
+                          <div className="message-footer">
+                            <span className="message-time">
+                              {new Date(msg.createdAt).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
                             </span>
-                          )}
+                            {isOwn && (
+                              <span className="message-status">
+                                {msg.read ? <FiCheckCircle /> : <FiCheck />}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
-              {/* Message Input */}
+              {/* Input */}
               <div className="message-input-container">
-                <button className="input-action-btn">
-                  <FiPaperclip />
-                </button>
-                
+                <FiPaperclip />
                 <form onSubmit={handleSendMessage} className="message-form">
                   <input
-                    type="text"
                     className="message-input"
                     placeholder="Type a message..."
                     value={messageInput}
                     onChange={(e) => setMessageInput(e.target.value)}
                   />
                 </form>
-
-                <button className="input-action-btn">
-                  <FiSmile />
-                </button>
-
-                <button 
+                <FiSmile />
+                <button
                   className="send-btn"
                   onClick={handleSendMessage}
                   disabled={!messageInput.trim()}
@@ -316,7 +263,6 @@ const Messages = () => {
               </div>
             </>
           ) : (
-            /* No Chat Selected */
             <div className="no-chat-selected">
               <div className="no-chat-content">
                 <div className="no-chat-icon">💬</div>

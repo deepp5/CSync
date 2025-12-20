@@ -1,21 +1,24 @@
 import express from "express";
 import { PrismaClient } from "@prisma/client";
 import { verifySupabaseToken } from "../utils/authMiddleware.js";
+import { ensureUserExists } from "../utils/ensureUser.js";
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
-// ✅ Fetch all messages between logged-in user and another user
+// ✅ Get messages
 router.get("/:receiverId", verifySupabaseToken, async (req, res) => {
   try {
-    const senderId = req.user.id; // from your local JWT payload
+    const senderId = req.user.id;
     const { receiverId } = req.params;
+
+    await ensureUserExists(req.user);
 
     const messages = await prisma.message.findMany({
       where: {
         OR: [
-          { senderId: senderId.toString(), receiverId },
-          { senderId: receiverId, receiverId: senderId.toString() },
+          { senderId, receiverId },
+          { senderId: receiverId, receiverId: senderId },
         ],
       },
       orderBy: { createdAt: "asc" },
@@ -23,25 +26,35 @@ router.get("/:receiverId", verifySupabaseToken, async (req, res) => {
 
     res.json(messages);
   } catch (err) {
-    console.error("Error fetching messages:", err);
-    res.status(500).json({ error: "Server error" });
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch messages" });
   }
 });
 
-// ✅ Send a new message
+// ✅ Send message
 router.post("/", verifySupabaseToken, async (req, res) => {
   try {
-    const senderId = req.user.id.toString();
+    const senderId = req.user.id;
     const { receiverId, content } = req.body;
 
+    if (!receiverId || !content) {
+      return res.status(400).json({ error: "Missing fields" });
+    }
+
+    await ensureUserExists(req.user);
+
     const message = await prisma.message.create({
-      data: { senderId, receiverId, content },
+      data: {
+        senderId,
+        receiverId,
+        content,
+      },
     });
 
     res.json(message);
   } catch (err) {
-    console.error("Error sending message:", err);
-    res.status(500).json({ error: "Server error" });
+    console.error(err);
+    res.status(500).json({ error: "Failed to send message" });
   }
 });
 
