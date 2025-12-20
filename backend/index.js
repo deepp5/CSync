@@ -50,10 +50,13 @@ app.post("/users", async (req, res) => {
   }
 });
 
-// Get all posts
+//Get all posts
 app.get("/posts", async (req, res) => {
   try{
     const header = req.headers.authorization;
+    if (!header) {
+      return res.status(401).json({ error: "Missing Authorization header" });
+    }
     const token = header.split(' ')[1];
     const {data, error} = await supabase.auth.getUser(token);
 
@@ -75,6 +78,48 @@ app.get("/posts", async (req, res) => {
     res.status(500).json({err: "Server error"});
   }
 });
+
+//Create a post
+app.post("/posts", async (req, res) => {
+  try{
+    const head = req.headers.authorization;
+    if (!head) {
+      return res.status(401).json({ error: "Missing Authorization header" });
+    }
+    const token = head.split(' ')[1];
+    const {data, error} = await supabase.auth.getUser(token);
+
+    if(error || !data.user){
+      return res.status(401).json({err: "Invalid token ;["});
+    }
+
+    const userId = data.user.id;
+
+    const {title, header, techStack, description, category, difficulty, deadline} = req.body;
+
+    if (!title || !header || !description || !category || !difficulty || !deadline) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    const post = await prisma.post.create({
+      data: {
+        title,
+        header,
+        description,
+        techStack,
+        category,
+        difficulty,
+        deadline: new Date(deadline),
+        userId
+      }
+    });
+
+    res.status(201).json(post);
+  }catch (err){
+    console.error("POST error ;[ ", err);
+    res.status(500).json({err: "Failed to post"});
+  }
+}); 
 
 const PORT = process.env.PORT || 3001;
 

@@ -38,7 +38,7 @@ model Post {
   description   String
   category      Category
   difficulty    Difficulty
-  lookingFor    String
+  deadline      DateTime
   createdAt     DateTime @default(now())
   userId        String
 }
