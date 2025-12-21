@@ -31,6 +31,7 @@ export default function HomePage() {
       <Sidebar />
 
       <div className="home-content">
+        <h1 className="home-title">Browse Projects</h1>
         <SearchBar />
         <Grid posts={posts}/>
       </div>

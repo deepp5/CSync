@@ -8,7 +8,7 @@
   
 .home-content {
     flex: 1;
-    margin-left: 230px;
+    margin-left: 260px;
     padding-left: 30px;
     padding-right: 30px;
     color: white;
@@ -16,4 +16,20 @@
     flex-direction: column;
     height: 100vh;
     overflow-y: auto;
+}
+
+.home-title {
+    font-size: 32px;
+    font-weight: 700;
+    color: #ffffff;
+    margin-top: 24px;
+    margin-bottom: 20px;
+}
+
+.home-title {
+    font-size: 32px;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 0px;
+    margin-top: 35px;
 }
