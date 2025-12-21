@@ -114,6 +114,15 @@ export default function MyProjects() {
     return date.toLocaleDateString();
   };
 
+  if (loading) {
+    return (
+      <div className="my-projects-page">
+        <div className="my-projects-container">
+          {/* Optional: replace with skeleton later */}
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="my-projects-page">
       <div className="my-projects-container">
