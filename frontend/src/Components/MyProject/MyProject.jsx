@@ -175,9 +175,6 @@ export default function MyProjects() {
         <div className="projects-page-header">
           <div className="header-left">
             <h1 className="page-title">My Projects</h1>
-            <p className="page-subtitle">
-              Manage and organize your projects ({filteredProjects.length} {filteredProjects.length === 1 ? 'project' : 'projects'})
-            </p>
           </div>
           <button className="create-project-btn" onClick={() => navigate('/create-project')}>
             <FiPlus /> New Project
