@@ -1,13 +1,18 @@
-import React, { useEffect } from "react";
+import { useEffect, useState } from "react";
+import axios from "axios";
+import { supabase } from "../supabaseClient";
+
 import Sidebar from "../Components/Sidebar/Sidebar";
 import SearchBar from "../Components/HomePage/Search/SearchBar";
 import Grid from "../Components/HomePage/Grid/Grid";
+
 import "../Components/HomePage/HomePage.css";
-import { supabase } from ".././supabaseClient";
 
 export default function HomePage() {
+  const [posts, setPosts] = useState([]);
+
   useEffect(() => {
-    const getSession = async () => {
+    const init = async () => {
       const { data, error } = await supabase.auth.getSession();
 
       if (error) {
@@ -15,15 +20,31 @@ export default function HomePage() {
         return;
       }
 
-      if (data?.session) {
-        console.log("✅ Supabase User:", data.session.user);
-        console.log("✅ Supabase Access Token:", data.session.access_token);
-      } else {
+      if (!data?.session) {
         console.log("❌ No active session");
+        return;
+      }
+
+      const session = data.session;
+
+      // ✅ Debug logs (safe to remove later)
+      console.log("✅ Supabase User:", session.user);
+      console.log("✅ Supabase Access Token:", session.access_token);
+
+      try {
+        const response = await axios.get("http://localhost:5051/posts", {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        });
+
+        setPosts(response.data);
+      } catch (err) {
+        console.error("Failed to fetch posts:", err);
       }
     };
 
-    getSession();
+    init();
   }, []);
 
   return (
@@ -32,7 +53,7 @@ export default function HomePage() {
 
       <div className="home-content">
         <SearchBar />
-        <Grid />
+        <Grid posts={posts} />
       </div>
     </div>
   );

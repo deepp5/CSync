@@ -28,3 +28,33 @@ model Message {
 }
 
 
+enum Difficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum Category {
+  WEB_DEVELOPMENT
+  MOBILE
+  AI_ML
+  GAME_DEV
+  SYSTEMS
+  OTHER
+}
+
+model Post {
+  id            String @id @default(uuid())
+  title         String
+  header        String
+  techStack     String[]
+  description   String
+  category      Category
+  difficulty    Difficulty
+  deadline      DateTime
+  createdAt     DateTime @default(now())
+  userId        String
+}
+
+
+

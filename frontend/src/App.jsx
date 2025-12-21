@@ -13,6 +13,8 @@ import TestAuth from "./Pages/TestAuth";
 import SettingsPage from "./Pages/SettingsPage";
 import PostDetailPage from "./Pages/PostDetailPage";
 import MessagesPage from "./Pages/MessagesPage";
+import ProfilePage from "./Pages/ProfilePage";
+import MyProjectPage from "./Pages/MyProjectPage";
 
 export default function App() {
   return (
@@ -24,10 +26,11 @@ export default function App() {
         <Route path="/login" element={<SignIn />} />
         <Route path="/home" element={<HomePage />} />
         <Route path="/createpost" element={<CreatePost />} />
-        <Route path="/profile" element={<ProfilePage/>}/>
-        <Route path="/settings" element={<SettingsPage/>}/>
-        <Route path="/post/:id" element={<PostDetailPage/>}/>
-        <Route path="/messages" element={<MessagesPage/>}/>
+        <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/post/:id" element={<PostDetailPage />} />
+        <Route path="/messages" element={<MessagesPage />} />
+        <Route path="/myproject" element={<MyProjectPage />} />
 
         {/* Required for Google OAuth */}
         <Route path="/auth/callback" element={<AuthCallback />} />

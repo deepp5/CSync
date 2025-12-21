@@ -1,8 +1,17 @@
 // Sidebar.jsx
 import React, { useState, useEffect } from "react";
 import "./Sidebar.css";
-import whiteCSync from '../../assets/colorCSync.png';
-import { FiHome, FiMessageSquare, FiPlusSquare, FiUser, FiSettings, FiList, FiX, FiMenu } from "react-icons/fi";
+import whiteCSync from "../../assets/colorCSync.png";
+import {
+  FiHome,
+  FiMessageSquare,
+  FiPlusSquare,
+  FiUser,
+  FiSettings,
+  FiList,
+  FiX,
+  FiMenu,
+} from "react-icons/fi";
 import { Link } from "react-router-dom";
 
 const Sidebar = () => {
@@ -25,10 +34,10 @@ const Sidebar = () => {
     handleResize();
 
     // Add event listener
-    window.addEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
 
     // Cleanup
-    return () => window.removeEventListener('resize', handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   const toggleSidebar = () => {
@@ -37,7 +46,7 @@ const Sidebar = () => {
 
   // Notify other components about sidebar state
   useEffect(() => {
-    document.body.setAttribute('data-sidebar-open', isOpen);
+    document.body.setAttribute("data-sidebar-open", isOpen);
   }, [isOpen]);
 
   return (
@@ -50,14 +59,17 @@ const Sidebar = () => {
       )}
 
       {/* Sidebar */}
-      <div className={`sidebar ${isOpen ? 'open' : 'closed'}`}>
+      <div className={`sidebar ${isOpen ? "open" : "closed"}`}>
         {/* Close Button */}
         <button className="sidebar-close-btn" onClick={toggleSidebar}>
           <FiX />
         </button>
 
         {/* Logo */}
-        <div className="sidebar-logo" onClick={() => window.location.href = "/home"}>
+        <div
+          className="sidebar-logo"
+          onClick={() => (window.location.href = "/home")}
+        >
           <img src={whiteCSync} className="logo-img" alt="CSync Logo" />
           {isOpen && <h2>CSync</h2>}
         </div>
@@ -84,6 +96,9 @@ const Sidebar = () => {
             {isOpen && <span>Create Post</span>}
           </Link>
         </div>
+        <Link className="sidebar-btn" to="/myproject">
+          <FiList className="icon" /> My Projects
+        </Link>
 
         {/* Bottom Section */}
         <div className="sidebar-bottom">
@@ -96,7 +111,6 @@ const Sidebar = () => {
             <FiSettings className="icon" />
             {isOpen && <span>Settings</span>}
           </Link>
-          
         </div>
       </div>
 
