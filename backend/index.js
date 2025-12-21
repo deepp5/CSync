@@ -7,17 +7,13 @@ import { Server } from "socket.io";
 
 import messageRoutes from "./src/routes/messageRoutes.js";
 import conversationRoutes from "./src/routes/conversationRoutes.js";
-import { createClient } from "@supabase/supabase-js";
+import { verifySupabaseToken } from "./src/utils/authMiddleware.js";
 
 dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
 const prisma = new PrismaClient();
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
-);
 
 app.use(cors());
 app.use(express.json());
@@ -33,7 +29,7 @@ app.use("/messages", messageRoutes);
 app.use("/conversations", conversationRoutes);
 
 // ===========================
-// SOCKET.IO (REAL-TIME CHAT)
+// SOCKET.IO
 // ===========================
 const io = new Server(server, {
   cors: { origin: "*", methods: ["GET", "POST"] },
@@ -63,25 +59,18 @@ io.on("connection", (socket) => {
   });
 });
 
-//Get all posts
-app.get("/posts", async (req, res) => {
+// ===========================
+// POSTS (JWT AUTH)
+// ===========================
+
+// Get all posts (except mine)
+app.get("/posts", verifySupabaseToken, async (req, res) => {
   try {
-    const header = req.headers.authorization;
-    if (!header) {
-      return res.status(401).json({ error: "Missing Authorization header" });
-    }
-    const token = header.split(" ")[1];
-    const { data, error } = await supabase.auth.getUser(token);
-
-    if (error || !data.user) {
-      return res.status(401).json({ err: "Invalid token ;[" });
-    }
-
-    const userId = data.user.id;
+    const userId = req.user.id;
 
     const posts = await prisma.post.findMany({
       where: {
-        NOT: { userId: userId },
+        NOT: { userId },
       },
     });
 
@@ -92,21 +81,10 @@ app.get("/posts", async (req, res) => {
   }
 });
 
-//Create a post
-app.post("/posts", async (req, res) => {
+// Create post
+app.post("/posts", verifySupabaseToken, async (req, res) => {
   try {
-    const head = req.headers.authorization;
-    if (!head) {
-      return res.status(401).json({ err: "Missing Authorization header" });
-    }
-    const token = head.split(" ")[1];
-    const { data, error } = await supabase.auth.getUser(token);
-
-    if (error || !data.user) {
-      return res.status(401).json({ err: "Invalid token ;[" });
-    }
-
-    const userId = data.user.id;
+    const userId = req.user.id;
 
     const {
       title,
@@ -144,140 +122,24 @@ app.post("/posts", async (req, res) => {
 
     res.status(201).json(post);
   } catch (err) {
-    console.error("POST error ;[ ", err);
+    console.error(err);
     res.status(500).json({ err: "Failed to post" });
   }
 });
 
-//Edit a post
-app.put("/posts/:id", async (req, res) => {
+// Get my posts
+app.get("/posts/me", verifySupabaseToken, async (req, res) => {
   try {
-    const head = req.headers.authorization;
-    if (!head) {
-      res.status(401).json({ error: "Missing Authorization header" });
-      return;
-    }
-    const token = head.split(" ")[1];
-    const { data, error } = await supabase.auth.getUser(token);
-
-    if (error || !data.user) {
-      res.status(401).json({ err: "Invalid token ;[" });
-    }
-
-    const userId = data.user.id;
-    const postId = req.params.id;
-
-    const existingPost = await prisma.post.findUnique({
-      where: { id: postId },
-    });
-
-    if (!existingPost || existingPost.userId != userId) {
-      res.status(403).json({ err: "Not authorized to edit this post" });
-    }
-
-    const {
-      title,
-      header,
-      techStack,
-      description,
-      category,
-      difficulty,
-      deadline,
-    } = req.body;
-    if (
-      !title ||
-      !header ||
-      !description ||
-      !category ||
-      !difficulty ||
-      !deadline
-    ) {
-      return res.status(400).json({ err: "Missing required fields" });
-    }
-
-    const post = await prisma.post.update({
-      where: { id: postId },
-      data: {
-        title,
-        header,
-        techStack,
-        description,
-        category,
-        difficulty,
-        deadline: new Date(deadline),
-      },
-    });
-    res.json(post);
-  } catch (err) {
-    console.error("PUT error :[ ", err);
-    res.status(500).json({ err: "Failed to edit post." });
-  }
-});
-
-//Delete a post
-app.delete("/posts/:id", async (req, res) => {
-  try {
-    const header = req.headers.authorization;
-    if (!header) {
-      res.status(401).json({ error: "Missing Authorization header" });
-      return;
-    }
-
-    const token = header.split(" ")[1];
-    const { data, error } = await supabase.auth.getUser(token);
-
-    if (error || !data.user) {
-      res.status(401).json({ error: "Invalid token ;[" });
-      return;
-    }
-
-    const userId = data.user.id;
-    const postId = req.params.id;
-
-    const existingPost = await prisma.post.findUnique({
-      where: { id: postId },
-    });
-
-    if (!existingPost || existingPost.userId != userId) {
-      res.status(403).json({ err: "Not authorized to delete this post" });
-      return;
-    }
-
-    await prisma.post.delete({
-      where: { id: postId },
-    });
-    res.status(200).json({ message: "Post deleted" });
-  } catch (err) {
-    console.error("DELETE failed ;{", err);
-    res.status(500).json({ err: "Failed to delete :[" });
-  }
-});
-
-//Get only users posts
-app.get("/posts/me", async (req, res) => {
-  try {
-    const header = req.headers.authorization;
-    if (!header) {
-      res.status(401).json({ error: "Missing Authorization header" });
-      return;
-    }
-    const token = header.split(" ")[1];
-    const { data, error } = await supabase.auth.getUser(token);
-
-    if (error || !data.user) {
-      res.status(401).json({ error: "Invalid token ;[ " });
-      return;
-    }
-
-    const userId = data.user.id;
+    const userId = req.user.id;
 
     const posts = await prisma.post.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },
     });
-    res.status(200).json(posts);
+
+    res.json(posts);
   } catch (err) {
-    console.error("GET my posts failed :[ ", err);
+    console.error(err);
     res.status(500).json({ err: "Failure" });
   }
 });
