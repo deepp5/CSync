@@ -16,7 +16,7 @@ function getKey(header, callback) {
 export const verifySupabaseToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
 
-  if (!authHeader?.startsWith("Bearer ")) {
+  if (!authHeader) {
     return res.status(401).json({ error: "Missing Authorization header" });
   }
 
@@ -28,13 +28,15 @@ export const verifySupabaseToken = (req, res, next) => {
     {
       audience: "authenticated",
       issuer: `${process.env.SUPABASE_URL}/auth/v1`,
-      algorithms: ["RS256"], // ✅ FIXED
+      algorithms: ["ES256"],
     },
     (err, decoded) => {
       if (err) {
         console.error("JWT verification failed:", err.message);
         return res.status(403).json({ error: "Invalid token" });
       }
+
+      // Supabase user id
       req.user = {
         id: decoded.sub,
         email: decoded.email,
