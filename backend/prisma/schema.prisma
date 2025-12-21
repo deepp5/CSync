@@ -42,3 +42,6 @@ model Post {
   createdAt     DateTime @default(now())
   userId        String
 }
+
+
+
