@@ -28,7 +28,7 @@ const Sidebar = () => {
             <FiList className="icon" /> My Projects
         </Link>
 
-        <Link className="sidebar-btn" to="/createpost">
+        <Link className="sidebar-btn" to="/create-project">
           <FiPlusSquare className="icon" /> Create Post
         </Link>
       </div>

@@ -20,7 +20,7 @@ export default function App() {
         <Route path="/register" element={<SignUp />} />
         <Route path="/login" element={<SignIn />} />
         <Route path="/home" element={<HomePage />} />
-        <Route path="/createpost" element={<CreatePost />} />
+        <Route path="/create-project" element={<CreatePost />} />
         <Route path="/edit-project/:id" element={<CreatePost />} />
         <Route path="/profile" element={<ProfilePage/>}/>
         <Route path="/my-projects" element={<MyProjectPage/>}/>
