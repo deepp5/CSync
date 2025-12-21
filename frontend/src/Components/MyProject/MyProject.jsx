@@ -266,18 +266,6 @@ export default function MyProjects() {
                         <div className="card-menu-dropdown">
                           <button 
                             className="menu-item"
-                            onClick={() => handleViewProject(project.id)}
-                          >
-                            <FiEye /> View
-                          </button>
-                          <button 
-                            className="menu-item"
-                            onClick={() => handleEditProject(project.id)}
-                          >
-                            <FiEdit2 /> Edit
-                          </button>
-                          <button 
-                            className="menu-item"
                             onClick={() => handleToggleVisibility(project.id)}
                           >
                             {project.status === 'public' ? <FiEyeOff /> : <FiEye />}
@@ -285,9 +273,9 @@ export default function MyProjects() {
                           </button>
                           <button 
                             className="menu-item"
-                            onClick={() => handleDuplicateProject(project.id)}
+                            onClick={() => handleEditProject(project.id)}
                           >
-                            <FiCopy /> Duplicate
+                            <FiEdit2 /> Edit
                           </button>
                           <button 
                             className="menu-item"
@@ -344,27 +332,6 @@ export default function MyProjects() {
                     </span>
                   </div>
 
-                  {/* Quick Actions */}
-                  <div className="card-actions">
-                    <button 
-                      className="action-btn-quick"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEditProject(project.id);
-                      }}
-                    >
-                      <FiEdit2 /> Edit
-                    </button>
-                    <button 
-                      className="action-btn-quick"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleViewProject(project.id);
-                      }}
-                    >
-                      <FiEye /> View
-                    </button>
-                  </div>
                 </div>
               );
             })}
