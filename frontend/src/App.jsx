@@ -13,7 +13,6 @@ import TestAuth from "./Pages/TestAuth";
 import SettingsPage from "./Pages/SettingsPage";
 import PostDetailPage from "./Pages/PostDetailPage";
 import MessagesPage from "./Pages/MessagesPage";
-import ProfilePage from "./Pages/ProfilePage";
 import MyProjectPage from "./Pages/MyProjectPage";
 
 export default function App() {
