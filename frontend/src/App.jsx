@@ -8,7 +8,7 @@ import Setup from "./Pages/Setup";
 import CreatePost from "./Pages/CreatePost";
 import AuthCallback from "./Pages/AuthCallback";
 import ProtectedRoute from "./Components/ProtectedRoute";
-import ProfilePage from "./Pages/ProfilePage";
+
 import TestAuth from "./Pages/TestAuth";
 import SettingsPage from "./Pages/SettingsPage";
 import PostDetailPage from "./Pages/PostDetailPage";
