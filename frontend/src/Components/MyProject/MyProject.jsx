@@ -1,6 +1,8 @@
 // MyProjectsPage.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from "axios";
+import { supabase } from "../../supabaseClient";
 import './MyProject.css';
 import { 
   FiEdit2, 
@@ -22,57 +24,26 @@ export default function MyProjects() {
   const [selectedProject, setSelectedProject] = useState(null);
   const [showMenu, setShowMenu] = useState(null);
 
-  // Mock projects data - replace with backend data
-  const [projects, setProjects] = useState([
-    {
-      id: 1,
-      title: 'Real-Time Collaboration Platform',
-      description: 'A comprehensive real-time collaboration tool with live editing, video conferencing, and project management features.',
-      skills: ['React', 'Node.js', 'Socket.io', 'MongoDB'],
-      status: 'public',
-      likes: 45,
-      views: 320,
-      comments: 12,
-      createdAt: '2024-01-15',
-      updatedAt: '2024-01-20'
-    },
-    {
-      id: 2,
-      title: 'E-Commerce Dashboard',
-      description: 'Modern e-commerce admin dashboard with analytics, inventory management, and order tracking capabilities.',
-      skills: ['React', 'TypeScript', 'PostgreSQL', 'Express'],
-      status: 'public',
-      likes: 32,
-      views: 215,
-      comments: 8,
-      createdAt: '2024-01-10',
-      updatedAt: '2024-01-18'
-    },
-    {
-      id: 3,
-      title: 'AI-Powered Task Manager',
-      description: 'Smart task management app that uses AI to prioritize and suggest optimal task scheduling.',
-      skills: ['Python', 'TensorFlow', 'React', 'FastAPI'],
-      status: 'private',
-      likes: 0,
-      views: 0,
-      comments: 0,
-      createdAt: '2024-01-05',
-      updatedAt: '2024-01-22'
-    },
-    {
-      id: 4,
-      title: 'Social Media Analytics Tool',
-      description: 'Track and analyze social media performance across multiple platforms with detailed insights.',
-      skills: ['Vue.js', 'Python', 'Redis', 'Chart.js'],
-      status: 'draft',
-      likes: 0,
-      views: 0,
-      comments: 0,
-      createdAt: '2024-01-25',
-      updatedAt: '2024-01-25'
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchMyProjects() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const token = session.access_token;
+
+      const res = await axios.get("http://localhost:5051/posts/me", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      setProjects(res.data);
+      setLoading(false);
     }
-  ]);
+
+    fetchMyProjects();
+  }, []);
 
   // Filter and search projects
   const filteredProjects = projects.filter(project => {
@@ -82,58 +53,34 @@ export default function MyProjects() {
     return matchesSearch && matchesFilter;
   });
 
-  const handleViewProject = (projectId) => {
-    navigate(`/post/${projectId}`);
-  };
+  // Removed handleViewProject function
 
   const handleEditProject = (projectId) => {
     navigate(`/edit-project/${projectId}`);
     setShowMenu(null);
   };
 
-  const handleDeleteProject = (projectId) => {
-    const confirmed = window.confirm('Are you sure you want to delete this project? This action cannot be undone.');
-    
-    if (confirmed) {
-      setProjects(projects.filter(p => p.id !== projectId));
-      setShowMenu(null);
-    }
-  };
+  const handleDeleteProject = async (projectId) => {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this project? This action cannot be undone."
+    );
+    if (!confirmed) return;
 
-  const handleToggleVisibility = (projectId) => {
-    setProjects(projects.map(p => {
-      if (p.id === projectId) {
-        return {
-          ...p,
-          status: p.status === 'public' ? 'private' : 'public'
-        };
-      }
-      return p;
-    }));
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    const token = session.access_token;
+
+    await axios.delete(`http://localhost:5051/posts/${projectId}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    setProjects(projects.filter(p => p.id !== projectId));
     setShowMenu(null);
   };
 
-  const handleDuplicateProject = (projectId) => {
-    const project = projects.find(p => p.id === projectId);
-    if (project) {
-      const newProject = {
-        ...project,
-        id: Date.now(),
-        title: `${project.title} (Copy)`,
-        status: 'draft',
-        likes: 0,
-        views: 0,
-        comments: 0,
-        createdAt: new Date().toISOString().split('T')[0],
-        updatedAt: new Date().toISOString().split('T')[0]
-      };
-      setProjects([newProject, ...projects]);
-      setShowMenu(null);
-    }
-  };
-
   const handleShareProject = (projectId) => {
-    const url = `${window.location.origin}/post/${projectId}`;
+    const url = window.location.origin;
     if (navigator.share) {
       navigator.share({
         title: 'Check out my project!',
@@ -170,7 +117,6 @@ export default function MyProjects() {
   return (
     <div className="my-projects-page">
       <div className="my-projects-container">
-        
         {/* Header */}
         <div className="projects-page-header">
           <div className="header-left">
@@ -244,7 +190,10 @@ export default function MyProjects() {
               const statusBadge = getStatusBadge(project.status);
               
               return (
-                <div key={project.id} className="project-card-manage">
+                <div
+                  key={project.id}
+                  className="project-card-manage"
+                >
                   {/* Card Header */}
                   <div className="card-header-manage">
                     <span className={`status-badge ${statusBadge.class}`}>
@@ -254,7 +203,10 @@ export default function MyProjects() {
                     <div className="card-menu-container">
                       <button 
                         className="card-menu-btn"
-                        onClick={() => setShowMenu(showMenu === project.id ? null : project.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowMenu(showMenu === project.id ? null : project.id);
+                        }}
                       >
                         <FiMoreVertical />
                       </button>
@@ -263,27 +215,29 @@ export default function MyProjects() {
                         <div className="card-menu-dropdown">
                           <button 
                             className="menu-item"
-                            onClick={() => handleToggleVisibility(project.id)}
-                          >
-                            {project.status === 'public' ? <FiEyeOff /> : <FiEye />}
-                            Make {project.status === 'public' ? 'Private' : 'Public'}
-                          </button>
-                          <button 
-                            className="menu-item"
-                            onClick={() => handleEditProject(project.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditProject(project.id);
+                            }}
                           >
                             <FiEdit2 /> Edit
                           </button>
                           <button 
                             className="menu-item"
-                            onClick={() => handleShareProject(project.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleShareProject(project.id);
+                            }}
                           >
                             <FiShare2 /> Share
                           </button>
                           <div className="menu-divider"></div>
                           <button 
                             className="menu-item danger"
-                            onClick={() => handleDeleteProject(project.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteProject(project.id);
+                            }}
                           >
                             <FiTrash2 /> Delete
                           </button>
@@ -295,35 +249,24 @@ export default function MyProjects() {
                   {/* Card Content */}
                   <div 
                     className="card-content-manage"
-                    onClick={() => handleViewProject(project.id)}
                   >
                     <h3 className="card-title-manage">{project.title}</h3>
                     <p className="card-description-manage">{project.description}</p>
                     
                     <div className="card-skills-manage">
-                      {project.skills.slice(0, 3).map((skill, index) => (
+                      {(project.techStack || []).slice(0, 3).map((skill, index) => (
                         <span key={index} className="skill-badge">{skill}</span>
                       ))}
-                      {project.skills.length > 3 && (
-                        <span className="skill-badge more">+{project.skills.length - 3}</span>
+                      {project.techStack && project.techStack.length > 3 && (
+                        <span className="skill-badge more">
+                          +{project.techStack.length - 3}
+                        </span>
                       )}
                     </div>
                   </div>
 
                   {/* Card Footer */}
                   <div className="card-footer-manage">
-                    <div className="card-stats">
-                      {project.status === 'public' && (
-                        <>
-                          <span className="stat">❤️ {project.likes}</span>
-                          <span className="stat">👁️ {project.views}</span>
-                          <span className="stat">💬 {project.comments}</span>
-                        </>
-                      )}
-                      {project.status !== 'public' && (
-                        <span className="stat-muted">Not published</span>
-                      )}
-                    </div>
                     <span className="update-time">
                       Updated {getTimeAgo(project.updatedAt)}
                     </span>

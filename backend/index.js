@@ -239,6 +239,42 @@ app.get("/posts/me", async (req, res) => {
   }
 });
 
+//Get single post for edit
+app.get("/posts/:id", async (req, res) => {
+  try {
+    const header = req.headers.authorization;
+    if (!header) {
+      return res.status(401).json({ error: "Missing Authorization header" });
+    }
+
+    const token = header.split(" ")[1];
+    const { data, error } = await supabase.auth.getUser(token);
+
+    if (error || !data.user) {
+      return res.status(401).json({ error: "Invalid token" });
+    }
+
+    const postId = req.params.id;
+
+    const post = await prisma.post.findUnique({
+      where: { id: postId }
+    });
+
+    if (!post) {
+      return res.status(404).json({ error: "Post not found" });
+    }
+
+    if (post.userId !== data.user.id) {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+
+    res.status(200).json(post);
+  } catch (err) {
+    console.error("GET post by id failed:", err);
+    res.status(500).json({ error: "Failed to fetch post" });
+  }
+});
+
 const PORT = process.env.PORT || 3001;
 
 app.listen(PORT, () => {

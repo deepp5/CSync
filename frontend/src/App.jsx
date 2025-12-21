@@ -11,7 +11,6 @@ import ProtectedRoute from "./Components/ProtectedRoute";
 import ProfilePage from "./Pages/ProfilePage"
 import MyProjectPage from "./Pages/MyProjectPage";
 
-
 export default function App() {
   return (
     <Router>
@@ -22,8 +21,9 @@ export default function App() {
         <Route path="/login" element={<SignIn />} />
         <Route path="/home" element={<HomePage />} />
         <Route path="/createpost" element={<CreatePost />} />
+        <Route path="/edit-project/:id" element={<CreatePost />} />
         <Route path="/profile" element={<ProfilePage/>}/>
-        <Route path="/myproject" element={<MyProjectPage/>}/>
+        <Route path="/my-projects" element={<MyProjectPage/>}/>
 
         {/* Required for Google OAuth */}
         <Route path="/auth/callback" element={<AuthCallback />} />
@@ -37,8 +37,6 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-
-        <Route path="/home" element={<HomePage />} />
 
         <Route path="/setup" element={<Setup />} />
       </Routes>

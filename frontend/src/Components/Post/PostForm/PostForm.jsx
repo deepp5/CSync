@@ -1,7 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./PostForm.css";
 
-export default function PostForm({ mode = "create", initialData = {}, createPost}) {
+export default function PostForm({
+  mode = "create",
+  initialData = {},
+  createPost,
+  updatePost
+}) {
   const [title, setTitle] = useState(initialData.title || "");
   const [header, setHeader] = useState(initialData.header || "");
   const [techStack, setTech] = useState(initialData.tech || "");
@@ -10,6 +15,22 @@ export default function PostForm({ mode = "create", initialData = {}, createPost
   const [category, setCategory] = useState(initialData.category || "WEB_DEVELOPMENT");
   const [difficulty, setDifficulty] = useState(initialData.difficulty || "BEGINNER");
   const [deadline, setDeadline] = useState(initialData.deadline || "");
+
+  useEffect(() => {
+    if (mode !== "edit") return;
+
+    setTitle(initialData.title || "");
+    setHeader(initialData.header || "");
+    setTech((initialData.techStack || []).join(", "));
+    setDescription(initialData.description || "");
+    setCategory(initialData.category || "WEB_DEVELOPMENT");
+    setDifficulty(initialData.difficulty || "BEGINNER");
+    setDeadline(
+      initialData.deadline
+        ? initialData.deadline.split("T")[0]
+        : ""
+    );
+  }, [initialData, mode]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -23,9 +44,12 @@ export default function PostForm({ mode = "create", initialData = {}, createPost
       deadline,
     };
 
-    const success = await createPost(data);
+    const success =
+      mode === "edit"
+        ? await updatePost(data)
+        : await createPost(data);
 
-    if (success) {
+    if (success && mode === "create") {
       setTitle("");
       setHeader("");
       setTech("");

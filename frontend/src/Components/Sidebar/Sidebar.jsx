@@ -24,7 +24,7 @@ const Sidebar = () => {
           <FiMessageSquare className="icon" /> Messages
         </button>
 
-        <Link className="sidebar-btn" to='/myproject'>
+        <Link className="sidebar-btn" to='/my-projects'>
             <FiList className="icon" /> My Projects
         </Link>
 
