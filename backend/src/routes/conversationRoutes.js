@@ -26,6 +26,7 @@ router.get("/", verifySupabaseToken, async (req, res) => {
       take: 200, // safety limit
     });
 
+    //hellio are we in ssame branf
     // Keep the latest message per partner
     const map = new Map();
 
