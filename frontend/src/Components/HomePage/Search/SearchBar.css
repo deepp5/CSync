@@ -8,10 +8,25 @@
     background: #0a0a0b;  
     padding: 0px 0 16px; 
   }
+
+.search-bar-wrapper {
+    flex: 1;
+    position: relative;
+}
+
+.search-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 18px;
+    pointer-events: none;
+}
   
 .search-input {
-    flex: 1;
-    padding: 12px 16px;
+    width: 100%;
+    padding: 12px 16px 12px 45px;
     background: #111113;
     border: 1px solid rgba(255,255,255,0.1);
     border-radius: 8px;
