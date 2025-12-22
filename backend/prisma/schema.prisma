@@ -7,14 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  password  String
-  createdAt DateTime @default(now())
-}
-
 enum Difficulty {
   BEGINNER
   INTERMEDIATE
@@ -36,8 +28,18 @@ enum Status {
   PUBLIC
 }
 
+model User {
+  id        String      @id
+  name      String
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+
+  posts     Post[]
+}
+
 model Post {
-  id            String @id @default(uuid())
+  id            String      @id @default(uuid())
   title         String
   header        String
   techStack     String[]
@@ -45,11 +47,12 @@ model Post {
   category      Category
   difficulty    Difficulty
   deadline      DateTime
-  status        Status @default(DRAFT)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  userId        String
-}
+  status        Status      @default(DRAFT)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 
+  userId        String?
+  user          User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
 
 
