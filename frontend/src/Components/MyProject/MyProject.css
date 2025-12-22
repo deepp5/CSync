@@ -103,7 +103,7 @@ body[data-sidebar-open="false"] .my-projects-page {
 }
 
 .search-input:focus {
-  border-color: #21daf2;
+  border-color: #fa4efd;
   background: rgba(255, 255, 255, 0.08);
 }
 

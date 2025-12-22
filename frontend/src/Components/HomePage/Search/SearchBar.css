@@ -37,25 +37,28 @@
 
 .search-input:hover{
     outline: none;
-    border-color: #ffffff;
+    border-color: rgba(250, 78, 253, 0.5);
 }
   
 .search-input:focus {
     outline: none;
-    border-color: #ffffff;
+    border-color: #fa4efd;
 }
   
 .filter-btn {
-    padding: 12px 16px;
-    background: #111113;
-    color: white;
-    border-radius: 8px;
-    border: 1px solid rgba(255,255,255,0.1);
+    padding: 10px 20px;
+    background: rgba(250, 78, 253, 0.05);
+    color: rgba(250, 78, 253, 0.8);
+    border-radius: 999px;
+    border: 1px solid rgba(250, 78, 253, 0.3);
     cursor: pointer;
-    font-size: 15px;
-    transition: 0.2s ease;
+    font-size: 14px;
+    font-weight: 500;
+    transition: border 0.25s ease, color 0.25s ease, background 0.25s ease;
 }
   
 .filter-btn:hover {
-    border-color: #ffffff;
+    border-color: #fa4efd;
+    color: #fa4efd;
+    background: rgba(250, 78, 253, 0.15);
 }
