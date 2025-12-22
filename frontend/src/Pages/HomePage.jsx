@@ -16,7 +16,7 @@ export default function HomePage() {
       if(!session){ return; }
       const token = session.access_token;
 
-      const response = await axios.get("http://localhost:5051/post", {
+      const response = await axios.get("http://localhost:5051/posts", {
         headers: {Authorization: `Bearer ${token}`}
       });
 

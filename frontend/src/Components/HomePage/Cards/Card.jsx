@@ -14,10 +14,10 @@ export default function Card(props) {
 
   const getDifficultyLabel = (difficulty) => {
     switch(difficulty) {
-      case 'BEGINNER': return 'Easy';
-      case 'INTERMEDIATE': return 'Medium';
-      case 'ADVANCED': return 'Hard';
-      default: return 'Medium';
+      case 'BEGINNER': return 'Beginner';
+      case 'INTERMEDIATE': return 'Intermediate';
+      case 'ADVANCED': return 'Advanced';
+      default: return 'Intermediate';
     }
   };
   const navigate = useNavigate();
