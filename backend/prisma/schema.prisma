@@ -10,11 +10,48 @@ datasource db {
 model User {
   id                String    @id
   name              String
+  username          String    @unique
   email             String    @unique
   createdAt         DateTime  @default(now())
+  profilePicture    String? 
+  bio               String?   
+  skills            String[]  
+  githubUrl         String?   
+  linkedinUrl       String?   
+  schoolCompany     String?   
+  isOAuthUser       Boolean   @default(false) 
+  oauthProvider     String?   
+  updatedAt         DateTime  @updatedAt
+  
+  
+  posts             Post[]    @relation("UserPosts")
   messagesSent      Message[] @relation("SentMessages")
   messagesReceived  Message[] @relation("ReceivedMessages")
+  followers         Follow[]  @relation("Following")
+  following         Follow[]  @relation("Followers")
+  comments          Comment[] @relation("UserComments")
+  likes             Like[]    @relation("UserLikes")
+
+  @@index([username]) // Fast lookup by username
+  @@index([email])    // Fast lookup by email
 }
+
+model Follow {
+  id          String   @id @default(uuid())
+  followerId  String   // Person who follows
+  followingId String   // Person being followed
+  createdAt   DateTime @default(now())
+
+  follower    User @relation("Followers", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId]) // Prevent duplicate follows
+  @@index([followerId])
+  @@index([followingId])
+}
+
+
+
 
 model Message {
   id          Int      @id @default(autoincrement())
@@ -25,6 +62,87 @@ model Message {
 
   sender   User @relation("SentMessages", fields: [senderId], references: [id])
   receiver User @relation("ReceivedMessages", fields: [receiverId], references: [id])
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([createdAt])
 }
 
+model Post {
+  id            String     @id @default(uuid())
+  title         String
+  header        String     // Short summary/tagline
+  techStack     String[]   // Technologies used
+  description   String     @db.Text // Full description (can be long)
+  category      Category
+  difficulty    Difficulty
+  deadline      DateTime
+  visibility    Visibility @default(PUBLIC)
+  likes         Int        @default(0)
+  views         Int        @default(0)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  userId        String
+  
+  user          User       @relation("UserPosts", fields: [userId], references: [id], onDelete: Cascade)
+  comments      Comment[]  @relation("PostComments")
+  likesList     Like[]     @relation("PostLikes")
 
+  @@index([userId])
+  @@index([visibility])
+  @@index([category])
+  @@index([createdAt])
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  content   String   @db.Text
+  postId    String
+  userId    String
+  parentId  String?  // For nested replies
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  post      Post      @relation("PostComments", fields: [postId], references: [id], onDelete: Cascade)
+  user      User      @relation("UserComments", fields: [userId], references: [id], onDelete: Cascade)
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[] @relation("CommentReplies")
+
+  @@index([postId])
+  @@index([userId])
+  @@index([parentId])
+}
+model Like {
+  id        String   @id @default(uuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+  
+  post      Post @relation("PostLikes", fields: [postId], references: [id], onDelete: Cascade)
+  user      User @relation("UserLikes", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId]) // User can only like a post once
+  @@index([postId])
+  @@index([userId])
+}
+
+enum Difficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum Visibility {
+  PUBLIC
+  PRIVATE
+  DRAFT
+}
+
+enum Category {
+  WEB_DEVELOPMENT
+  MOBILE
+  AI_ML
+  GAME_DEV
+  SYSTEMS
+  OTHER
+}
