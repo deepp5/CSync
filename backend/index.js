@@ -8,6 +8,10 @@ import { Server } from "socket.io";
 import messageRoutes from "./src/routes/messageRoutes.js";
 import conversationRoutes from "./src/routes/conversationRoutes.js";
 import { verifySupabaseToken } from "./src/utils/authMiddleware.js";
+import { ensureUserExists } from "./src/utils/ensureUser.js";
+
+import jwt from "jsonwebtoken";
+import jwksClient from "jwks-rsa";
 
 dotenv.config();
 
@@ -29,23 +33,81 @@ app.use("/messages", messageRoutes);
 app.use("/conversations", conversationRoutes);
 
 // ===========================
-// SOCKET.IO
+// SOCKET.IO (AUTH + LAZY SYNC)
 // ===========================
 const io = new Server(server, {
   cors: { origin: "*", methods: ["GET", "POST"] },
 });
 
-io.on("connection", (socket) => {
-  console.log("🟢 Socket connected:", socket.id);
+const jwks = jwksClient({
+  jwksUri: `${process.env.SUPABASE_URL}/auth/v1/.well-known/jwks.json`,
+});
 
-  socket.on("join", (userId) => {
-    socket.join(userId);
+function getKey(header, callback) {
+  jwks.getSigningKey(header.kid, (err, key) => {
+    if (err) return callback(err);
+    callback(null, key.getPublicKey());
   });
+}
 
-  socket.on("send_message", async ({ senderId, receiverId, content }) => {
+// 🔐 Verify Supabase JWT on socket connect
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token;
+
+  if (!token) {
+    return next(new Error("Missing auth token"));
+  }
+
+  jwt.verify(
+    token,
+    getKey,
+    {
+      audience: "authenticated",
+      issuer: `${process.env.SUPABASE_URL}/auth/v1`,
+      algorithms: ["RS256"],
+    },
+    (err, decoded) => {
+      if (err) {
+        console.error("Socket JWT error:", err.message);
+        return next(new Error("Invalid token"));
+      }
+
+      socket.supabaseUser = {
+        id: decoded.sub,
+        email: decoded.email,
+        user_metadata: decoded.user_metadata || {},
+      };
+
+      next();
+    }
+  );
+});
+
+io.on("connection", async (socket) => {
+  try {
+    // 🔥 Lazy sync Supabase → Prisma
+    const prismaUser = await ensureUserExists(prisma, socket.supabaseUser);
+
+    socket.userId = prismaUser.id;
+    socket.join(prismaUser.id);
+
+    console.log("🟢 Socket connected:", prismaUser.id);
+  } catch (err) {
+    console.error("Socket user sync failed:", err);
+    socket.disconnect();
+    return;
+  }
+
+  socket.on("send_message", async ({ receiverId, content }) => {
+    if (!receiverId || !content) return;
+
     try {
       const message = await prisma.message.create({
-        data: { senderId, receiverId, content },
+        data: {
+          senderId: socket.userId, // ✅ trusted
+          receiverId,
+          content,
+        },
       });
 
       io.to(receiverId).emit("receive_message", message);
@@ -55,15 +117,13 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
-    console.log("🔴 Socket disconnected:", socket.id);
+    console.log("🔴 Socket disconnected:", socket.userId);
   });
 });
 
 // ===========================
 // POSTS (JWT AUTH)
 // ===========================
-
-// Get all posts (except mine)
 app.get("/posts", verifySupabaseToken, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -81,7 +141,6 @@ app.get("/posts", verifySupabaseToken, async (req, res) => {
   }
 });
 
-// Create post
 app.post("/posts", verifySupabaseToken, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -127,7 +186,6 @@ app.post("/posts", verifySupabaseToken, async (req, res) => {
   }
 });
 
-// Get my posts
 app.get("/posts/me", verifySupabaseToken, async (req, res) => {
   try {
     const userId = req.user.id;

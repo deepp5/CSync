@@ -1,7 +1,7 @@
 import express from "express";
 import { PrismaClient } from "@prisma/client";
 import { verifySupabaseToken } from "../utils/authMiddleware.js";
-import { ensureUserExists } from "../utils/ensureUser.js"; // if you have this
+import { ensureUserExists } from "../utils/ensureUser.js";
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -10,10 +10,9 @@ router.get("/", verifySupabaseToken, async (req, res) => {
   try {
     const me = req.user.id;
 
-    // Optional but recommended: ensure logged-in user exists in Prisma
-    if (ensureUserExists) await ensureUserExists(req.user);
+    // ✅ FIXED: correct lazy sync call
+    await ensureUserExists(prisma, req.user);
 
-    // Pull recent messages involving me
     const msgs = await prisma.message.findMany({
       where: {
         OR: [{ senderId: me }, { receiverId: me }],
@@ -23,10 +22,9 @@ router.get("/", verifySupabaseToken, async (req, res) => {
         sender: true,
         receiver: true,
       },
-      take: 200, // safety limit
+      take: 200,
     });
 
-    // Keep the latest message per partner
     const map = new Map();
 
     for (const m of msgs) {
@@ -35,15 +33,12 @@ router.get("/", verifySupabaseToken, async (req, res) => {
 
       if (!map.has(other.id)) {
         map.set(other.id, {
-          // ✅ FRONTEND EXPECTS THESE FIELDS
           userId: other.id,
           name: other.name,
-          username: other.email, // frontend uses username for search; ok to reuse email
+          username: other.email,
           email: other.email,
-
           lastMessage: m.content,
           createdAt: m.createdAt,
-
           unread: 0,
           online: false,
         });
@@ -52,7 +47,7 @@ router.get("/", verifySupabaseToken, async (req, res) => {
 
     res.json(Array.from(map.values()));
   } catch (err) {
-    console.error(err);
+    console.error("Conversation error:", err);
     res.status(500).json({ error: "Failed to load conversations" });
   }
 });

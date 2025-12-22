@@ -2,31 +2,34 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-export async function ensureUserExists(user) {
-  const { id, email, user_metadata } = user;
+// src/utils/ensureUser.js
+// src/utils/ensureUser.js
+export async function ensureUserExists(prisma, supabaseUser) {
+  const { id, email, user_metadata } = supabaseUser;
 
-  // 1️⃣ Try by Supabase ID
-  let existingUser = await prisma.user.findUnique({
+  if (!id || !email) {
+    throw new Error("Invalid Supabase user payload");
+  }
+
+  // 1️⃣ By ID
+  let user = await prisma.user.findUnique({
     where: { id },
   });
+  if (user) return user;
 
-  if (existingUser) return existingUser;
-
-  // 2️⃣ Try by email (IMPORTANT FIX)
-  existingUser = await prisma.user.findUnique({
+  // 2️⃣ By email (migration-safe)
+  user = await prisma.user.findUnique({
     where: { email },
   });
-
-  if (existingUser) {
-    // Optional: update id if you want to fully migrate
+  if (user) {
     await prisma.user.update({
       where: { email },
       data: { id },
     });
-    return existingUser;
+    return { ...user, id };
   }
 
-  // 3️⃣ Create new user
+  // 3️⃣ Create
   const name =
     user_metadata?.full_name || user_metadata?.name || email.split("@")[0];
 

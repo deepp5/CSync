@@ -15,12 +15,19 @@ function getKey(header, callback) {
 
 export const verifySupabaseToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
-
-  if (!authHeader) {
+  if (!authHeader)
     return res.status(401).json({ error: "Missing Authorization header" });
-  }
 
   const token = authHeader.split(" ")[1];
+
+  const header = jwt.decode(token, { complete: true })?.header;
+  const alg = header?.alg;
+
+  // ✅ Only allow strong public-key algorithms
+  const allowed = ["ES256", "RS256"];
+  if (!allowed.includes(alg)) {
+    return res.status(403).json({ error: `Unsupported JWT alg: ${alg}` });
+  }
 
   jwt.verify(
     token,
@@ -28,7 +35,7 @@ export const verifySupabaseToken = (req, res, next) => {
     {
       audience: "authenticated",
       issuer: `${process.env.SUPABASE_URL}/auth/v1`,
-      algorithms: ["ES256"],
+      algorithms: [alg], // ✅ uses ES256 for your project if that's what it is
     },
     (err, decoded) => {
       if (err) {
@@ -36,10 +43,10 @@ export const verifySupabaseToken = (req, res, next) => {
         return res.status(403).json({ error: "Invalid token" });
       }
 
-      // Supabase user id
       req.user = {
         id: decoded.sub,
         email: decoded.email,
+        user_metadata: decoded.user_metadata,
       };
 
       next();
