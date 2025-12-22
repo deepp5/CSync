@@ -86,19 +86,16 @@ const Sidebar = () => {
             {isOpen && <span>Messages</span>}
           </Link>
 
-          <button className="sidebar-btn">
-            <FiList className="icon" />
-            {isOpen && <span>My Projects</span>}
-          </button>
+          <Link className="sidebar-btn" to="/myproject">
+            <FiList className="icon" /> My Projects
+          </Link>
 
           <Link className="sidebar-btn" to="/createpost">
             <FiPlusSquare className="icon" />
             {isOpen && <span>Create Post</span>}
           </Link>
         </div>
-        <Link className="sidebar-btn" to="/myproject">
-          <FiList className="icon" /> My Projects
-        </Link>
+        
 
         {/* Bottom Section */}
         <div className="sidebar-bottom">
