@@ -35,7 +35,8 @@ body[data-sidebar-open="false"] .my-projects-page {
   font-size: 32px;
   font-weight: 700;
   margin: 0 0 8px 0;
-  color: white;
+  color: #e8e8e8;
+  line-height: 1.2;
 }
 
 .page-subtitle {
