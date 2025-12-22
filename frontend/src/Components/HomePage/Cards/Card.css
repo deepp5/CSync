@@ -1,5 +1,6 @@
 .project-card {
-    background: #141416;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 12px;
     padding: 20px;
     cursor: pointer;
@@ -8,47 +9,14 @@
     flex-direction: column;
     justify-content: space-between;
     position: relative;
-    overflow: hidden;
-    transition: transform 0.25s ease;
-}
-
-.project-card::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    padding: 1.5px;
-
-    background: linear-gradient(
-        90deg,
-        #cf40d1 0%,
-        #1696a7 50%,
-        #cf40d1 100%
-    );
-    background-size: 300% 300%;
-    -webkit-mask:
-        linear-gradient(#000 0 0) content-box,
-        linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-            mask-composite: exclude;
-
-    opacity: 15%;
-    transition: opacity 0.3s ease;
-}
-
-.project-card:hover::before {
-    opacity: 1;
-    animation: borderFlow 4s linear infinite;
-}
-
-@keyframes borderFlow {
-    0%   { background-position: 0% 50%; }
-    50%  { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
+    transition: all 0.3s ease;
 }
 
 .project-card:hover {
-    transform: translateY(-4px);
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
 }
 
 .project-card h3 {
