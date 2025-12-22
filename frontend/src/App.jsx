@@ -9,8 +9,10 @@ import CreatePost from "./Pages/CreatePost";
 import AuthCallback from "./Pages/AuthCallback";
 import ProtectedRoute from "./Components/ProtectedRoute";
 import ProfilePage from "./Pages/ProfilePage"
+import PostDetailPage from "./Pages/PostDetailPage";
 import MyProjectPage from "./Pages/MyProjectPage";
 import Setting from "./Pages/SettingPage";
+
 
 export default function App() {
   return (
@@ -23,6 +25,7 @@ export default function App() {
         <Route path="/home" element={<HomePage />} />
         <Route path="/create-project" element={<CreatePost />} />
         <Route path="/edit-project/:id" element={<CreatePost />} />
+        <Route path="/post/:id" element={<PostDetailPage/>}/>
         <Route path="/profile" element={<ProfilePage/>}/>
         <Route path="/my-projects" element={<MyProjectPage/>}/>
         <Route path="/settings" element={<Setting/>}/>

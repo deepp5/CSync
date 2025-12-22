@@ -1,5 +1,6 @@
 import React from "react";
 import "./Card.css";
+import { useNavigate } from "react-router-dom";
 
 export default function Card(props) {
   const getDifficultyClass = (difficulty) => {
@@ -19,9 +20,19 @@ export default function Card(props) {
       default: return 'Medium';
     }
   };
+  const navigate = useNavigate();
+    const goToPost = () => {
+        navigate(`/post/${props.post.id}`);
+    };
+
+    const handleKeyDown = (e) => {
+        if(e.key === "Enter" || e.key === " "){
+            goToPost();
+        }
+    };
 
   return (
-        <div className="project-card">
+        <div className="project-card" role="button" tabIndex={0} onClick={goToPost} onKeyDown={handleKeyDown}>
             <div className = "cardTop">
                 <h3>{props.post.title}</h3>
                 <p className="desc">{props.post.header}</p>
