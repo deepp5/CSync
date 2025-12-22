@@ -37,12 +37,12 @@
 
 .search-input:hover{
     outline: none;
-    border-color: rgba(250, 78, 253, 0.5);
+    border-color: #ffffff;
 }
   
 .search-input:focus {
     outline: none;
-    border-color: #fa4efd;
+    border-color: #ffffff;
 }
   
 .filter-btn {
