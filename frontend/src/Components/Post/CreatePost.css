@@ -8,14 +8,14 @@
 .createpost-content {
     flex: 1;
     margin-left: 230px;     
-    padding: 40px;
+    padding: 35px 40px;
     color: white;
 }
   
 .createpost-title {
     font-size: 32px;
     font-weight: 800;
-    margin-bottom: 30px;
+    margin-bottom: 20px;
     color: #e8e8e8;
 }
   
