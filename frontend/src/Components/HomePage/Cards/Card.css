@@ -62,11 +62,16 @@
     margin-bottom: 10px;
 }
 
+.cardTop {
+    flex: 1;
+}
+
 .card-skills {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
     align-items: center;
+    margin-top: 12px;
 }
 
 .skill-badge {
@@ -88,10 +93,40 @@
 .cardBottom {
     display: flex;
     justify-content: space-between;
-    align-items: flex-end;
+    align-items: center;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    margin-top: 16px;
+}
+
+.difficulty-badge {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    border: 1px solid;
+}
+
+.difficulty-badge.difficulty-easy {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.3);
+    color: #10b981;
+}
+
+.difficulty-badge.difficulty-medium {
+    background: rgba(251, 191, 36, 0.1);
+    border-color: rgba(251, 191, 36, 0.3);
+    color: #fbbf24;
+}
+
+.difficulty-badge.difficulty-hard {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: #ef4444;
 }
 
 .ownerName {
     font-size: 13px;
-    color: rgb(160, 160, 160);
+    color: rgba(255, 255, 255, 0.5);
+    margin: 0;
 }
