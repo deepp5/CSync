@@ -62,9 +62,27 @@
     margin-bottom: 10px;
 }
 
-.skills {
-    font-size: 14px;
-    color: rgb(206, 205, 205);
+.card-skills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.skill-badge {
+    background: rgba(33, 218, 242, 0.1);
+    border: 1px solid rgba(33, 218, 242, 0.3);
+    color: #21daf2;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.skill-badge.more {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.7);
 }
 
 .cardBottom {

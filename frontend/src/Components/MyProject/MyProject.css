@@ -23,7 +23,7 @@ body[data-sidebar-open="false"] .my-projects-page {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 30px;
+  margin-bottom: 12px;
   gap: 20px;
 }
 
