@@ -196,9 +196,9 @@ body[data-sidebar-open="false"] .my-projects-page {
 }
 
 .status-badge.status-private {
-  background: rgba(251, 191, 36, 0.1);
-  border-color: rgba(251, 191, 36, 0.3);
-  color: #fbbf24;
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #ef4444;
 }
 
 .status-badge.status-draft {

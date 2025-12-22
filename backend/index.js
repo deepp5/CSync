@@ -68,7 +68,8 @@ app.get("/posts", async (req, res) => {
 
     const posts = await prisma.post.findMany({
       where:{
-        NOT: {userId: userId}
+        NOT: {userId: userId},
+        status: 'PUBLIC'
       }
     });
 
@@ -95,7 +96,7 @@ app.post("/posts", async (req, res) => {
 
     const userId = data.user.id;
 
-    const {title, header, techStack, description, category, difficulty, deadline} = req.body;
+    const {title, header, techStack, description, category, difficulty, deadline, status} = req.body;
 
     if (!title || !header || !description || !category || !difficulty || !deadline) {
       return res.status(400).json({ err: "Missing required fields" });
@@ -110,6 +111,7 @@ app.post("/posts", async (req, res) => {
         category,
         difficulty,
         deadline: new Date(deadline),
+        status: status || 'DRAFT',
         userId
       }
     });
@@ -147,14 +149,12 @@ app.put("/posts/:id", async (req, res) => {
       res.status(403).json({err: "Not authorized to edit this post"});
     }
 
-    const {title, header, techStack, description, category, difficulty, deadline} = req.body;
+    const {title, header, techStack, description, category, difficulty, deadline, status} = req.body;
     if (!title || !header || !description || !category || !difficulty || !deadline) {
       return res.status(400).json({ err: "Missing required fields" });
     }
 
-    const post = await prisma.post.update({
-      where:{ id: postId},
-      data:{
+    const updateData = {
         title,
         header,
         techStack,
@@ -162,7 +162,16 @@ app.put("/posts/:id", async (req, res) => {
         category,
         difficulty,
         deadline: new Date(deadline),
-      }
+    };
+
+    // Only update status if provided
+    if (status) {
+      updateData.status = status;
+    }
+
+    const post = await prisma.post.update({
+      where:{ id: postId},
+      data: updateData
     });
     res.json(post);
   }catch (err){

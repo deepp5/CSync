@@ -30,6 +30,12 @@ enum Category {
   OTHER
 }
 
+enum Status {
+  DRAFT
+  PRIVATE
+  PUBLIC
+}
+
 model Post {
   id            String @id @default(uuid())
   title         String
@@ -39,7 +45,9 @@ model Post {
   category      Category
   difficulty    Difficulty
   deadline      DateTime
+  status        Status @default(DRAFT)
   createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
   userId        String
 }
 

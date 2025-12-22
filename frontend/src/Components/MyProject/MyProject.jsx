@@ -14,7 +14,8 @@ import {
   FiSearch,
   FiFilter,
   FiCopy,
-  FiShare2
+  FiShare2,
+  FiLock
 } from 'react-icons/fi';
 
 export default function MyProjects() {
@@ -49,7 +50,7 @@ export default function MyProjects() {
   const filteredProjects = projects.filter(project => {
     const matchesSearch = project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          project.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesFilter = filterStatus === 'all' || project.status === filterStatus;
+    const matchesFilter = filterStatus === 'all' || project.status === filterStatus.toUpperCase();
     return matchesSearch && matchesFilter;
   });
 
@@ -79,6 +80,29 @@ export default function MyProjects() {
     setShowMenu(null);
   };
 
+  const handleChangeStatus = async (projectId, newStatus) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    const token = session.access_token;
+
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return;
+
+    await axios.put(`http://localhost:5051/posts/${projectId}`, {
+      ...project,
+      techStack: project.techStack,
+      status: newStatus
+    }, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    setProjects(projects.map(p => 
+      p.id === projectId ? { ...p, status: newStatus } : p
+    ));
+    setShowMenu(null);
+  };
+
   const handleShareProject = (projectId) => {
     const url = window.location.origin;
     if (navigator.share) {
@@ -95,11 +119,17 @@ export default function MyProjects() {
 
   const getStatusBadge = (status) => {
     const badges = {
-      public: { label: 'Public', class: 'status-public' },
-      private: { label: 'Private', class: 'status-private' },
-      draft: { label: 'Draft', class: 'status-draft' }
+      PUBLIC: { label: 'Public', class: 'status-public' },
+      PRIVATE: { label: 'Private', class: 'status-private' },
+      DRAFT: { label: 'Draft', class: 'status-draft' }
     };
-    return badges[status] || badges.draft;
+    return badges[status] || badges.DRAFT;
+  };
+
+  const getStatusIcon = (status) => {
+    if (status === 'PUBLIC') return <FiEye />;
+    if (status === 'PRIVATE') return <FiLock />;
+    return <FiEyeOff />;
   };
 
   const getTimeAgo = (dateString) => {
@@ -206,7 +236,7 @@ export default function MyProjects() {
                   {/* Card Header */}
                   <div className="card-header-manage">
                     <span className={`status-badge ${statusBadge.class}`}>
-                      {project.status === 'public' ? <FiEye /> : <FiEyeOff />}
+                      {getStatusIcon(project.status)}
                       {statusBadge.label}
                     </span>
                     <div className="card-menu-container">
@@ -222,6 +252,57 @@ export default function MyProjects() {
                       
                       {showMenu === project.id && (
                         <div className="card-menu-dropdown">
+                          {project.status === 'DRAFT' && (
+                            <>
+                              <button 
+                                className="menu-item"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleChangeStatus(project.id, 'PUBLIC');
+                                }}
+                              >
+                                <FiEye /> Make Public
+                              </button>
+                              <button 
+                                className="menu-item"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleChangeStatus(project.id, 'PRIVATE');
+                                }}
+                              >
+                                <FiEyeOff /> Make Private
+                              </button>
+                              <div className="menu-divider"></div>
+                            </>
+                          )}
+                          {project.status === 'PUBLIC' && (
+                            <>
+                              <button 
+                                className="menu-item"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleChangeStatus(project.id, 'PRIVATE');
+                                }}
+                              >
+                                <FiEyeOff /> Make Private
+                              </button>
+                              <div className="menu-divider"></div>
+                            </>
+                          )}
+                          {project.status === 'PRIVATE' && (
+                            <>
+                              <button 
+                                className="menu-item"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleChangeStatus(project.id, 'PUBLIC');
+                                }}
+                              >
+                                <FiEye /> Make Public
+                              </button>
+                              <div className="menu-divider"></div>
+                            </>
+                          )}
                           <button 
                             className="menu-item"
                             onClick={(e) => {
