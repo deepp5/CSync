@@ -96,7 +96,7 @@ body[data-sidebar-open="false"] .my-projects-page {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 10px;
   padding: 12px 16px 12px 45px;
-  color: white;
+  color: #e8e8e8;
   font-size: 15px;
   outline: none;
   transition: all 0.3s ease;
@@ -291,7 +291,7 @@ body[data-sidebar-open="false"] .my-projects-page {
   font-size: 20px;
   font-weight: 600;
   margin: 0 0 10px 0;
-  color: white;
+  color: #e8e8e8;
   line-height: 1.3;
 }
 
