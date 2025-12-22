@@ -307,4 +307,41 @@ router.get('/profile/:userId/following', async (req, res)=>{
   }
 });
 
-//do my projects visible by public.
+router.get('/profile/my-projects', authenticateToken, async(req, res)=>{
+    try{
+        const userId = req.user.id;
+        const posts = await prisma.post.findMany({
+            where: { userId },
+            select: {
+                id: true,
+                title: true,
+                header: true,
+                techStack: true,
+                category: true,
+                difficulty: true,
+                visibility: true,
+                likes: true,
+                views: true,
+                imageUrl: true,
+                createdAt: true,
+                updatedAt: true,
+                _count: {
+                    select: { comments: true }
+                }
+            },
+            orderBy: { updatedAt: 'desc' }
+        });
+
+        res.json({
+            posts: posts.map(post => ({
+                ...post,
+                comments: post._count.comments
+            }))
+        });
+    }catch (error){
+        console.error('Error fetching user projects:', error);
+        res.status(500).json({error: 'Failed to fetch projects'});
+    }
+});
+
+export default router;

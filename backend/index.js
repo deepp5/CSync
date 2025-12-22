@@ -7,7 +7,7 @@ import { Server } from "socket.io";
 
 import messageRoutes from "./src/routes/messageRoutes.js";
 import conversationRoutes from "./src/routes/conversationRoutes.js";
-
+import profileRoutes from "./src/routes/profileRoutes.js"
 dotenv.config();
 
 const app = express();
@@ -16,6 +16,7 @@ const prisma = new PrismaClient();
 
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({extended: true}));
 
 // ===========================
 // ROUTES
@@ -26,6 +27,7 @@ app.get("/", (req, res) => {
 
 app.use("/messages", messageRoutes);
 app.use("/conversations", conversationRoutes);
+app.use('/api', profileRoutes);
 
 // ===========================
 // SOCKET.IO (REAL-TIME CHAT)
