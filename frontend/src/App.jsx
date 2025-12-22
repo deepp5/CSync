@@ -10,6 +10,7 @@ import AuthCallback from "./Pages/AuthCallback";
 import ProtectedRoute from "./Components/ProtectedRoute";
 import ProfilePage from "./Pages/ProfilePage"
 import MyProjectPage from "./Pages/MyProjectPage";
+import Setting from "./Pages/SettingPage";
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
         <Route path="/edit-project/:id" element={<CreatePost />} />
         <Route path="/profile" element={<ProfilePage/>}/>
         <Route path="/my-projects" element={<MyProjectPage/>}/>
+        <Route path="/settings" element={<Setting/>}/>
 
         {/* Required for Google OAuth */}
         <Route path="/auth/callback" element={<AuthCallback />} />

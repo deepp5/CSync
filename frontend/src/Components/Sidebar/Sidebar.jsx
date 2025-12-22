@@ -40,9 +40,9 @@ const Sidebar = () => {
           <FiUser className="icon" /> Profile
         </Link>
 
-        <button className="sidebar-btn">
+        <Link className="sidebar-btn" to="/settings">
           <FiSettings className="icon" /> Settings
-        </button>
+        </Link>
       </div>
     </div>
   );
