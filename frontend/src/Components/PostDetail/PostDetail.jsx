@@ -17,6 +17,7 @@ import {
   FiGithub,
   FiLinkedin
 } from 'react-icons/fi';
+import { supabase } from '../../supabaseClient';
 
 const PostDetail = () => {
   const { id } = useParams(); // Get post ID from URL
@@ -36,102 +37,109 @@ const PostDetail = () => {
 
   // Fetch post data based on ID
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      const mockPost = {
-        id: id,
-        title: 'Building a Real-Time Collaboration Platform',
-        description: `This is a comprehensive guide and showcase of a real-time collaboration platform I've been working on. 
+    const fetchPost = async () => {
+      try {
+        setLoading(true);
+        
+        // Get auth token
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
 
-The platform enables teams to work together seamlessly with features like live document editing, video conferencing, and project management tools all in one place.
-
-**Key Features:**
-- Real-time collaborative editing with operational transformation
-- Integrated video/audio conferencing using WebRTC
-- Advanced project management with Kanban boards
-- Role-based access control and permissions
-- Real-time notifications and activity feeds
-- File sharing and cloud storage integration
-
-**Technical Stack:**
-- Frontend: React, TypeScript, Socket.io-client
-- Backend: Node.js, Express, Socket.io
-- Database: MongoDB with Redis for caching
-- Real-time: WebSocket connections for instant updates
-- Authentication: JWT with refresh tokens
-
-**Challenges Overcome:**
-One of the biggest challenges was handling conflict resolution in real-time editing. I implemented operational transformation algorithms to ensure consistency across all connected clients.
-
-**What's Next:**
-I'm currently working on mobile apps for iOS and Android, and planning to add AI-powered features like smart task suggestions and automated meeting summaries.
-
-Feel free to reach out if you want to collaborate or have any questions!`,
-        category: 'Web Development',
-        tags: ['React', 'Node.js', 'WebSocket', 'Real-time', 'Collaboration'],
-        author: {
-          name: 'Alex Johnson',
-          username: 'alexj_dev',
-          avatar: 'A',
-          bio: 'Full-stack developer passionate about real-time systems',
-          email: 'alex.johnson@example.com',
-          github: 'https://github.com/alexj',
-          linkedin: 'https://linkedin.com/in/alexj'
-        },
-        createdAt: '2024-01-15T10:30:00Z',
-        likes: 234,
-        views: 1542,
-        commentCount: 18,
-        images: [] // Optional images
-      };
-      
-      setPost(mockPost);
-      setLikeCount(mockPost.likes);
-      setViewCount(mockPost.views);
-      
-      // Mock comments
-      setComments([
-        {
-          id: 1,
-          author: {
-            name: 'Sarah Chen',
-            username: 'sarah_c',
-            avatar: 'S'
-          },
-          content: 'This is amazing! I\'ve been looking for something exactly like this. How did you handle the WebRTC signaling?',
-          createdAt: '2024-01-15T11:00:00Z',
-          likes: 12,
-          replies: [
-            {
-              id: 2,
-              author: {
-                name: 'Alex Johnson',
-                username: 'alexj_dev',
-                avatar: 'A'
-              },
-              content: 'Thanks Sarah! I used a custom signaling server with Socket.io. Happy to share more details if you\'re interested.',
-              createdAt: '2024-01-15T11:15:00Z',
-              likes: 8
-            }
-          ]
-        },
-        {
-          id: 3,
-          author: {
-            name: 'Mike Rodriguez',
-            username: 'mike_r',
-            avatar: 'M'
-          },
-          content: 'Great work! Have you considered using CRDTs instead of OT? Might simplify the conflict resolution.',
-          createdAt: '2024-01-15T12:30:00Z',
-          likes: 5,
-          replies: []
+        // Fetch post from backend
+        const headers = {
+          'Content-Type': 'application/json'
+        };
+        
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
         }
-      ]);
-      
-      setLoading(false);
-    }, 500);
+
+        const response = await fetch(`http://localhost:5051/posts/view/${id}`, {
+          headers
+        });
+
+        if (!response.ok) {
+          if (response.status === 404) {
+            setPost(null);
+            setLoading(false);
+            return;
+          }
+          throw new Error('Failed to fetch post');
+        }
+
+        const postData = await response.json();
+        
+        // Map database fields to UI format
+        const mappedPost = {
+          id: postData.id,
+          title: postData.title,
+          description: postData.description,
+          category: getCategoryLabel(postData.category),
+          tags: postData.techStack || [], // techStack becomes tags
+          author: {
+            name: 'Jay', // TODO: Get real author name from user profile
+            username: 'jay_dev',
+            avatar: 'J',
+            bio: 'Building cool projects',
+            email: 'jay@example.com',
+            github: 'https://github.com',
+            linkedin: 'https://linkedin.com'
+          },
+          createdAt: postData.createdAt,
+          likes: 0, // TODO: Implement likes feature
+          views: 0, // TODO: Implement views feature
+          commentCount: 0, // TODO: Implement comments feature
+          difficulty: postData.difficulty,
+          deadline: postData.deadline,
+          status: postData.status
+        };
+        
+        setPost(mappedPost);
+        setLikeCount(mappedPost.likes);
+        setViewCount(mappedPost.views);
+        setComments([]); // TODO: Fetch real comments
+        setLoading(false);
+      } catch (err) {
+        console.error('Error fetching post:', err);
+        setPost(null);
+        setLoading(false);
+      }
+    };
+
+    fetchPost();
   }, [id]);
+
+  // Helper function to convert category enum to display label
+  const getCategoryLabel = (category) => {
+    const labels = {
+      'WEB_DEVELOPMENT': 'Web Development',
+      'MOBILE': 'Mobile App',
+      'AI_ML': 'Machine Learning',
+      'GAME_DEV': 'Game Development',
+      'SYSTEMS': 'Systems',
+      'OTHER': 'Other'
+    };
+    return labels[category] || category;
+  };
+
+  // Helper functions for difficulty
+  const getDifficultyClass = (difficulty) => {
+    switch(difficulty) {
+      case 'BEGINNER': return 'difficulty-easy';
+      case 'INTERMEDIATE': return 'difficulty-medium';
+      case 'ADVANCED': return 'difficulty-hard';
+      default: return 'difficulty-medium';
+    }
+  };
+
+  const getDifficultyLabel = (difficulty) => {
+    switch(difficulty) {
+      case 'BEGINNER': return 'Beginner';
+      case 'INTERMEDIATE': return 'Intermediate';
+      case 'ADVANCED': return 'Advanced';
+      default: return 'Intermediate';
+    }
+  };
 
   const handleLike = () => {
     setIsLiked(!isLiked);
@@ -254,14 +262,41 @@ Feel free to reach out if you want to collaborate or have any questions!`,
         <div className="post-content-wrapper">
           {/* Main Content */}
           <div className="post-main-content">
-            {/* Post Title & Category */}
+            {/* Action Buttons - Top Right */}
+            <div className="post-actions-vertical">
+              <button 
+                className={`action-btn-icon ${isLiked ? 'liked' : ''}`}
+                onClick={handleLike}
+                title={`${likeCount} likes`}
+              >
+                <FiHeart />
+              </button>
+              <button 
+                className={`action-btn-icon ${isSaved ? 'saved' : ''}`}
+                onClick={handleSave}
+                title={isSaved ? 'Saved' : 'Save'}
+              >
+                <FiBookmark />
+              </button>
+              <button 
+                className="action-btn-icon" 
+                onClick={handleShare}
+                title="Share"
+              >
+                <FiShare2 />
+              </button>
+            </div>
+
+            {/* Post Title */}
             <div className="post-title-section">
-              <span className="post-category">{post.category}</span>
               <h1 className="post-title">{post.title}</h1>
-              <div className="post-tags">
-                {post.tags.map((tag, index) => (
-                  <span key={index} className="post-tag">{tag}</span>
-                ))}
+              
+              {/* Category & Difficulty */}
+              <div className="post-meta-badges">
+                <span className="post-category">{post.category}</span>
+                <span className={`post-difficulty ${getDifficultyClass(post.difficulty)}`}>
+                  {getDifficultyLabel(post.difficulty)}
+                </span>
               </div>
             </div>
 
@@ -272,23 +307,11 @@ Feel free to reach out if you want to collaborate or have any questions!`,
               ))}
             </div>
 
-            {/* Action Buttons */}
-            <div className="post-actions">
-              <button 
-                className={`action-btn ${isLiked ? 'liked' : ''}`}
-                onClick={handleLike}
-              >
-                <FiHeart /> {likeCount}
-              </button>
-              <button 
-                className={`action-btn ${isSaved ? 'saved' : ''}`}
-                onClick={handleSave}
-              >
-                <FiBookmark /> {isSaved ? 'Saved' : 'Save'}
-              </button>
-              <button className="action-btn" onClick={handleShare}>
-                <FiShare2 /> Share
-              </button>
+            {/* Tech Stack */}
+            <div className="post-tags">
+              {post.tags.map((tag, index) => (
+                <span key={index} className="post-tag">{tag}</span>
+              ))}
             </div>
 
             {/* Comments Section */}

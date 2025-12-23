@@ -248,7 +248,44 @@ app.get("/posts/me", async (req, res) => {
   }
 });
 
-//Get single post for edit
+//Get single post for VIEWING (public or owner)
+app.get("/posts/view/:id", async (req, res) => {
+  try {
+    const postId = req.params.id;
+
+    const post = await prisma.post.findUnique({
+      where: { id: postId }
+    });
+
+    if (!post) {
+      return res.status(404).json({ error: "Post not found" });
+    }
+
+    // Check if post is public or if user is the owner
+    const header = req.headers.authorization;
+    let userId = null;
+    
+    if (header) {
+      const token = header.split(" ")[1];
+      const { data } = await supabase.auth.getUser(token);
+      if (data?.user) {
+        userId = data.user.id;
+      }
+    }
+
+    // Allow access if post is PUBLIC or if user is the owner
+    if (post.status !== 'PUBLIC' && post.userId !== userId) {
+      return res.status(403).json({ error: "This post is not public" });
+    }
+
+    res.status(200).json(post);
+  } catch (err) {
+    console.error("GET post view failed:", err);
+    res.status(500).json({ error: "Failed to fetch post" });
+  }
+});
+
+//Get single post for EDITING (owner only)
 app.get("/posts/:id", async (req, res) => {
   try {
     const header = req.headers.authorization;
