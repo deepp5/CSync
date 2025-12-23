@@ -15,7 +15,8 @@ import {
   FiMoreVertical,
   FiArrowLeft,
   FiGithub,
-  FiLinkedin
+  FiLinkedin,
+  FiChevronRight
 } from 'react-icons/fi';
 import { supabase } from '../../supabaseClient';
 
@@ -334,16 +335,18 @@ const PostDetail = () => {
                     </button>
                   </div>
                 )}
-                <textarea
-                  className="comment-input"
-                  placeholder="Add a comment..."
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  rows="3"
-                />
-                <button type="submit" className="submit-comment-btn">
-                  <FiSend /> Post Comment
-                </button>
+                <div className="comment-input-wrapper">
+                  <textarea
+                    className="comment-input"
+                    placeholder="Add a comment..."
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    rows="1"
+                  />
+                  <button type="submit" className="submit-comment-btn" title="Post Comment">
+                    <FiChevronRight />
+                  </button>
+                </div>
               </form>
 
               {/* Comments List */}
