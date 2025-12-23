@@ -1,15 +1,26 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import "./Card.css";
 
-export default function Card() {
+export default function Card(props) {
+    const navigate = useNavigate();
+    const goToPost = () => {
+        navigate(`/post/${props.post.id}`);
+    };
+
+    const handleKeyDown = (e) => {
+        if(e.key === "Enter" || e.key === " "){
+            goToPost();
+        }
+    };
   return (
-        <div className="project-card">
+        <div className="project-card" role="button" tabIndex={0} onClick={goToPost} onKeyDown={handleKeyDown}>
             <div className = "cardTop">
-                <h3>Project Title</h3>
-                <p className="desc">Sample description for this project. Brief and clean.</p>
+                <h3>{props.post.title}</h3>
+                <p className="desc">{props.post.header}</p>
             </div>
             <div className = "cardBottom">
-                <p className="skills">Skills: React, Node, SQL</p>
+                <p className="skills">{props.post.techStack.join(", ")}</p>
                 <p className="ownerName">Jay</p>
             </div>
         </div>

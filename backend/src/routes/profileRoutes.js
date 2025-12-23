@@ -1,6 +1,6 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
-import {authenticateToken} from '../utils/authMiddleware';
+import {verifySupabaseToken} from '../utils/authMiddleware.js';
 import multer from 'multer'
 import {createClient} from '@supabase/supabase-js'
 
@@ -112,7 +112,7 @@ router.get('/profile/:identifier', async (req, res)=>{
                 following: user._count.following,
                 postsCount: user._count.posts
             },
-            posts,
+            post,
             isFollowing,
             isOwnProfile: req.user?.id === user.id
         });
@@ -122,7 +122,7 @@ router.get('/profile/:identifier', async (req, res)=>{
     }
 });
 
-router.put('/profile', authenticateToken, async(req, res)=>{
+router.put('/profile', verifySupabaseToken, async(req, res)=>{
     try{
         const userId = req.user.id;
         const{
@@ -168,7 +168,7 @@ router.put('/profile', authenticateToken, async(req, res)=>{
 });
 
 
-router.post('/profile/picture', authenticateToken, upload.single('profilePicture'), async(req, res)=>{
+router.post('/profile/picture', verifySupabaseToken, upload.single('profilePicture'), async(req, res)=>{
     try{
         if(!req.file){
             return res.status(400).json({error: 'No file uploaded'});
@@ -190,6 +190,8 @@ router.post('/profile/picture', authenticateToken, upload.single('profilePicture
             return res.status(500).json({ error: 'Failed to upload image' });
         }
 
+        const {data: {publicUrl}} = supabase.storage.from('avatars').getPublicUrl(filePath);
+
         const updateUser = await prisma.user.update({
             where: {id: userId},
             data: {profilePicture: publicUrl },
@@ -198,7 +200,7 @@ router.post('/profile/picture', authenticateToken, upload.single('profilePicture
 
         res.json({
             message: 'Profile picture updated successfully',
-            profilePicture: updatedUser.profilePicture 
+            profilePicture: updateUser.profilePicture 
         });
 
     }catch (error){
@@ -207,7 +209,7 @@ router.post('/profile/picture', authenticateToken, upload.single('profilePicture
     }
 });
 
-router.post('/profile/:userId/follow', authenticateToken, async(req, res)=>{
+router.post('/profile/:userId/follow', verifySupabaseToken, async(req, res)=>{
     try{
         const followerId = req.user.id;
         const {userId: followingId } = req.params;
@@ -307,7 +309,7 @@ router.get('/profile/:userId/following', async (req, res)=>{
   }
 });
 
-router.get('/profile/my-projects', authenticateToken, async(req, res)=>{
+router.get('/profile/my-projects', verifySupabaseToken, async(req, res)=>{
     try{
         const userId = req.user.id;
         const posts = await prisma.post.findMany({
