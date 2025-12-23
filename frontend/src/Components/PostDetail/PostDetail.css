@@ -515,21 +515,23 @@ body[data-sidebar-open="false"] .post-detail-page {
 .author-social {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-bottom: 16px;
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
 .social-link {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  padding: 10px 14px;
+  padding: 12px 20px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   color: rgba(255, 255, 255, 0.8);
   text-decoration: none;
   font-size: 14px;
+  font-weight: 600;
   transition: all 0.3s ease;
 }
 
@@ -539,8 +541,8 @@ body[data-sidebar-open="false"] .post-detail-page {
   color: #21daf2;
 }
 
-.contact-btn,
-.follow-btn {
+.follow-btn,
+.message-btn {
   width: 100%;
   display: flex;
   align-items: center;
@@ -552,30 +554,46 @@ body[data-sidebar-open="false"] .post-detail-page {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  margin-bottom: 10px;
-}
-
-.contact-btn {
-  background: #fa4efd;
-  border: none;
-  color: white;
-}
-
-.contact-btn:hover {
-  background: #fb6bfe;
-  transform: translateY(-1px);
+  margin-bottom: 12px;
 }
 
 .follow-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.follow-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: #22c55e;
+  color: #22c55e;
+}
+
+.follow-btn.following {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: #22c55e;
+  color: #22c55e;
+}
+
+.follow-btn.following:hover {
+  background: rgba(34, 197, 94, 0.2);
+  border-color: #22c55e;
+}
+
+.message-btn {
   background: transparent;
   border: 1px solid rgba(250, 78, 253, 0.3);
   color: rgba(250, 78, 253, 0.9);
 }
 
-.follow-btn:hover {
+.message-btn:hover {
   background: rgba(250, 78, 253, 0.1);
   border-color: #fa4efd;
   color: #fa4efd;
+}
+
+.message-btn:last-child {
+  margin-bottom: 0;
 }
 
 /* Stats Card */

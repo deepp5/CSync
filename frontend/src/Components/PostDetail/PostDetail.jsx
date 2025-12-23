@@ -29,6 +29,7 @@ const PostDetail = () => {
   const [loading, setLoading] = useState(true);
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [viewCount, setViewCount] = useState(0);
   
@@ -203,6 +204,10 @@ const PostDetail = () => {
 
   const handleContactOwner = () => {
     window.location.href = `mailto:${post.author.email}`;
+  };
+
+  const handleFollow = () => {
+    setIsFollowing(!isFollowing);
   };
 
   const getTimeAgo = (dateString) => {
@@ -410,8 +415,6 @@ const PostDetail = () => {
           {/* Sidebar - Author Info */}
           <div className="post-sidebar">
             <div className="author-card">
-              <h3 className="sidebar-title">About the Author</h3>
-              
               <div className="author-info">
                 <div className="author-avatar-large">
                   {post.author.avatar}
@@ -440,12 +443,15 @@ const PostDetail = () => {
                 </a>
               </div>
 
-              <button className="contact-btn" onClick={handleContactOwner}>
-                <FiMail /> Contact Author
+              <button 
+                className={`follow-btn ${isFollowing ? 'following' : ''}`}
+                onClick={handleFollow}
+              >
+                <FiUser /> {isFollowing ? 'Following' : 'Follow'}
               </button>
-              
-              <button className="follow-btn">
-                <FiUser /> Follow
+
+              <button className="message-btn" onClick={handleContactOwner}>
+                <FiMail /> Message
               </button>
             </div>
 
