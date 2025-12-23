@@ -2,9 +2,9 @@
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 12px;
-    padding: 20px;
+    padding: 24px;
     cursor: pointer;
-    min-height: 275px;
+    min-height: 280px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -20,14 +20,16 @@
 }
 
 .project-card h3 {
-    font-size: 18px;
-    margin-bottom: 8px;
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 16px;
     color: #e8e8e8;
 }
 
 .desc {
     color: #c7c7c7;
     font-size: 16px;
+    margin-top: 16px;
     margin-bottom: 10px;
 }
 
@@ -44,9 +46,9 @@
 }
 
 .skill-badge {
-    background: rgba(33, 218, 242, 0.1);
-    border: 1px solid rgba(33, 218, 242, 0.3);
-    color: #21daf2;
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: rgba(255, 255, 255, 0.8) !important;
     padding: 4px 10px;
     border-radius: 12px;
     font-size: 12px;
@@ -63,17 +65,38 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-top: 16px;
+    padding-top: 18px;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
-    margin-top: 16px;
+    margin-top: 18px;
+    gap: 12px;
+}
+
+.card-bottom-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 1;
+    min-width: 0;
+}
+
+.category-badge {
+    background: rgba(33, 218, 242, 0.1);
+    border: 1px solid rgba(33, 218, 242, 0.3);
+    color: #21daf2;
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
 }
 
 .difficulty-badge {
-    padding: 4px 10px;
-    border-radius: 12px;
-    font-size: 12px;
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-size: 11px;
     font-weight: 500;
     border: 1px solid;
+    white-space: nowrap;
 }
 
 .difficulty-badge.difficulty-easy {
@@ -98,4 +121,6 @@
     font-size: 13px;
     color: rgba(255, 255, 255, 0.5);
     margin: 0;
+    white-space: nowrap;
+    flex-shrink: 0;
 }

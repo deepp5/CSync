@@ -20,6 +20,18 @@ export default function Card(props) {
       default: return 'Intermediate';
     }
   };
+
+  const getCategoryLabel = (category) => {
+    const labels = {
+      'WEB_DEVELOPMENT': 'Web Development',
+      'MOBILE': 'Mobile App',
+      'AI_ML': 'Machine Learning',
+      'GAME_DEV': 'Game Development',
+      'SYSTEMS': 'Systems',
+      'OTHER': 'Other'
+    };
+    return labels[category] || category;
+  };
   const navigate = useNavigate();
     const goToPost = () => {
         navigate(`/post/${props.post.id}`);
@@ -35,7 +47,6 @@ export default function Card(props) {
         <div className="project-card" role="button" tabIndex={0} onClick={goToPost} onKeyDown={handleKeyDown}>
             <div className = "cardTop">
                 <h3>{props.post.title}</h3>
-                <p className="desc">{props.post.header}</p>
                 
                 <div className="card-skills">
                   {(props.post.techStack || []).slice(0, 3).map((skill, index) => (
@@ -47,12 +58,19 @@ export default function Card(props) {
                     </span>
                   )}
                 </div>
+
+                <p className="desc">{props.post.header}</p>
             </div>
 
             <div className = "cardBottom">
-                <span className={`difficulty-badge ${getDifficultyClass(props.post.difficulty)}`}>
-                  {getDifficultyLabel(props.post.difficulty)}
-                </span>
+                <div className="card-bottom-left">
+                  <span className="category-badge">
+                    {getCategoryLabel(props.post.category)}
+                  </span>
+                  <span className={`difficulty-badge ${getDifficultyClass(props.post.difficulty)}`}>
+                    {getDifficultyLabel(props.post.difficulty)}
+                  </span>
+                </div>
                 <p className="ownerName">Jay</p>
             </div>
         </div>
