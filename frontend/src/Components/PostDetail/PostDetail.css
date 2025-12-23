@@ -325,9 +325,9 @@ body[data-sidebar-open="false"] .post-detail-page {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #21daf2;
-  border: none;
-  color: white;
+  background: transparent;
+  border: 1px solid rgba(250, 78, 253, 0.3);
+  color: rgba(250, 78, 253, 0.9);
   padding: 10px 20px;
   border-radius: 8px;
   font-size: 14px;
@@ -337,7 +337,9 @@ body[data-sidebar-open="false"] .post-detail-page {
 }
 
 .submit-comment-btn:hover {
-  background: #1bc4db;
+  background: rgba(250, 78, 253, 0.1);
+  border-color: #fa4efd;
+  color: #fa4efd;
   transform: translateY(-1px);
 }
 
@@ -543,26 +545,26 @@ body[data-sidebar-open="false"] .post-detail-page {
 }
 
 .contact-btn {
-  background: #21daf2;
+  background: #fa4efd;
   border: none;
   color: white;
 }
 
 .contact-btn:hover {
-  background: #1bc4db;
+  background: #fb6bfe;
   transform: translateY(-1px);
 }
 
 .follow-btn {
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: white;
+  border: 1px solid rgba(250, 78, 253, 0.3);
+  color: rgba(250, 78, 253, 0.9);
 }
 
 .follow-btn:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: #21daf2;
-  color: #21daf2;
+  background: rgba(250, 78, 253, 0.1);
+  border-color: #fa4efd;
+  color: #fa4efd;
 }
 
 /* Stats Card */
