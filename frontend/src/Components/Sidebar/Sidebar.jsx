@@ -74,10 +74,10 @@ const Sidebar = () => {
             {isOpen && <span>Messages</span>}
           </Link>
 
-          <button className="sidebar-btn">
+          <Link className="sidebar-btn" to="/my-projects">
             <FiList className="icon" />
             {isOpen && <span>My Projects</span>}
-          </button>
+          </Link>
 
           <Link className="sidebar-btn" to="/createpost">
             <FiPlusSquare className="icon" />

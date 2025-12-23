@@ -1,29 +1,29 @@
-import React, { useEffect } from "react";
+import React from "react";
+import axios from "axios";
+import { useEffect, useState } from "react";
+import { supabase } from "../supabaseClient";
 import Sidebar from "../Components/Sidebar/Sidebar";
 import SearchBar from "../Components/HomePage/Search/SearchBar";
 import Grid from "../Components/HomePage/Grid/Grid";
 import "../Components/HomePage/HomePage.css";
-import { supabase } from ".././supabaseClient";
 
 export default function HomePage() {
+  const [posts, setPosts] = useState([]);
+
   useEffect(() => {
-    const getSession = async () => {
-      const { data, error } = await supabase.auth.getSession();
+    async function fetchPosts(){
+      const {data: {session}} = await supabase.auth.getSession();
+      if(!session){ return; }
+      const token = session.access_token;
 
-      if (error) {
-        console.error("Supabase session error:", error);
-        return;
-      }
+      const response = await axios.get("http://localhost:5051/posts", {
+        headers: {Authorization: `Bearer ${token}`}
+      });
 
-      if (data?.session) {
-        console.log("✅ Supabase User:", data.session.user);
-        console.log("✅ Supabase Access Token:", data.session.access_token);
-      } else {
-        console.log("❌ No active session");
-      }
-    };
+      setPosts(response.data);
+    }
 
-    getSession();
+    fetchPosts();
   }, []);
 
   return (
@@ -31,8 +31,9 @@ export default function HomePage() {
       <Sidebar />
 
       <div className="home-content">
+        <h1 className="home-title">Browse Projects</h1>
         <SearchBar />
-        <Grid />
+        <Grid posts={posts}/>
       </div>
     </div>
   );
