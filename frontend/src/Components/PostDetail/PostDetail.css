@@ -335,8 +335,8 @@ body[data-sidebar-open="false"] .post-detail-page {
   align-items: center;
   justify-content: center;
   background: transparent;
-  border: 1px solid rgba(250, 78, 253, 0.3);
-  color: rgba(250, 78, 253, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.8);
   width: 32px;
   height: 32px;
   padding: 0;
@@ -348,9 +348,9 @@ body[data-sidebar-open="false"] .post-detail-page {
 }
 
 .submit-comment-btn:hover {
-  background: rgba(250, 78, 253, 0.1);
-  border-color: #fa4efd;
-  color: #fa4efd;
+  background: rgba(255, 255, 255, 0.1);
+  border-color: #ffffff;
+  color: #ffffff;
   transform: scale(1.05);
 }
 
