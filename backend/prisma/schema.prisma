@@ -3,28 +3,163 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")   // runtime (can be pooler)
+  directUrl = env("DIRECT_URL")     // migrations / long connections
 }
 
 model User {
-  id                String    @id
-  name              String?
-  email             String    @unique
-  createdAt         DateTime  @default(now())
-  messagesSent      Message[] @relation("SentMessages")
-  messagesReceived  Message[] @relation("ReceivedMessages")
+  id             String   @id @default(uuid())
+
+  // Identity
+  email          String   @unique
+  name           String?  // optional to support schema #3
+  username       String?  @unique
+
+  // Auth
+  password       String?  // nullable for OAuth users
+  isOAuthUser    Boolean  @default(false)
+  oauthProvider  String?
+
+  // Profile
+  profilePicture String?
+  bio            String?
+  skills         String[]
+  githubUrl      String?
+  linkedinUrl    String?
+  schoolCompany  String?
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  posts             Post[]      @relation("UserPosts")
+  comments          Comment[]   @relation("UserComments")
+  likes             Like[]      @relation("UserLikes")
+  savedPosts        SavedPost[] @relation("UserSavedPosts")
+
+  messagesSent      Message[]   @relation("SentMessages")
+  messagesReceived  Message[]   @relation("ReceivedMessages")
+
+  followers         Follow[]    @relation("Following") // people who follow me
+  following         Follow[]    @relation("Followers") // people I follow
+
+  @@index([username])
+  @@index([email])
+}
+
+model Follow {
+  id          String   @id @default(uuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower    User @relation("Followers", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+}
+
+model Post {
+  id          String     @id @default(uuid())
+  title       String
+  header      String
+  techStack   String[]
+  description String     @db.Text
+
+  category    Category
+  difficulty  Difficulty
+  deadline    DateTime
+
+  visibility  Visibility @default(DRAFT)
+
+  likes       Int        @default(0)
+  views       Int        @default(0)
+
+  imageUrl    String?
+  githubLink  String?
+  liveLink    String?
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  userId      String
+  user        User       @relation("UserPosts", fields: [userId], references: [id], onDelete: Cascade)
+
+  comments    Comment[]  @relation("PostComments")
+  likesList   Like[]     @relation("PostLikes")
+  savedBy     SavedPost[] @relation("SavedPosts")
+
+  @@index([userId])
+  @@index([visibility])
+  @@index([category])
+  @@index([createdAt])
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  content   String   @db.Text
+  postId    String
+  userId    String
+  parentId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  post      Post      @relation("PostComments", fields: [postId], references: [id], onDelete: Cascade)
+  user      User      @relation("UserComments", fields: [userId], references: [id], onDelete: Cascade)
+
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[] @relation("CommentReplies")
+
+  @@index([postId])
+  @@index([userId])
+  @@index([parentId])
+}
+
+model Like {
+  id        String   @id @default(uuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  post      Post @relation("PostLikes", fields: [postId], references: [id], onDelete: Cascade)
+  user      User @relation("UserLikes", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([postId])
+  @@index([userId])
+}
+
+model SavedPost {
+  id        String   @id @default(uuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  post      Post @relation("SavedPosts", fields: [postId], references: [id], onDelete: Cascade)
+  user      User @relation("UserSavedPosts", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([postId])
+  @@index([userId])
 }
 
 model Message {
   id         String   @id @default(uuid())
   senderId   String
   receiverId String
-  content    String
+  content    String   @db.Text
+  isRead     Boolean  @default(false)
   createdAt  DateTime @default(now())
 
-  sender   User @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
-  receiver User @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  sender     User @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver   User @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([createdAt])
 }
 
 enum Difficulty {
@@ -33,27 +168,22 @@ enum Difficulty {
   ADVANCED
 }
 
+enum Visibility {
+  DRAFT
+  PRIVATE
+  PUBLIC
+}
+
 enum Category {
   WEB_DEVELOPMENT
   MOBILE
   AI_ML
   GAME_DEV
   SYSTEMS
+  DATA_SCIENCE
+  CYBERSECURITY
+  BLOCKCHAIN
+  DEVOPS
+  UI_UX
   OTHER
 }
-
-model Post {
-  id            String @id @default(uuid())
-  title         String
-  header        String
-  techStack     String[]
-  description   String
-  category      Category
-  difficulty    Difficulty
-  deadline      DateTime
-  createdAt     DateTime @default(now())
-  userId        String
-}
-
-
-

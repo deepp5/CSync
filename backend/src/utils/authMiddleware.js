@@ -1,41 +1,58 @@
 import jwt from "jsonwebtoken";
 import jwksClient from "jwks-rsa";
 
-const client = jwksClient({
-  jwksUri: `${process.env.SUPABASE_URL}/auth/v1/.well-known/jwks.json`,
-});
+let cachedClient = null;
+
+function getSupabaseUrl() {
+  const url = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
+  if (!url) throw new Error("SUPABASE_URL missing in .env");
+  return url;
+}
+
+function getJwksClient() {
+  if (cachedClient) return cachedClient;
+
+  const SUPABASE_URL = getSupabaseUrl();
+  cachedClient = jwksClient({
+    jwksUri: `${SUPABASE_URL}/auth/v1/.well-known/jwks.json`,
+    cache: true,
+    cacheMaxEntries: 5,
+    cacheMaxAge: 10 * 60 * 1000,
+    rateLimit: true,
+    jwksRequestsPerMinute: 10,
+  });
+
+  return cachedClient;
+}
 
 function getKey(header, callback) {
-  client.getSigningKey(header.kid, (err, key) => {
+  if (!header?.kid) return callback(new Error("Missing kid in JWT header"));
+
+  getJwksClient().getSigningKey(header.kid, (err, key) => {
     if (err) return callback(err);
-    const signingKey = key.getPublicKey();
-    callback(null, signingKey);
+    callback(null, key.getPublicKey());
   });
 }
 
 export const verifySupabaseToken = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader)
-    return res.status(401).json({ error: "Missing Authorization header" });
+  const authHeader = req.headers.authorization || "";
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
-  const token = authHeader.split(" ")[1];
-
-  const header = jwt.decode(token, { complete: true })?.header;
-  const alg = header?.alg;
-
-  // ✅ Only allow strong public-key algorithms
-  const allowed = ["ES256", "RS256"];
-  if (!allowed.includes(alg)) {
-    return res.status(403).json({ error: `Unsupported JWT alg: ${alg}` });
+  if (!token) {
+    return res
+      .status(401)
+      .json({ error: "Missing Authorization: Bearer <token>" });
   }
+
+  const SUPABASE_URL = getSupabaseUrl();
 
   jwt.verify(
     token,
     getKey,
     {
+      issuer: `${SUPABASE_URL}/auth/v1`,
       audience: "authenticated",
-      issuer: `${process.env.SUPABASE_URL}/auth/v1`,
-      algorithms: [alg], // ✅ uses ES256 for your project if that's what it is
+      algorithms: ["ES256", "RS256"],
     },
     (err, decoded) => {
       if (err) {
@@ -43,11 +60,32 @@ export const verifySupabaseToken = (req, res, next) => {
         return res.status(403).json({ error: "Invalid token" });
       }
 
+      // DEBUG: Log the entire decoded token
+      console.log(
+        "[DEBUG] Full decoded token:",
+        JSON.stringify(decoded, null, 2)
+      );
+      console.log("[DEBUG] decoded.sub:", decoded?.sub);
+      console.log("[DEBUG] decoded.email:", decoded?.email);
+      console.log("[DEBUG] decoded.user_metadata:", decoded?.user_metadata);
+
+      // Attach user data from token
       req.user = {
-        id: decoded.sub,
-        email: decoded.email,
-        user_metadata: decoded.user_metadata,
+        sub: decoded?.sub,
+        id: decoded?.sub,
+        email: decoded?.email,
+        user_metadata: decoded?.user_metadata || {},
       };
+
+      console.log(
+        "[SUCCESS] req.user set to:",
+        JSON.stringify(req.user, null, 2)
+      );
+
+      if (!req.user.id || !req.user.email) {
+        console.error("[ERROR] Bad supabase payload:", decoded);
+        return res.status(401).json({ error: "Token missing id/email claims" });
+      }
 
       next();
     }
