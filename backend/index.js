@@ -135,6 +135,16 @@ app.get("/posts", verifySupabaseToken, async (req, res) => {
         NOT: { userId },
         visibility: "PUBLIC", // Only show public posts
       },
+      include: {
+        User: {
+          select: {
+            id: true,
+            username: true,
+            name: true,
+            profilePicture: true,
+          }
+        }
+      },
       orderBy: { createdAt: "desc" }, // Newest first
     });
 

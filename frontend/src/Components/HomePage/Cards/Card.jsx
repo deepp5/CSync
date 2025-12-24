@@ -70,7 +70,7 @@ export default function Card(props) {
                         <span className="skill-badge more">+{props.post.techStack.length - 2}</span>
                     )}
                 </div>
-                <p className="ownerName">Jay</p>
+                <p className="ownerName">{props.post.User?.username || props.post.User?.name || "Unknown"}</p>
             </div>
         </div>
     );
