@@ -57,6 +57,7 @@ const PostDetail = () => {
         setPost(response.data);
         setLikeCount(response.data.likes || 0);
         setViewCount(response.data.views || 0);
+        setIsLiked(response.data.isLiked || false);
         setLoading(false);
       } catch (error) {
         console.error('Error fetching post:', error);
@@ -68,9 +69,44 @@ const PostDetail = () => {
     fetchPost();
   }, [id, navigate]);
 
-  const handleLike = () => {
+  const handleLike = async () => {
+    // Store previous state for rollback
+    const previousIsLiked = isLiked;
+    const previousLikeCount = likeCount;
+
+    // OPTIMISTIC UPDATE - Update UI immediately
     setIsLiked(!isLiked);
     setLikeCount(isLiked ? likeCount - 1 : likeCount + 1);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        // Rollback if not authenticated
+        setIsLiked(previousIsLiked);
+        setLikeCount(previousLikeCount);
+        navigate('/login');
+        return;
+      }
+
+      const token = session.access_token;
+
+      if (previousIsLiked) {
+        // Unlike the post
+        await axios.delete(`http://localhost:5051/posts/${id}/like`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      } else {
+        // Like the post
+        await axios.post(`http://localhost:5051/posts/${id}/like`, {}, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      }
+    } catch (error) {
+      console.error('Error toggling like:', error);
+      // Rollback on error
+      setIsLiked(previousIsLiked);
+      setLikeCount(previousLikeCount);
+    }
   };
 
   const handleSave = () => {

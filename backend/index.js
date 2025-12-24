@@ -334,6 +334,7 @@ app.delete("/posts/:id", verifySupabaseToken, async (req, res) => {
 app.get("/posts/:id", verifySupabaseToken, async (req, res) => {
   try {
     const postId = req.params.id;
+    const userId = req.user.id;
 
     const post = await prisma.post.findUnique({
       where: { id: postId },
@@ -344,6 +345,9 @@ app.get("/posts/:id", verifySupabaseToken, async (req, res) => {
             name: true,
             username: true,
             profilePicture: true,
+            bio: true,
+            githubUrl: true,
+            linkedinUrl: true,
           },
         },
       },
@@ -353,7 +357,122 @@ app.get("/posts/:id", verifySupabaseToken, async (req, res) => {
       return res.status(404).json({ error: "Post not found" });
     }
 
-    res.json(post);
+    // Check if current user has liked this post
+    const userLike = await prisma.like.findUnique({
+      where: {
+        postId_userId: {
+          postId: postId,
+          userId: userId,
+        },
+      },
+    });
+
+    res.json({
+      ...post,
+      isLiked: !!userLike,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Like a post
+app.post("/posts/:id/like", verifySupabaseToken, async (req, res) => {
+  try {
+    const postId = req.params.id;
+    const userId = req.user.id;
+
+    // Check if post exists
+    const post = await prisma.post.findUnique({
+      where: { id: postId },
+    });
+
+    if (!post) {
+      return res.status(404).json({ error: "Post not found" });
+    }
+
+    // Check if already liked
+    const existingLike = await prisma.like.findUnique({
+      where: {
+        postId_userId: {
+          postId: postId,
+          userId: userId,
+        },
+      },
+    });
+
+    if (existingLike) {
+      return res.status(400).json({ error: "Already liked this post" });
+    }
+
+    // Create like and increment post likes count
+    await prisma.$transaction([
+      prisma.like.create({
+        data: {
+          id: `${postId}_${userId}_${Date.now()}`,
+          postId: postId,
+          userId: userId,
+        },
+      }),
+      prisma.post.update({
+        where: { id: postId },
+        data: { likes: { increment: 1 } },
+      }),
+    ]);
+
+    const updatedPost = await prisma.post.findUnique({
+      where: { id: postId },
+    });
+
+    res.json({ likes: updatedPost.likes, isLiked: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Unlike a post
+app.delete("/posts/:id/like", verifySupabaseToken, async (req, res) => {
+  try {
+    const postId = req.params.id;
+    const userId = req.user.id;
+
+    // Check if like exists
+    const existingLike = await prisma.like.findUnique({
+      where: {
+        postId_userId: {
+          postId: postId,
+          userId: userId,
+        },
+      },
+    });
+
+    if (!existingLike) {
+      return res.status(400).json({ error: "Haven't liked this post" });
+    }
+
+    // Delete like and decrement post likes count
+    await prisma.$transaction([
+      prisma.like.delete({
+        where: {
+          postId_userId: {
+            postId: postId,
+            userId: userId,
+          },
+        },
+      }),
+      prisma.post.update({
+        where: { id: postId },
+        data: { likes: { decrement: 1 } },
+      }),
+    ]);
+
+    const updatedPost = await prisma.post.findUnique({
+      where: { id: postId },
+    });
+
+    res.json({ likes: updatedPost.likes, isLiked: false });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
