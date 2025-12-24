@@ -1,6 +1,8 @@
 // PostDetailPage.jsx
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { supabase } from '../../supabaseClient';
 import './PostDetail.css';
 import { 
   FiUser, 
@@ -11,12 +13,12 @@ import {
   FiShare2,
   FiClock,
   FiEye,
-  FiSend,
   FiMoreVertical,
   FiArrowLeft,
   FiGithub,
   FiLinkedin
 } from 'react-icons/fi';
+import { IoIosArrowForward } from 'react-icons/io';
 
 const PostDetail = () => {
   const { id } = useParams(); // Get post ID from URL
@@ -27,111 +29,44 @@ const PostDetail = () => {
   const [loading, setLoading] = useState(true);
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [viewCount, setViewCount] = useState(0);
   
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [replyTo, setReplyTo] = useState(null);
+  
 
   // Fetch post data based on ID
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      const mockPost = {
-        id: id,
-        title: 'Building a Real-Time Collaboration Platform',
-        description: `This is a comprehensive guide and showcase of a real-time collaboration platform I've been working on. 
-
-The platform enables teams to work together seamlessly with features like live document editing, video conferencing, and project management tools all in one place.
-
-**Key Features:**
-- Real-time collaborative editing with operational transformation
-- Integrated video/audio conferencing using WebRTC
-- Advanced project management with Kanban boards
-- Role-based access control and permissions
-- Real-time notifications and activity feeds
-- File sharing and cloud storage integration
-
-**Technical Stack:**
-- Frontend: React, TypeScript, Socket.io-client
-- Backend: Node.js, Express, Socket.io
-- Database: MongoDB with Redis for caching
-- Real-time: WebSocket connections for instant updates
-- Authentication: JWT with refresh tokens
-
-**Challenges Overcome:**
-One of the biggest challenges was handling conflict resolution in real-time editing. I implemented operational transformation algorithms to ensure consistency across all connected clients.
-
-**What's Next:**
-I'm currently working on mobile apps for iOS and Android, and planning to add AI-powered features like smart task suggestions and automated meeting summaries.
-
-Feel free to reach out if you want to collaborate or have any questions!`,
-        category: 'Web Development',
-        tags: ['React', 'Node.js', 'WebSocket', 'Real-time', 'Collaboration'],
-        author: {
-          name: 'Alex Johnson',
-          username: 'alexj_dev',
-          avatar: 'A',
-          bio: 'Full-stack developer passionate about real-time systems',
-          email: 'alex.johnson@example.com',
-          github: 'https://github.com/alexj',
-          linkedin: 'https://linkedin.com/in/alexj'
-        },
-        createdAt: '2024-01-15T10:30:00Z',
-        likes: 234,
-        views: 1542,
-        commentCount: 18,
-        images: [] // Optional images
-      };
-      
-      setPost(mockPost);
-      setLikeCount(mockPost.likes);
-      setViewCount(mockPost.views);
-      
-      // Mock comments
-      setComments([
-        {
-          id: 1,
-          author: {
-            name: 'Sarah Chen',
-            username: 'sarah_c',
-            avatar: 'S'
-          },
-          content: 'This is amazing! I\'ve been looking for something exactly like this. How did you handle the WebRTC signaling?',
-          createdAt: '2024-01-15T11:00:00Z',
-          likes: 12,
-          replies: [
-            {
-              id: 2,
-              author: {
-                name: 'Alex Johnson',
-                username: 'alexj_dev',
-                avatar: 'A'
-              },
-              content: 'Thanks Sarah! I used a custom signaling server with Socket.io. Happy to share more details if you\'re interested.',
-              createdAt: '2024-01-15T11:15:00Z',
-              likes: 8
-            }
-          ]
-        },
-        {
-          id: 3,
-          author: {
-            name: 'Mike Rodriguez',
-            username: 'mike_r',
-            avatar: 'M'
-          },
-          content: 'Great work! Have you considered using CRDTs instead of OT? Might simplify the conflict resolution.',
-          createdAt: '2024-01-15T12:30:00Z',
-          likes: 5,
-          replies: []
+    async function fetchPost() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          navigate('/login');
+          return;
         }
-      ]);
-      
-      setLoading(false);
-    }, 500);
-  }, [id]);
+
+        const token = session.access_token;
+
+        const response = await axios.get(`http://localhost:5051/posts/${id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        setPost(response.data);
+        setLikeCount(response.data.likes || 0);
+        setViewCount(response.data.views || 0);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching post:', error);
+        setPost(null);
+        setLoading(false);
+      }
+    }
+
+    fetchPost();
+  }, [id, navigate]);
 
   const handleLike = () => {
     setIsLiked(!isLiked);
@@ -140,6 +75,10 @@ Feel free to reach out if you want to collaborate or have any questions!`,
 
   const handleSave = () => {
     setIsSaved(!isSaved);
+  };
+
+  const handleFollow = () => {
+    setIsFollowing(!isFollowing);
   };
 
   const handleShare = () => {
@@ -193,8 +132,9 @@ Feel free to reach out if you want to collaborate or have any questions!`,
   };
 
   const handleContactOwner = () => {
-    window.location.href = `mailto:${post.author.email}`;
+    window.location.href = `mailto:${post.author?.email || ''}`;
   };
+
 
   const getTimeAgo = (dateString) => {
     const date = new Date(dateString);
@@ -206,6 +146,36 @@ Feel free to reach out if you want to collaborate or have any questions!`,
     if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
     if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
     return date.toLocaleDateString();
+  };
+
+  const getDifficultyLabel = (difficulty) => {
+    const labels = {
+      BEGINNER: "Beginner",
+      INTERMEDIATE: "Intermediate",
+      ADVANCED: "Advanced"
+    };
+    return labels[difficulty] || difficulty;
+  };
+
+  const getDifficultyClass = (difficulty) => {
+    const classes = {
+      BEGINNER: "difficulty-easy",
+      INTERMEDIATE: "difficulty-medium",
+      ADVANCED: "difficulty-hard"
+    };
+    return classes[difficulty] || "difficulty-medium";
+  };
+
+  const getCategoryLabel = (category) => {
+    const labels = {
+      WEB_DEVELOPMENT: "Web Development",
+      MOBILE: "Mobile",
+      AI_ML: "AI/ML",
+      GAME_DEV: "Game Dev",
+      SYSTEMS: "Systems",
+      OTHER: "Other"
+    };
+    return labels[category] || category;
   };
 
   if (loading) {
@@ -241,55 +211,66 @@ Feel free to reach out if you want to collaborate or have any questions!`,
           <button className="back-button" onClick={() => navigate(-1)}>
             <FiArrowLeft /> Back
           </button>
-          <div className="post-meta-info">
-            <span className="post-views">
-              <FiEye /> {viewCount.toLocaleString()} views
-            </span>
-            <span className="post-time">
-              <FiClock /> {getTimeAgo(post.createdAt)}
-            </span>
-          </div>
         </div>
 
         <div className="post-content-wrapper">
           {/* Main Content */}
           <div className="post-main-content">
-            {/* Post Title & Category */}
-            <div className="post-title-section">
-              <span className="post-category">{post.category}</span>
+            {/* Title with action buttons on the right */}
+            <div className="post-title-row">
               <h1 className="post-title">{post.title}</h1>
-              <div className="post-tags">
-                {post.tags.map((tag, index) => (
-                  <span key={index} className="post-tag">{tag}</span>
-                ))}
+              <div className="post-actions-top">
+                <button 
+                  className={`action-btn-icon ${isLiked ? 'liked' : ''}`}
+                  onClick={handleLike}
+                  title="Like"
+                >
+                  <FiHeart />
+                </button>
+                <button 
+                  className={`action-btn-icon ${isSaved ? 'saved' : ''}`}
+                  onClick={handleSave}
+                  title="Save"
+                >
+                  <FiBookmark />
+                </button>
+                <button 
+                  className="action-btn-icon" 
+                  onClick={handleShare}
+                  title="Share"
+                >
+                  <FiShare2 />
+                </button>
               </div>
+            </div>
+
+            {/* Category and Difficulty badges */}
+            <div className="post-meta-badges">
+              <span className="category-badge">{getCategoryLabel(post.category)}</span>
+              <span className={`difficulty-badge ${getDifficultyClass(post.difficulty)}`}>
+                {getDifficultyLabel(post.difficulty)}
+              </span>
             </div>
 
             {/* Post Description */}
             <div className="post-description">
-              {post.description.split('\n').map((paragraph, index) => (
-                <p key={index}>{paragraph}</p>
-              ))}
+              {post.description}
             </div>
 
-            {/* Action Buttons */}
-            <div className="post-actions">
-              <button 
-                className={`action-btn ${isLiked ? 'liked' : ''}`}
-                onClick={handleLike}
-              >
-                <FiHeart /> {likeCount}
-              </button>
-              <button 
-                className={`action-btn ${isSaved ? 'saved' : ''}`}
-                onClick={handleSave}
-              >
-                <FiBookmark /> {isSaved ? 'Saved' : 'Save'}
-              </button>
-              <button className="action-btn" onClick={handleShare}>
-                <FiShare2 /> Share
-              </button>
+            {/* Separator */}
+            <div className="post-separator"></div>
+
+            {/* Tech Stack */}
+            <div className="post-tech-stack">
+              <div className="tech-stack-tags">
+                {post.techStack && post.techStack.map((tech, index) => (
+                  <span key={index} className="tech-tag">{tech}</span>
+                ))}
+              </div>
             </div>
+
+            {/* Separator */}
+            <div className="post-separator"></div>
 
             {/* Comments Section */}
             <div className="comments-section">
@@ -311,16 +292,18 @@ Feel free to reach out if you want to collaborate or have any questions!`,
                     </button>
                   </div>
                 )}
-                <textarea
-                  className="comment-input"
-                  placeholder="Add a comment..."
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  rows="3"
-                />
-                <button type="submit" className="submit-comment-btn">
-                  <FiSend /> Post Comment
-                </button>
+                <div className="comment-input-wrapper">
+                  <textarea
+                    className="comment-input"
+                    placeholder="Add a comment..."
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    rows="1"
+                  />
+                  <button type="submit" className="submit-comment-btn">
+                    <IoIosArrowForward />
+                  </button>
+                </div>
               </form>
 
               {/* Comments List */}
@@ -350,7 +333,7 @@ Feel free to reach out if you want to collaborate or have any questions!`,
                       </div>
 
                       {/* Replies */}
-                      {comment.replies.length > 0 && (
+                      {comment.replies && comment.replies.length > 0 && (
                         <div className="replies">
                           {comment.replies.map((reply) => (
                             <div key={reply.id} className="comment reply">
@@ -384,42 +367,47 @@ Feel free to reach out if you want to collaborate or have any questions!`,
           {/* Sidebar - Author Info */}
           <div className="post-sidebar">
             <div className="author-card">
-              <h3 className="sidebar-title">About the Author</h3>
-              
               <div className="author-info">
                 <div className="author-avatar-large">
-                  {post.author.avatar}
+                  {post.User?.username?.charAt(0).toUpperCase() || 'U'}
                 </div>
-                <h4 className="author-name">{post.author.name}</h4>
-                <p className="author-username">@{post.author.username}</p>
-                <p className="author-bio">{post.author.bio}</p>
+                <h4 className="author-name">{post.User?.name || 'Anonymous'}</h4>
+                <p className="author-username">@{post.User?.username || 'user'}</p>
+                <p className="author-bio">{post.User?.bio || 'No bio available'}</p>
               </div>
 
               <div className="author-social">
-                <a 
-                  href={post.author.github} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="social-link"
-                >
-                  <FiGithub /> GitHub
-                </a>
-                <a 
-                  href={post.author.linkedin} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="social-link"
-                >
-                  <FiLinkedin /> LinkedIn
-                </a>
+                {post.User?.githubUrl && (
+                  <a 
+                    href={post.User.githubUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="social-link"
+                  >
+                    <FiGithub /> GitHub
+                  </a>
+                )}
+                {post.User?.linkedinUrl && (
+                  <a 
+                    href={post.User.linkedinUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="social-link"
+                  >
+                    <FiLinkedin /> LinkedIn
+                  </a>
+                )}
               </div>
 
               <button className="contact-btn" onClick={handleContactOwner}>
-                <FiMail /> Contact Author
+                <FiMail /> Message
               </button>
               
-              <button className="follow-btn">
-                <FiUser /> Follow
+              <button 
+                className={`follow-btn ${isFollowing ? 'following' : ''}`}
+                onClick={handleFollow}
+              >
+                <FiUser /> {isFollowing ? 'Following' : 'Follow'}
               </button>
             </div>
 
