@@ -13,6 +13,7 @@ import {
   FiMenu,
 } from "react-icons/fi";
 import { Link } from "react-router-dom";
+import { prefetchMyProjects } from "../../utils/prefetchProjects";
 
 const Sidebar = () => {
   const [isOpen, setIsOpen] = useState(true);
@@ -86,7 +87,11 @@ const Sidebar = () => {
             {isOpen && <span>Messages</span>}
           </Link>
 
-          <Link className="sidebar-btn" to="/myproject">
+          <Link 
+            className="sidebar-btn" 
+            to="/myproject"
+            onMouseEnter={() => prefetchMyProjects()}
+          >
             <FiList className="icon" /> My Projects
           </Link>
 

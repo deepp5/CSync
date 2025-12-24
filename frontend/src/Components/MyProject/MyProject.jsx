@@ -756,6 +756,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from "axios";
 import { supabase } from "../../supabaseClient";
+import { prefetchCache } from "../../utils/prefetchCache";
 import './MyProject.css';
 import { 
   FiEdit2, 
@@ -784,6 +785,17 @@ export default function MyProjects() {
   useEffect(() => {
     async function fetchMyProjects() {
       try {
+        // ⚡ Check cache first - INSTANT if prefetched!
+        const cachedData = prefetchCache.get('myProjects');
+        if (cachedData) {
+          setProjects(cachedData);
+          setLoading(false);
+          // Still fetch fresh data in background
+          fetchFreshData();
+          return;
+        }
+
+        // No cache - fetch normally
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
           setLoading(false);
@@ -802,6 +814,25 @@ export default function MyProjects() {
         console.error("Error fetching projects:", error);
         setProjects([]);
         setLoading(false);
+      }
+    }
+
+    async function fetchFreshData() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+
+        const token = session.access_token;
+
+        const res = await axios.get("http://localhost:5051/posts/me", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        // Update with fresh data
+        setProjects(res.data);
+        prefetchCache.set('myProjects', res.data);
+      } catch (error) {
+        console.error("Error fetching fresh projects:", error);
       }
     }
 
@@ -848,7 +879,9 @@ export default function MyProjects() {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      setProjects(projects.filter(p => p.id !== projectId));
+      const updatedProjects = projects.filter(p => p.id !== projectId);
+      setProjects(updatedProjects);
+      prefetchCache.set('myProjects', updatedProjects); // Update cache
       setShowMenu(null);
     } catch (error) {
       console.error("Error deleting project:", error);
@@ -861,9 +894,11 @@ export default function MyProjects() {
     if (!project) return;
 
     // ✅ OPTIMISTIC UPDATE - Update UI instantly
-    setProjects(projects.map(p =>
+    const updatedProjects = projects.map(p =>
       p.id === projectId ? { ...p, visibility: newVisibility } : p
-    ));
+    );
+    setProjects(updatedProjects);
+    prefetchCache.set('myProjects', updatedProjects); // Update cache
     setShowMenu(null);
 
     // Then sync with backend in the background
@@ -883,9 +918,11 @@ export default function MyProjects() {
     } catch (error) {
       console.error("Error updating project visibility:", error);
       // ❌ Revert on failure
-      setProjects(projects.map(p =>
+      const revertedProjects = projects.map(p =>
         p.id === projectId ? { ...p, visibility: project.visibility } : p
-      ));
+      );
+      setProjects(revertedProjects);
+      prefetchCache.set('myProjects', revertedProjects); // Update cache with reverted data
       alert("Failed to update project visibility. Please try again.");
     }
   };
@@ -932,16 +969,6 @@ export default function MyProjects() {
     if (days < 30) return `${Math.floor(days / 7)} weeks ago`;
     return date.toLocaleDateString();
   };
-
-  if (loading) {
-    return (
-      <div className="my-projects-page">
-        <div className="my-projects-container">
-          {/* Optional: replace with skeleton later */}
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="my-projects-page">
@@ -998,7 +1025,11 @@ export default function MyProjects() {
         </div>
 
         {/* Projects Grid */}
-        {filteredProjects.length === 0 ? (
+        {loading ? (
+          <div className="projects-grid">
+            {/* Loading state - show nothing or add skeleton cards here */}
+          </div>
+        ) : filteredProjects.length === 0 ? (
           <div className="no-projects">
             <div className="no-projects-icon">📁</div>
             <h3>No projects found</h3>
