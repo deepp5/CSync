@@ -9,7 +9,6 @@ import {
   FiUser,
   FiSettings,
   FiList,
-  FiX,
   FiMenu,
 } from "react-icons/fi";
 import { Link } from "react-router-dom";
@@ -61,11 +60,6 @@ const Sidebar = () => {
 
       {/* Sidebar */}
       <div className={`sidebar ${isOpen ? "open" : "closed"}`}>
-        {/* Close Button */}
-        <button className="sidebar-close-btn" onClick={toggleSidebar}>
-          <FiX />
-        </button>
-
         {/* Logo */}
         <div
           className="sidebar-logo"
