@@ -6,17 +6,32 @@
     top: 0;
     z-index: 50;         
     background: #0a0a0b;  
-    padding: 16px 0 16px; 
+    padding: 0px 0 16px; 
   }
+
+.search-bar-wrapper {
+    flex: 1;
+    position: relative;
+}
+
+.search-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 18px;
+    pointer-events: none;
+}
   
 .search-input {
-    flex: 1;
-    padding: 12px 16px;
+    width: 100%;
+    padding: 12px 16px 12px 45px;
     background: #111113;
     border: 1px solid rgba(255,255,255,0.1);
     border-radius: 8px;
     font-size: 15px;
-    color: white;
+    color: #e8e8e8;
     transition: 0.2s ease;
 }
 
@@ -31,16 +46,19 @@
 }
   
 .filter-btn {
-    padding: 12px 16px;
-    background: #111113;
-    color: white;
-    border-radius: 8px;
-    border: 1px solid rgba(255,255,255,0.1);
+    padding: 10px 20px;
+    background: rgba(250, 78, 253, 0.05);
+    color: rgba(250, 78, 253, 0.8);
+    border-radius: 999px;
+    border: 1px solid rgba(250, 78, 253, 0.3);
     cursor: pointer;
-    font-size: 15px;
-    transition: 0.2s ease;
+    font-size: 14px;
+    font-weight: 500;
+    transition: border 0.25s ease, color 0.25s ease, background 0.25s ease;
 }
   
 .filter-btn:hover {
-    border-color: #ffffff;
+    border-color: #fa4efd;
+    color: #fa4efd;
+    background: rgba(250, 78, 253, 0.15);
 }

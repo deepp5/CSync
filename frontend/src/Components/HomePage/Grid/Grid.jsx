@@ -1,7 +1,7 @@
 import React from "react";
-import {Link} from "react-router-dom";
 import Card from "../Cards/Card";
 import "./Grid.css";
+import {Link} from "react-router-dom";
 
 export default function Grid(props) {
   return (
@@ -10,7 +10,6 @@ export default function Grid(props) {
         <Link key={post.id} to={`/post/${post.id}`} className="card-link">
           <Card post={post}  />
         </Link>
-        
       ))}
     </div>
   );
