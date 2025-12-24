@@ -951,7 +951,7 @@ export default function MyProjects() {
           <div className="header-left">
             <h1 className="page-title">My Projects</h1>
           </div>
-          <button className="create-project-btn" onClick={() => navigate('/create-project')}>
+          <button className="create-project-btn" onClick={() => navigate('/createpost')}>
             <FiPlus /> New Project
           </button>
         </div>
@@ -1008,7 +1008,7 @@ export default function MyProjects() {
                 : "Start by creating your first project"}
             </p>
             {!searchQuery && (
-              <button className="create-first-btn" onClick={() => navigate('/create-project')}>
+              <button className="create-first-btn" onClick={() => navigate('/createpost')}>
                 <FiPlus /> Create Your First Project
               </button>
             )}
