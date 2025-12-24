@@ -14,8 +14,9 @@ body[data-sidebar-open="false"] .settings-page {
 }
 
 .settings-container {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
+  width: 100%;
 }
 
 /* Header */
@@ -27,13 +28,11 @@ body[data-sidebar-open="false"] .settings-page {
 }
 
 .settings-title {
-  font-size: 36px;
+  font-size: 32px;
   font-weight: 700;
-  margin: 0;
-  background: linear-gradient(45deg, #fff, #888);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  margin: 0 0 12px 0 !important;
+  color: #e8e8e8;
+  line-height: 1.2;
 }
 
 .save-status {
