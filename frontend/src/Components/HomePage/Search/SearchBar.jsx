@@ -6,7 +6,7 @@ export default function SearchBar() {
     return (
         <div className="search-container">
             <div className="search-bar-wrapper">
-                <FiSearch className="search-icon" />
+                <FiSearch className="search-iconz" />
                 <input
                     className="search-input"
                     placeholder="Search projects..."
