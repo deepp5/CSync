@@ -75,7 +75,7 @@ model Post {
   category    Category
   difficulty  Difficulty
   deadline    DateTime
-  visibility  Visibility @default(PUBLIC)
+  visibility  Visibility @default(DRAFT)
   likes       Int        @default(0)
   views       Int        @default(0)
   createdAt   DateTime   @default(now())

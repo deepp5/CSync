@@ -131,7 +131,9 @@ app.get("/posts", verifySupabaseToken, async (req, res) => {
     const posts = await prisma.post.findMany({
       where: {
         NOT: { userId },
+        visibility: "PUBLIC", // Only show public posts
       },
+      orderBy: { createdAt: "desc" }, // Newest first
     });
 
     res.json(posts);
@@ -172,6 +174,7 @@ app.post("/posts", verifySupabaseToken, async (req, res) => {
       category,
       difficulty,
       deadline,
+      visibility,
     } = req.body;
 
     if (
@@ -197,6 +200,7 @@ app.post("/posts", verifySupabaseToken, async (req, res) => {
         category,
         difficulty,
         deadline: new Date(deadline),
+        visibility: visibility || "DRAFT", // Default to DRAFT
         userId,
       },
     });

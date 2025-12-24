@@ -22,24 +22,25 @@
 }
 
 .project-card h3 {
-    font-size: 20px;
+    font-size: 22px;
     font-weight: 700;
-    margin-bottom: 16px;
+    margin-bottom: 14px;
     color: #e8e8e8;
+    line-height: 1.3;
 }
 
 .card-meta-badges {
     display: flex;
     align-items: center;
-    gap: 6px;
-    margin-top: 12px;
+    gap: 8px;
+    margin-bottom: 16px;
 }
 
 .desc {
     color: #c7c7c7;
-    font-size: 16px;
-    margin-top: 16px;
-    margin-bottom: 10px;
+    font-size: 15px;
+    line-height: 1.5;
+    margin: 0;
 }
 
 .cardTop {
@@ -51,38 +52,39 @@
     flex-wrap: wrap;
     gap: 6px;
     align-items: center;
-    margin-top: 0;
+    flex: 1;
 }
 
 .skill-badge {
     background: rgba(255, 255, 255, 0.05) !important;
     border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    color: rgba(255, 255, 255, 0.8) !important;
+    color: rgba(255, 255, 255, 0.75) !important;
     padding: 3px 8px;
     border-radius: 10px;
     font-size: 11px;
     font-weight: 500;
+    white-space: nowrap;
 }
 
 .skill-badge.more {
     background: rgba(255, 255, 255, 0.05) !important;
-    border-color: rgba(255, 255, 255, 0.2) !important;
-    color: rgba(255, 255, 255, 0.7) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: rgba(255, 255, 255, 0.75) !important;
 }
 
 .cardBottom {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-top: 18px;
+    padding-top: 16px;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
-    margin-top: 18px;
+    margin-top: 20px;
     gap: 12px;
 }
 
 .category-badge {
-    background: rgba(33, 218, 242, 0.1);
-    border: 1px solid rgba(33, 218, 242, 0.3);
+    background: rgba(33, 218, 242, 0.15);
+    border: 1px solid rgba(33, 218, 242, 0.4);
     color: #21daf2;
     padding: 3px 8px;
     border-radius: 10px;
@@ -101,27 +103,28 @@
 }
 
 .difficulty-badge.difficulty-easy {
-    background: rgba(16, 185, 129, 0.1);
-    border-color: rgba(16, 185, 129, 0.3);
-    color: #10b981;
+    background: rgba(34, 197, 94, 0.15);
+    border-color: rgba(34, 197, 94, 0.4);
+    color: #22c55e;
 }
 
 .difficulty-badge.difficulty-medium {
-    background: rgba(251, 191, 36, 0.1);
-    border-color: rgba(251, 191, 36, 0.3);
-    color: #fbbf24;
+    background: rgba(234, 179, 8, 0.15);
+    border-color: rgba(234, 179, 8, 0.4);
+    color: #eab308;
 }
 
 .difficulty-badge.difficulty-hard {
-    background: rgba(239, 68, 68, 0.1);
-    border-color: rgba(239, 68, 68, 0.3);
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.4);
     color: #ef4444;
 }
 
 .ownerName {
-    font-size: 13px;
-    color: rgba(255, 255, 255, 0.5);
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.6);
     margin: 0;
     white-space: nowrap;
     flex-shrink: 0;
+    font-weight: 500;
 }

@@ -1,5 +1,7 @@
 // SettingsPage.jsx
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '../../supabaseClient';
 import './Settings.css';
 import { 
   FiUser, 
@@ -15,6 +17,7 @@ import {
 } from 'react-icons/fi';
 
 const Settings = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('account');
   const [settings, setSettings] = useState({
     // Account Settings
@@ -61,7 +64,7 @@ const Settings = () => {
     }, 1000);
   };
 
-  const handleChangePassword = () => {
+  const handleChangePassword = async () => {
     if (settings.newPassword !== settings.confirmPassword) {
       alert('Passwords do not match!');
       return;
@@ -74,8 +77,15 @@ const Settings = () => {
     
     setSaveStatus('Updating password...');
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: settings.newPassword
+      });
+
+      if (error) {
+        throw error;
+      }
+
       setSaveStatus('Password updated successfully!');
       setSettings(prev => ({
         ...prev,
@@ -84,7 +94,11 @@ const Settings = () => {
         confirmPassword: ''
       }));
       setTimeout(() => setSaveStatus(''), 3000);
-    }, 1000);
+    } catch (error) {
+      console.error('Error updating password:', error);
+      setSaveStatus('');
+      alert('Failed to update password. Please try again.');
+    }
   };
 
   const handleExportData = () => {
@@ -112,11 +126,22 @@ const Settings = () => {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     const confirmed = window.confirm('Are you sure you want to log out?');
-    if (confirmed) {
-      console.log('Logging out...');
-      // Handle logout
+    if (!confirmed) return;
+
+    try {
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        throw error;
+      }
+
+      // Redirect to login page
+      navigate('/login');
+    } catch (error) {
+      console.error('Error logging out:', error);
+      alert('Failed to log out. Please try again.');
     }
   };
 
