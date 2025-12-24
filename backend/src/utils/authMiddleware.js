@@ -52,7 +52,7 @@ export const verifySupabaseToken = (req, res, next) => {
     {
       issuer: `${SUPABASE_URL}/auth/v1`,
       audience: "authenticated",
-      algorithms: ["ES256", "RS256"],
+      algorithms: ["RS256", "ES256"], // fine to keep both
     },
     (err, decoded) => {
       if (err) {
@@ -60,30 +60,27 @@ export const verifySupabaseToken = (req, res, next) => {
         return res.status(403).json({ error: "Invalid token" });
       }
 
-      // DEBUG: Log the entire decoded token
-      console.log(
-        "[DEBUG] Full decoded token:",
-        JSON.stringify(decoded, null, 2)
-      );
-      console.log("[DEBUG] decoded.sub:", decoded?.sub);
-      console.log("[DEBUG] decoded.email:", decoded?.email);
-      console.log("[DEBUG] decoded.user_metadata:", decoded?.user_metadata);
+      // ✅ Prefer raw_user_meta_data if present, fallback to user_metadata
+      const rawMeta =
+        decoded?.raw_user_meta_data || decoded?.user_metadata || {};
 
-      // Attach user data from token
       req.user = {
-        sub: decoded?.sub,
         id: decoded?.sub,
+        sub: decoded?.sub,
         email: decoded?.email,
-        user_metadata: decoded?.user_metadata || {},
+        user_metadata: decoded?.user_metadata || rawMeta,
+        raw_user_meta_data: rawMeta, // ✅ this is what your ensureUserExists will prefer
       };
 
-      console.log(
-        "[SUCCESS] req.user set to:",
-        JSON.stringify(req.user, null, 2)
-      );
+      // Optional debug (can remove later)
+      console.log("[SUCCESS] req.user set to:", {
+        id: req.user.id,
+        email: req.user.email,
+        username: req.user.raw_user_meta_data?.username,
+      });
 
       if (!req.user.id || !req.user.email) {
-        console.error("[ERROR] Bad supabase payload:", decoded);
+        console.error("[ERROR] Token missing id/email claims:", decoded);
         return res.status(401).json({ error: "Token missing id/email claims" });
       }
 

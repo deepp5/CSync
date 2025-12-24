@@ -1,15 +1,21 @@
 import React from "react";
 import Card from "../Cards/Card";
 import "./Grid.css";
-import {Link} from "react-router-dom";
 
-export default function Grid(props) {
+export default function Grid({ posts = [] }) {
+  if (posts.length === 0) {
+    return (
+      <div className="no-results">
+        <h3>No projects found</h3>
+        <p>Try adjusting your filters or search query</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="project-grid">
-      {props.posts.map(post => (
-        <Link key={post.id} to={`/post/${post.id}`} className="card-link">
-          <Card post={post}  />
-        </Link>
+    <div className="projects-grid">
+      {posts.map((post) => (
+        <Card key={post.id} post={post} />
       ))}
     </div>
   );

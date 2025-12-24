@@ -9,7 +9,10 @@ import Grid from "../Components/HomePage/Grid/Grid";
 import "../Components/HomePage/HomePage.css";
 
 export default function HomePage() {
-  const [posts, setPosts] = useState([]);
+  const [allPosts, setAllPosts] = useState([]); // Store ALL posts
+  const [filteredPosts, setFilteredPosts] = useState([]); // Display filtered posts
+  const [filters, setFilters] = useState({ category: "", difficulty: "" });
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     const init = async () => {
@@ -38,7 +41,8 @@ export default function HomePage() {
           },
         });
 
-        setPosts(response.data);
+        setAllPosts(response.data);
+        setFilteredPosts(response.data); // Initially show all posts
       } catch (err) {
         console.error("Failed to fetch posts:", err);
       }
@@ -46,6 +50,41 @@ export default function HomePage() {
 
     init();
   }, []);
+
+  // Filter posts whenever filters or search query changes
+  useEffect(() => {
+    let result = [...allPosts];
+
+    // Filter by category
+    if (filters.category) {
+      result = result.filter((post) => post.category === filters.category);
+    }
+
+    // Filter by difficulty
+    if (filters.difficulty) {
+      result = result.filter((post) => post.difficulty === filters.difficulty);
+    }
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(
+        (post) =>
+          post.title?.toLowerCase().includes(query) ||
+          post.description?.toLowerCase().includes(query)
+      );
+    }
+
+    setFilteredPosts(result);
+  }, [filters, searchQuery, allPosts]);
+
+  const handleFilterChange = ({ category, difficulty }) => {
+    setFilters({ category, difficulty });
+  };
+
+  const handleSearchChange = (query) => {
+    setSearchQuery(query);
+  };
 
   return (
     <div className="home-container">
@@ -56,12 +95,20 @@ export default function HomePage() {
           <div className="home-header">
             <h1 className="home-title">Browse Projects</h1>
           </div>
-          <SearchBar />
-          <Grid posts={posts} />
+
+          <SearchBar
+            onFilterChange={handleFilterChange}
+            onSearchChange={handleSearchChange}
+          />
+
+          <div className="results-info">
+            {filteredPosts.length}{" "}
+            {filteredPosts.length === 1 ? "project" : "projects"} found
+          </div>
+
+          <Grid posts={filteredPosts} />
         </div>
       </div>
     </div>
   );
 }
-
-

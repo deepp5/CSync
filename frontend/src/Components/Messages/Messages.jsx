@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import "./Messages.css";
 import {
   FiSearch,
@@ -12,6 +12,7 @@ import {
   FiCheckCircle,
 } from "react-icons/fi";
 import { useAuth } from "../../context/AuthContext";
+import { io } from "socket.io-client";
 
 const API_BASE = "http://localhost:5051";
 
@@ -31,19 +32,27 @@ function formatTime(ts) {
   }
 }
 
+function shortId(id) {
+  if (!id) return "";
+  return id.length > 10 ? `${id.slice(0, 6)}…${id.slice(-4)}` : id;
+}
+
 const Messages = () => {
   const { user, accessToken, loading } = useAuth();
 
   const [conversations, setConversations] = useState([]);
-  const [selectedChatId, setSelectedChatId] = useState(null); // always a STRING userId
+  const [selectedChatId, setSelectedChatId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [messageInput, setMessageInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [error, setError] = useState("");
 
-  /* ===============================
-     FETCH CONVERSATIONS
-  =============================== */
+  const socketRef = useRef(null);
+  const messagesEndRef = useRef(null);
+
+  // ===============================
+  // FETCH CONVERSATIONS
+  // ===============================
   useEffect(() => {
     if (!accessToken) return;
 
@@ -54,66 +63,41 @@ const Messages = () => {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
 
-        if (!res.ok) {
-          const txt = await res.text().catch(() => "");
-          throw new Error(`GET /conversations failed (${res.status}) ${txt}`);
-        }
-
+        if (!res.ok) throw new Error("Failed to fetch conversations");
         const data = await res.json();
         const arr = Array.isArray(data) ? data : [];
 
-        // Normalize backend -> UI
         const formatted = arr
           .map((c) => {
             const otherUserId =
               safeString(c.userId) ||
               safeString(c.otherUserId) ||
-              safeString(c.partnerId) ||
-              safeString(c.user_id);
+              safeString(c.partnerId);
 
             if (!otherUserId) return null;
-
             const displayName =
+              (safeString(c.username) ? `@${safeString(c.username)}` : "") ||
               safeString(c.name) ||
-              safeString(c.user?.name) ||
-              `User ${otherUserId}`;
-
-            const username =
-              safeString(c.username) ||
-              safeString(c.user?.username) ||
-              `user_${otherUserId}`;
-
-            const createdAt =
-              c.createdAt || c.updatedAt || new Date().toISOString();
+              `User ${otherUserId.slice(0, 6)}`;
 
             return {
-              id: otherUserId, // IMPORTANT: id is the other user's id (string)
               userId: otherUserId,
               name: displayName,
-              username,
-              avatar: (
-                displayName?.[0] ||
-                otherUserId?.[0] ||
-                "?"
-              ).toUpperCase(),
-              lastMessage: safeString(c.lastMessage) || "",
-              timestamp: formatTime(createdAt),
+              username: safeString(c.username) || "",
+              avatar: (name?.[0] || otherUserId?.[0] || "?").toUpperCase(),
+              lastMessage: safeString(c.lastMessage),
+              updatedAt: c.updatedAt || c.createdAt || new Date().toISOString(),
+              timestamp: formatTime(c.updatedAt || Date.now()),
               unread: Number(c.unread || 0),
-              online: Boolean(c.online || false),
-              createdAt,
+              online: Boolean(c.online),
             };
           })
           .filter(Boolean);
 
         setConversations(formatted);
-
-        // ✅ Auto-select first chat so selectedChatId is NEVER empty
-        setSelectedChatId((prev) => {
-          if (prev) return prev;
-          return formatted.length > 0 ? formatted[0].userId : null;
-        });
-      } catch (err) {
-        console.error(err);
+        setSelectedChatId((prev) => prev || formatted[0]?.userId || null);
+      } catch (e) {
+        console.error(e);
         setError("Failed to load conversations.");
       }
     };
@@ -121,9 +105,9 @@ const Messages = () => {
     fetchConversations();
   }, [accessToken]);
 
-  /* ===============================
-     FETCH MESSAGES (when chat selected)
-  =============================== */
+  // ===============================
+  // FETCH MESSAGES (CHAT CHANGE)
+  // ===============================
   useEffect(() => {
     if (!selectedChatId || !accessToken) return;
 
@@ -134,48 +118,139 @@ const Messages = () => {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
 
-        if (!res.ok) {
-          const txt = await res.text().catch(() => "");
-          throw new Error(
-            `GET /messages/${selectedChatId} failed (${res.status}) ${txt}`
-          );
-        }
-
+        if (!res.ok) throw new Error("Failed to fetch messages");
         const data = await res.json();
         const arr = Array.isArray(data) ? data : [];
 
-        // Normalize messages just in case
         const normalized = arr.map((m, idx) => ({
           id: m.id ?? `${m.createdAt || Date.now()}-${idx}`,
-          senderId: safeString(m.senderId || m.sender_id),
-          receiverId: safeString(m.receiverId || m.receiver_id),
-          content: safeString(m.content || m.message),
-          createdAt: m.createdAt || m.created_at || new Date().toISOString(),
+          senderId: safeString(m.senderId),
+          receiverId: safeString(m.receiverId),
+          content: safeString(m.content),
+          createdAt: m.createdAt || new Date().toISOString(),
           read: Boolean(m.read),
         }));
 
         setMessages(normalized);
-      } catch (err) {
-        console.error(err);
-        setError("Failed to load messages.");
+
+        // clear unread when opening
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.userId === selectedChatId ? { ...c, unread: 0 } : c
+          )
+        );
+      } catch (e) {
+        console.error(e);
         setMessages([]);
+        setError("Failed to load messages.");
       }
     };
 
     fetchMessages();
   }, [selectedChatId, accessToken]);
 
-  /* ===============================
-     FILTER CONVERSATIONS
-  =============================== */
+  // ===============================
+  // AUTO SCROLL
+  // ===============================
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  // ===============================
+  // SOCKET CONNECT (ONCE)
+  // ===============================
+  useEffect(() => {
+    if (!accessToken) return;
+
+    if (!socketRef.current) {
+      socketRef.current = io(API_BASE, {
+        auth: { token: accessToken },
+        transports: ["websocket"],
+      });
+
+      socketRef.current.on("connect", () => {
+        console.log("🟢 socket connected:", socketRef.current.id);
+      });
+
+      socketRef.current.on("connect_error", (e) => {
+        console.log("🔴 socket connect_error:", e.message);
+      });
+    }
+  }, [accessToken]);
+
+  // ===============================
+  // SOCKET: RECEIVE MESSAGE (REALTIME)
+  // ===============================
+  useEffect(() => {
+    const socket = socketRef.current;
+    if (!socket || !user?.id) return;
+
+    const myId = safeString(user.id);
+
+    const onNewMessage = (message) => {
+      const senderId = safeString(message.senderId);
+      const receiverId = safeString(message.receiverId);
+      const otherId = senderId === myId ? receiverId : senderId;
+
+      // update left list preview + unread
+      setConversations((prev) => {
+        const isChatOpen = safeString(selectedChatId) === safeString(otherId);
+        let found = false;
+
+        const updated = prev.map((c) => {
+          if (c.userId !== otherId) return c;
+          found = true;
+          return {
+            ...c,
+            lastMessage: safeString(message.content),
+            updatedAt: message.createdAt || new Date().toISOString(),
+            timestamp: formatTime(message.createdAt),
+            unread: isChatOpen ? 0 : Number(c.unread || 0) + 1,
+          };
+        });
+
+        if (!found) {
+          updated.unshift({
+            userId: otherId,
+            name: `User ${shortId(otherId)}`,
+            username: `user_${otherId.slice(0, 6)}`,
+            avatar: (otherId?.[0] || "?").toUpperCase(),
+            lastMessage: safeString(message.content),
+            updatedAt: message.createdAt || new Date().toISOString(),
+            timestamp: formatTime(message.createdAt),
+            unread: safeString(selectedChatId) === safeString(otherId) ? 0 : 1,
+            online: false,
+          });
+        }
+
+        // keep most recent at top
+        updated.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+        return updated;
+      });
+
+      // append in open chat only
+      if (safeString(selectedChatId) !== safeString(otherId)) return;
+
+      setMessages((prev) => {
+        if (prev.some((m) => safeString(m.id) === safeString(message.id)))
+          return prev;
+        return [...prev, message];
+      });
+    };
+
+    socket.on("new_message", onNewMessage);
+    return () => socket.off("new_message", onNewMessage);
+  }, [user?.id, selectedChatId]);
+
+  // ===============================
+  // FILTER CONVERSATIONS
+  // ===============================
   const filteredConversations = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return conversations;
-
     return conversations.filter(
-      (conv) =>
-        conv.name.toLowerCase().includes(q) ||
-        conv.username.toLowerCase().includes(q)
+      (c) =>
+        c.name.toLowerCase().includes(q) || c.username.toLowerCase().includes(q)
     );
   }, [conversations, searchQuery]);
 
@@ -183,36 +258,21 @@ const Messages = () => {
     return conversations.find((c) => c.userId === selectedChatId) || null;
   }, [conversations, selectedChatId]);
 
-  /* ===============================
-     SEND MESSAGE
-  =============================== */
+  // ===============================
+  // SEND MESSAGE (OPTIMISTIC)
+  // ===============================
   const handleSendMessage = async (e) => {
     e.preventDefault();
     setError("");
 
     const text = messageInput.trim();
-    const receiverId = safeString(selectedConversation?.userId); // ✅ always comes from selected conversation
+    if (!text || !selectedChatId) return;
 
-    // Debug
-    console.log("SEND handler fired", { receiverId, text });
-
-    if (!text) return;
-    if (!receiverId) {
-      setError("No conversation selected.");
-      return;
-    }
-    if (!accessToken) {
-      setError("Missing access token.");
-      return;
-    }
-
-    // Optimistic message (shows immediately)
     const tempId = `temp-${Date.now()}`;
-    const myId = safeString(user?.id);
     const optimistic = {
       id: tempId,
-      senderId: myId,
-      receiverId,
+      senderId: safeString(user?.id),
+      receiverId: safeString(selectedChatId),
       content: text,
       createdAt: new Date().toISOString(),
       read: false,
@@ -222,14 +282,15 @@ const Messages = () => {
     setMessages((prev) => [...prev, optimistic]);
     setMessageInput("");
 
-    // Update left panel preview immediately
+    // update left preview immediately
     setConversations((prev) =>
       prev.map((c) =>
-        c.userId === receiverId
+        c.userId === selectedChatId
           ? {
               ...c,
               lastMessage: text,
-              timestamp: formatTime(new Date().toISOString()),
+              updatedAt: optimistic.createdAt,
+              timestamp: formatTime(optimistic.createdAt),
             }
           : c
       )
@@ -242,36 +303,20 @@ const Messages = () => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${accessToken}`,
         },
-        body: JSON.stringify({ receiverId, content: text }),
+        body: JSON.stringify({ receiverId: selectedChatId, content: text }),
       });
 
-      // If backend errors, put UI back
       if (!res.ok) {
         const txt = await res.text().catch(() => "");
-        console.error("POST /messages failed:", res.status, txt);
-
-        setMessages((prev) => prev.filter((m) => m.id !== tempId));
-        setError("Failed to send message (backend error).");
-        return;
+        throw new Error(`POST /messages failed ${res.status}: ${txt}`);
       }
 
       const saved = await res.json();
-
-      const savedMsg = {
-        id: saved.id ?? tempId,
-        senderId: safeString(saved.senderId || saved.sender_id),
-        receiverId: safeString(saved.receiverId || saved.receiver_id),
-        content: safeString(saved.content || saved.message),
-        createdAt: saved.createdAt || saved.created_at || optimistic.createdAt,
-        read: Boolean(saved.read),
-      };
-
-      // Replace optimistic with real message
-      setMessages((prev) => prev.map((m) => (m.id === tempId ? savedMsg : m)));
+      setMessages((prev) => prev.map((m) => (m.id === tempId ? saved : m)));
     } catch (err) {
-      console.error("Send message error:", err);
+      console.error(err);
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
-      setError("Failed to send message (network error).");
+      setError("Failed to send message.");
     }
   };
 
@@ -280,17 +325,15 @@ const Messages = () => {
   return (
     <div className="messaging-page">
       <div className="messaging-container">
-        {/* Left Side - Conversations List */}
-        <div className="conversations-panel">
+        {/* LEFT PANEL */}
+        <aside className="conversations-panel">
           <div className="conversations-header">
             <h2 className="conversations-title">Messages</h2>
           </div>
 
-          {/* Search Bar */}
           <div className="search-container">
             <FiSearch className="search-icon" />
             <input
-              type="text"
               className="search-input"
               placeholder="Search conversations..."
               value={searchQuery}
@@ -298,63 +341,56 @@ const Messages = () => {
             />
           </div>
 
-          {/* Conversations List */}
           <div className="conversations-list">
-            {filteredConversations.map((conversation) => (
-              <div
-                key={conversation.userId}
+            {filteredConversations.map((c) => (
+              <button
+                key={c.userId}
+                type="button"
                 className={`conversation-item ${
-                  selectedChatId === conversation.userId ? "active" : ""
+                  selectedChatId === c.userId ? "active" : ""
                 }`}
-                onClick={() => setSelectedChatId(conversation.userId)}
+                onClick={() => {
+                  setSelectedChatId(c.userId);
+                  setConversations((prev) =>
+                    prev.map((x) =>
+                      x.userId === c.userId ? { ...x, unread: 0 } : x
+                    )
+                  );
+                }}
               >
                 <div className="conversation-avatar-container">
-                  <div className="conversation-avatar">
-                    {conversation.avatar}
-                  </div>
-                  {conversation.online && (
-                    <div className="online-indicator"></div>
-                  )}
+                  <div className="conversation-avatar">{c.avatar}</div>
+                  {c.online && <div className="online-indicator" />}
                 </div>
 
                 <div className="conversation-details">
                   <div className="conversation-header">
-                    <span className="conversation-name">
-                      {conversation.name}
-                    </span>
-                    <span className="conversation-time">
-                      {conversation.timestamp}
-                    </span>
+                    <span className="conversation-name">{c.name}</span>
+                    <span className="conversation-time">{c.timestamp}</span>
                   </div>
+
                   <div className="conversation-preview">
-                    <span className="last-message">
-                      {conversation.lastMessage}
-                    </span>
-                    {conversation.unread > 0 && (
-                      <span className="unread-badge">
-                        {conversation.unread}
-                      </span>
+                    <span className="last-message">{c.lastMessage || " "}</span>
+                    {c.unread > 0 && (
+                      <span className="unread-badge">{c.unread}</span>
                     )}
                   </div>
                 </div>
-              </div>
+              </button>
             ))}
+
+            {filteredConversations.length === 0 && (
+              <div className="empty-left">No conversations found</div>
+            )}
           </div>
 
-          {error && (
-            <div
-              style={{ padding: "10px", color: "#ff6b6b", fontSize: "0.9rem" }}
-            >
-              {error}
-            </div>
-          )}
-        </div>
+          {error && <div className="error-banner">{error}</div>}
+        </aside>
 
-        {/* Right Side - Chat Window */}
-        <div className="chat-panel">
+        {/* RIGHT PANEL */}
+        <main className="chat-panel">
           {selectedConversation ? (
             <>
-              {/* Chat Header */}
               <div className="chat-header">
                 <div className="chat-header-info">
                   <div className="chat-avatar-container">
@@ -362,9 +398,10 @@ const Messages = () => {
                       {selectedConversation.avatar}
                     </div>
                     {selectedConversation.online && (
-                      <div className="online-indicator"></div>
+                      <div className="online-indicator" />
                     )}
                   </div>
+
                   <div className="chat-user-info">
                     <h3 className="chat-user-name">
                       {selectedConversation.name}
@@ -376,28 +413,38 @@ const Messages = () => {
                 </div>
 
                 <div className="chat-actions">
-                  <button className="chat-action-btn" type="button">
+                  <button
+                    className="chat-action-btn"
+                    type="button"
+                    aria-label="Call"
+                  >
                     <FiPhone />
                   </button>
-                  <button className="chat-action-btn" type="button">
+                  <button
+                    className="chat-action-btn"
+                    type="button"
+                    aria-label="Video"
+                  >
                     <FiVideo />
                   </button>
-                  <button className="chat-action-btn" type="button">
+                  <button
+                    className="chat-action-btn"
+                    type="button"
+                    aria-label="More"
+                  >
                     <FiMoreVertical />
                   </button>
                 </div>
               </div>
 
-              {/* Messages Area */}
               <div className="messages-container">
                 <div className="messages-list">
-                  {messages.map((message) => {
+                  {messages.map((m) => {
                     const isOwn =
-                      safeString(message.senderId) === safeString(user?.id);
-
+                      safeString(m.senderId) === safeString(user?.id);
                     return (
                       <div
-                        key={message.id}
+                        key={m.id}
                         className={`message ${
                           isOwn ? "message-own" : "message-other"
                         }`}
@@ -409,14 +456,16 @@ const Messages = () => {
                         )}
 
                         <div className="message-bubble">
-                          <p className="message-content">{message.content}</p>
+                          <p className="message-content">
+                            {safeString(m.content)}
+                          </p>
                           <div className="message-footer">
                             <span className="message-time">
-                              {formatTime(message.createdAt)}
+                              {formatTime(m.createdAt)}
                             </span>
                             {isOwn && (
                               <span className="message-status">
-                                {message.read ? (
+                                {m.read ? (
                                   <FiCheckCircle className="read-icon" />
                                 ) : (
                                   <FiCheck className="sent-icon" />
@@ -428,26 +477,32 @@ const Messages = () => {
                       </div>
                     );
                   })}
+                  <div ref={messagesEndRef} />
                 </div>
               </div>
 
-              {/* Message Input */}
               <div className="message-input-container">
-                <button className="input-action-btn" type="button">
+                <button
+                  className="input-action-btn"
+                  type="button"
+                  aria-label="Attach"
+                >
                   <FiPaperclip />
                 </button>
 
-                {/* ✅ Put send inside form so Enter + click both work */}
                 <form onSubmit={handleSendMessage} className="message-form">
                   <input
-                    type="text"
                     className="message-input"
-                    placeholder="Type a message..."
                     value={messageInput}
                     onChange={(e) => setMessageInput(e.target.value)}
+                    placeholder="Type a message..."
                   />
 
-                  <button className="input-action-btn" type="button">
+                  <button
+                    className="input-action-btn"
+                    type="button"
+                    aria-label="Emoji"
+                  >
                     <FiSmile />
                   </button>
 
@@ -470,7 +525,7 @@ const Messages = () => {
               </div>
             </div>
           )}
-        </div>
+        </main>
       </div>
     </div>
   );

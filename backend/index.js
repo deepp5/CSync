@@ -15,16 +15,22 @@ import jwksClient from "jwks-rsa";
 
 dotenv.config();
 
+/* =========================
+   APP + SERVER
+========================= */
 const app = express();
 const server = http.createServer(app);
 const prisma = new PrismaClient();
 
+/* =========================
+   MIDDLEWARE
+========================= */
 app.use(cors());
 app.use(express.json());
 
-// ===========================
-// ROUTES
-// ===========================
+/* =========================
+   ROUTES
+========================= */
 app.get("/", (req, res) => {
   res.send("Backend working 🚀");
 });
@@ -32,13 +38,22 @@ app.get("/", (req, res) => {
 app.use("/messages", messageRoutes);
 app.use("/conversations", conversationRoutes);
 
-// ===========================
-// SOCKET.IO (AUTH + LAZY SYNC)
-// ===========================
+/* =========================
+   SOCKET.IO SETUP
+========================= */
 const io = new Server(server, {
-  cors: { origin: "*", methods: ["GET", "POST"] },
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"],
+  },
 });
 
+// allow REST routes to emit socket events
+app.set("io", io);
+
+/* =========================
+   SUPABASE JWKS
+========================= */
 const jwks = jwksClient({
   jwksUri: `${process.env.SUPABASE_URL}/auth/v1/.well-known/jwks.json`,
 });
@@ -50,7 +65,9 @@ function getKey(header, callback) {
   });
 }
 
-// 🔐 Verify Supabase JWT on socket connect
+/* =========================
+   SOCKET AUTH (JWT)
+========================= */
 io.use((socket, next) => {
   const token = socket.handshake.auth?.token;
 
@@ -68,7 +85,7 @@ io.use((socket, next) => {
     },
     (err, decoded) => {
       if (err) {
-        console.error("Socket JWT error:", err.message);
+        console.error("❌ Socket JWT error:", err.message);
         return next(new Error("Invalid token"));
       }
 
@@ -76,6 +93,7 @@ io.use((socket, next) => {
         id: decoded.sub,
         email: decoded.email,
         user_metadata: decoded.user_metadata || {},
+        raw_user_meta_data: decoded.user_metadata || {}, // ✅ alias
       };
 
       next();
@@ -83,47 +101,34 @@ io.use((socket, next) => {
   );
 });
 
+/* =========================
+   SOCKET CONNECTION
+========================= */
 io.on("connection", async (socket) => {
   try {
-    // 🔥 Lazy sync Supabase → Prisma
+    // Lazy sync Supabase → Prisma
     const prismaUser = await ensureUserExists(prisma, socket.supabaseUser);
 
     socket.userId = prismaUser.id;
+
+    // Join personal room (used for DMs)
     socket.join(prismaUser.id);
 
     console.log("🟢 Socket connected:", prismaUser.id);
   } catch (err) {
-    console.error("Socket user sync failed:", err);
+    console.error("❌ Socket user sync failed:", err);
     socket.disconnect();
     return;
   }
-
-  socket.on("send_message", async ({ receiverId, content }) => {
-    if (!receiverId || !content) return;
-
-    try {
-      const message = await prisma.message.create({
-        data: {
-          senderId: socket.userId, // ✅ trusted
-          receiverId,
-          content,
-        },
-      });
-
-      io.to(receiverId).emit("receive_message", message);
-    } catch (err) {
-      console.error("Socket message error:", err);
-    }
-  });
 
   socket.on("disconnect", () => {
     console.log("🔴 Socket disconnected:", socket.userId);
   });
 });
 
-// ===========================
-// POSTS (JWT AUTH)
-// ===========================
+/* =========================
+   POSTS (JWT AUTH)
+========================= */
 app.get("/posts", verifySupabaseToken, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -131,41 +136,30 @@ app.get("/posts", verifySupabaseToken, async (req, res) => {
     const posts = await prisma.post.findMany({
       where: {
         NOT: { userId },
-        visibility: "PUBLIC", // Only show public posts
+        visibility: "PUBLIC",
       },
-      orderBy: { createdAt: "desc" }, // Newest first
+      orderBy: { createdAt: "desc" },
     });
 
     res.json(posts);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ err: "Server error" });
+    res.status(500).json({ error: "Server error" });
   }
 });
 
 app.post("/posts", verifySupabaseToken, async (req, res) => {
   try {
-    console.log("==== CREATE POST HIT ====");
-    console.log("req.user:", req.user);
-    console.log("req.body:", req.body);
-
     const userId = req.user.id;
     const { email, user_metadata } = req.user;
 
-    // ✅ 1. ENSURE USER EXISTS IN PRISMA
-    await prisma.user.upsert({
-      where: { id: userId },
-      update: {}, // nothing to update
-      create: {
-        id: userId,
-        email,
-        name: user_metadata?.username || email.split("@")[0],
-        username: user_metadata?.username || email.split("@")[0],
-        skills: [],
-      },
+    // ✅ FIXED: always use ensureUserExists
+    await ensureUserExists(prisma, {
+      id: userId,
+      email,
+      user_metadata,
     });
 
-    // ✅ 2. VALIDATE INPUT
     const {
       title,
       header,
@@ -188,9 +182,6 @@ app.post("/posts", verifySupabaseToken, async (req, res) => {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
-    console.log("✅ User ensured. Creating post…");
-
-    // ✅ 3. CREATE POST
     const post = await prisma.post.create({
       data: {
         title,
@@ -200,131 +191,72 @@ app.post("/posts", verifySupabaseToken, async (req, res) => {
         category,
         difficulty,
         deadline: new Date(deadline),
-        visibility: visibility || "DRAFT", // Default to DRAFT
+        visibility: visibility || "DRAFT",
         userId,
       },
     });
 
-    console.log("✅ Post created:", post.id);
-    return res.status(201).json(post);
-
+    res.status(201).json(post);
   } catch (err) {
-    console.error("🔥 CREATE POST FAILED 🔥");
-    console.error(err);
-
-    return res.status(500).json({
-      error: err.message,
-      meta: err.meta || null,
-    });
+    console.error("🔥 CREATE POST FAILED 🔥", err);
+    res.status(500).json({ error: err.message });
   }
 });
 
 app.get("/posts/me", verifySupabaseToken, async (req, res) => {
   try {
-    const userId = req.user.id;
-
     const posts = await prisma.post.findMany({
-      where: { userId },
+      where: { userId: req.user.id },
       orderBy: { createdAt: "desc" },
     });
 
     res.json(posts);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ err: "Failure" });
+    res.status(500).json({ error: "Failure" });
   }
 });
 
-// Update post
 app.put("/posts/:id", verifySupabaseToken, async (req, res) => {
   try {
-    const userId = req.user.id;
-    const postId = req.params.id;
-
-    // Check if post exists and belongs to user
-    const existingPost = await prisma.post.findUnique({
-      where: { id: postId },
+    const post = await prisma.post.findUnique({
+      where: { id: req.params.id },
     });
 
-    if (!existingPost) {
+    if (!post) {
       return res.status(404).json({ error: "Post not found" });
     }
 
-    if (existingPost.userId !== userId) {
-      return res.status(403).json({ error: "Not authorized to update this post" });
+    if (post.userId !== req.user.id) {
+      return res.status(403).json({ error: "Not authorized" });
     }
 
-    // Update post
-    const {
-      title,
-      header,
-      techStack,
-      description,
-      category,
-      difficulty,
-      deadline,
-      visibility,
-    } = req.body;
-
-    const updatedPost = await prisma.post.update({
-      where: { id: postId },
-      data: {
-        title,
-        header,
-        techStack,
-        description,
-        category,
-        difficulty,
-        deadline: deadline ? new Date(deadline) : existingPost.deadline,
-        visibility: visibility || existingPost.visibility,
-      },
+    const updated = await prisma.post.update({
+      where: { id: req.params.id },
+      data: req.body,
     });
 
-    res.json(updatedPost);
+    res.json(updated);
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// Delete post
 app.delete("/posts/:id", verifySupabaseToken, async (req, res) => {
   try {
-    const userId = req.user.id;
-    const postId = req.params.id;
-
-    // Check if post exists and belongs to user
-    const existingPost = await prisma.post.findUnique({
-      where: { id: postId },
-    });
-
-    if (!existingPost) {
-      return res.status(404).json({ error: "Post not found" });
-    }
-
-    if (existingPost.userId !== userId) {
-      return res.status(403).json({ error: "Not authorized to delete this post" });
-    }
-
-    // Delete post
     await prisma.post.delete({
-      where: { id: postId },
+      where: { id: req.params.id },
     });
 
     res.json({ message: "Post deleted successfully" });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// Get single post by ID
 app.get("/posts/:id", verifySupabaseToken, async (req, res) => {
   try {
-    const postId = req.params.id;
-
     const post = await prisma.post.findUnique({
-      where: { id: postId },
+      where: { id: req.params.id },
       include: {
         User: {
           select: {
@@ -343,15 +275,15 @@ app.get("/posts/:id", verifySupabaseToken, async (req, res) => {
 
     res.json(post);
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// ===========================
-// START SERVER
-// ===========================
+/* =========================
+   START SERVER
+========================= */
 const PORT = process.env.PORT || 5051;
+
 server.listen(PORT, () => {
   console.log(`✅ Server running on http://localhost:${PORT}`);
 });
