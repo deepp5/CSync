@@ -367,9 +367,20 @@ app.get("/posts/:id", verifySupabaseToken, async (req, res) => {
       },
     });
 
+    // Check if current user is following the post author
+    const userFollow = await prisma.follow.findUnique({
+      where: {
+        followerId_followingId: {
+          followerId: userId,
+          followingId: post.userId,
+        },
+      },
+    });
+
     res.json({
       ...post,
       isLiked: !!userLike,
+      isFollowing: !!userFollow,
     });
   } catch (err) {
     console.error(err);
@@ -473,6 +484,95 @@ app.delete("/posts/:id/like", verifySupabaseToken, async (req, res) => {
     });
 
     res.json({ likes: updatedPost.likes, isLiked: false });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Follow a user
+app.post("/users/:id/follow", verifySupabaseToken, async (req, res) => {
+  try {
+    const followingId = req.params.id;
+    const followerId = req.user.id;
+
+    // Can't follow yourself
+    if (followerId === followingId) {
+      return res.status(400).json({ error: "Cannot follow yourself" });
+    }
+
+    // Check if user exists
+    const userToFollow = await prisma.user.findUnique({
+      where: { id: followingId },
+    });
+
+    if (!userToFollow) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Check if already following
+    const existingFollow = await prisma.follow.findUnique({
+      where: {
+        followerId_followingId: {
+          followerId: followerId,
+          followingId: followingId,
+        },
+      },
+    });
+
+    if (existingFollow) {
+      // Already following - return success (idempotent)
+      return res.json({ isFollowing: true });
+    }
+
+    // Create follow
+    await prisma.follow.create({
+      data: {
+        id: `${followerId}_${followingId}_${Date.now()}`,
+        followerId: followerId,
+        followingId: followingId,
+      },
+    });
+
+    res.json({ isFollowing: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Unfollow a user
+app.delete("/users/:id/follow", verifySupabaseToken, async (req, res) => {
+  try {
+    const followingId = req.params.id;
+    const followerId = req.user.id;
+
+    // Check if follow exists
+    const existingFollow = await prisma.follow.findUnique({
+      where: {
+        followerId_followingId: {
+          followerId: followerId,
+          followingId: followingId,
+        },
+      },
+    });
+
+    if (!existingFollow) {
+      // Not following - return success (idempotent)
+      return res.json({ isFollowing: false });
+    }
+
+    // Delete follow
+    await prisma.follow.delete({
+      where: {
+        followerId_followingId: {
+          followerId: followerId,
+          followingId: followingId,
+        },
+      },
+    });
+
+    res.json({ isFollowing: false });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });

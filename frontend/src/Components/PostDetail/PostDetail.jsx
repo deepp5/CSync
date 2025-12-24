@@ -9,7 +9,6 @@ import {
   FiMail, 
   FiMessageSquare, 
   FiHeart, 
-  FiBookmark,
   FiShare2,
   FiClock,
   FiEye,
@@ -28,7 +27,6 @@ const PostDetail = () => {
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isLiked, setIsLiked] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [viewCount, setViewCount] = useState(0);
@@ -58,6 +56,7 @@ const PostDetail = () => {
         setLikeCount(response.data.likes || 0);
         setViewCount(response.data.views || 0);
         setIsLiked(response.data.isLiked || false);
+        setIsFollowing(response.data.isFollowing || false);
         setLoading(false);
       } catch (error) {
         console.error('Error fetching post:', error);
@@ -109,12 +108,40 @@ const PostDetail = () => {
     }
   };
 
-  const handleSave = () => {
-    setIsSaved(!isSaved);
-  };
+  const handleFollow = async () => {
+    // Store previous state for rollback
+    const previousIsFollowing = isFollowing;
 
-  const handleFollow = () => {
+    // OPTIMISTIC UPDATE - Update UI immediately
     setIsFollowing(!isFollowing);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        // Rollback if not authenticated
+        setIsFollowing(previousIsFollowing);
+        navigate('/login');
+        return;
+      }
+
+      const token = session.access_token;
+
+      if (previousIsFollowing) {
+        // Unfollow the user
+        await axios.delete(`http://localhost:5051/users/${post.User.id}/follow`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      } else {
+        // Follow the user
+        await axios.post(`http://localhost:5051/users/${post.User.id}/follow`, {}, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      }
+    } catch (error) {
+      console.error('Error toggling follow:', error);
+      // Rollback on error
+      setIsFollowing(previousIsFollowing);
+    }
   };
 
   const handleShare = () => {
@@ -262,13 +289,6 @@ const PostDetail = () => {
                   title="Like"
                 >
                   <FiHeart />
-                </button>
-                <button 
-                  className={`action-btn-icon ${isSaved ? 'saved' : ''}`}
-                  onClick={handleSave}
-                  title="Save"
-                >
-                  <FiBookmark />
                 </button>
                 <button 
                   className="action-btn-icon" 
