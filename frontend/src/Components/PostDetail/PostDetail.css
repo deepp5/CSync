@@ -561,39 +561,39 @@ body[data-sidebar-open="false"] .post-detail-page {
 
 .contact-btn {
   background: transparent;
-  border: 1px solid rgba(250, 78, 253, 0.4);
+  border: 1.25px solid rgba(250, 78, 253, 0.4);
   color: #fa4efd;
 }
 
 .contact-btn:hover {
   background: rgba(250, 78, 253, 0.15);
-  border-color: #fa4efd;
+  border: 1.25px solid #fa4efd;
   color: #fa4efd;
   transform: translateY(-1px);
 }
 
 .follow-btn {
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1.25px solid rgba(255, 255, 255, 0.2);
   color: white;
 }
 
 .follow-btn:hover {
   background: transparent;
-  border-color: rgba(34, 197, 94, 0.4);
+  border: 1.25px solid rgba(34, 197, 94, 0.4);
   color: #22c55e;
   transform: translateY(-1px);
 }
 
 .follow-btn.following {
   background: rgba(34, 197, 94, 0.15);
-  border-color: rgba(34, 197, 94, 0.4);
+  border: 1.25px solid rgba(34, 197, 94, 0.4);
   color: #22c55e;
 }
 
 .follow-btn.following:hover {
   background: rgba(34, 197, 94, 0.2);
-  border-color: rgba(34, 197, 94, 0.4);
+  border: 1.25px solid rgba(34, 197, 94, 0.4);
   color: #22c55e;
   transform: translateY(-1px);
 }
