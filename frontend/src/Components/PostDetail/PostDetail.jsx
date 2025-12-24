@@ -1,5 +1,5 @@
 // PostDetailPage.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { supabase } from '../../supabaseClient';
@@ -35,9 +35,13 @@ const PostDetail = () => {
   const [newComment, setNewComment] = useState('');
   const [replyTo, setReplyTo] = useState(null);
   
+  // Track if we've already counted the view for this post
+  const viewCountedRef = useRef({});
 
   // Fetch post data based on ID
   useEffect(() => {
+    let isMounted = true;
+
     async function fetchPost() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
@@ -52,20 +56,41 @@ const PostDetail = () => {
           headers: { Authorization: `Bearer ${token}` }
         });
 
+        if (!isMounted) return;
+
         setPost(response.data);
         setLikeCount(response.data.likes || 0);
         setViewCount(response.data.views || 0);
         setIsLiked(response.data.isLiked || false);
         setIsFollowing(response.data.isFollowing || false);
         setLoading(false);
+
+        // Increment view count only once per post ID
+        if (!viewCountedRef.current[id]) {
+          viewCountedRef.current[id] = true;
+          const viewResponse = await axios.post(`http://localhost:5051/posts/${id}/view`, {}, {
+            headers: { Authorization: `Bearer ${token}` }
+          }).catch(err => console.error('Error incrementing view:', err));
+          
+          // Update view count locally with the response
+          if (isMounted && viewResponse?.data?.views) {
+            setViewCount(viewResponse.data.views);
+          }
+        }
       } catch (error) {
         console.error('Error fetching post:', error);
-        setPost(null);
-        setLoading(false);
+        if (isMounted) {
+          setPost(null);
+          setLoading(false);
+        }
       }
     }
 
     fetchPost();
+
+    return () => {
+      isMounted = false;
+    };
   }, [id, navigate]);
 
   const handleLike = async () => {
@@ -309,8 +334,11 @@ const PostDetail = () => {
             </div>
 
             {/* Post Description */}
-            <div className="post-description">
-              {post.description}
+            <div className="post-description-section">
+              <h3 className="description-title">Description:</h3>
+              <div className="post-description">
+                {post.description}
+              </div>
             </div>
 
             {/* Separator */}

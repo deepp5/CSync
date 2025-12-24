@@ -388,6 +388,33 @@ app.get("/posts/:id", verifySupabaseToken, async (req, res) => {
   }
 });
 
+// Increment view count for a post
+app.post("/posts/:id/view", verifySupabaseToken, async (req, res) => {
+  try {
+    const postId = req.params.id;
+
+    // Check if post exists
+    const post = await prisma.post.findUnique({
+      where: { id: postId },
+    });
+
+    if (!post) {
+      return res.status(404).json({ error: "Post not found" });
+    }
+
+    // Increment view count
+    const updatedPost = await prisma.post.update({
+      where: { id: postId },
+      data: { views: { increment: 1 } },
+    });
+
+    res.json({ views: updatedPost.views });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Like a post
 app.post("/posts/:id/like", verifySupabaseToken, async (req, res) => {
   try {
