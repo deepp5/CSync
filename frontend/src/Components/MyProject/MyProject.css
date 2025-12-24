@@ -23,7 +23,7 @@ body[data-sidebar-open="false"] .my-projects-page {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 30px;
+  margin-bottom: 12px;
   gap: 20px;
 }
 
@@ -32,13 +32,11 @@ body[data-sidebar-open="false"] .my-projects-page {
 }
 
 .page-title {
-  font-size: 36px;
+  font-size: 32px;
   font-weight: 700;
   margin: 0 0 8px 0;
-  background: linear-gradient(45deg, #fff, #888);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #e8e8e8;
+  line-height: 1.2;
 }
 
 .page-subtitle {
@@ -51,22 +49,20 @@ body[data-sidebar-open="false"] .my-projects-page {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #21daf2;
-  border: none;
-  color: white;
-  padding: 12px 24px;
-  border-radius: 8px;
+  background: transparent;
+  border: 1px solid #21daf2;
+  color: #21daf2;
+  padding: 10px 20px;
+  border-radius: 10px;
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background 0.25s ease, color 0.25s ease, border-color 0.25s ease;
   white-space: nowrap;
 }
 
 .create-project-btn:hover {
-  background: #1bc4db;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(33, 218, 242, 0.3);
+  background: rgba(33, 218, 242, 0.12);
 }
 
 /* Controls */
@@ -100,14 +96,14 @@ body[data-sidebar-open="false"] .my-projects-page {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 10px;
   padding: 12px 16px 12px 45px;
-  color: white;
+  color: #e8e8e8;
   font-size: 15px;
   outline: none;
   transition: all 0.3s ease;
 }
 
 .search-input:focus {
-  border-color: #21daf2;
+  border-color: #ffffff;
   background: rgba(255, 255, 255, 0.08);
 }
 
@@ -118,33 +114,34 @@ body[data-sidebar-open="false"] .my-projects-page {
 /* Filter Tabs */
 .filter-tabs {
   display: flex;
-  gap: 8px;
-  background: rgba(255, 255, 255, 0.03);
+  gap: 10px;
+  background: transparent;
   padding: 6px;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
 }
 
 .filter-tab {
-  padding: 8px 18px;
   background: transparent;
-  border: none;
   color: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 8px 18px;
+  border-radius: 999px;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  border-radius: 6px;
-  transition: all 0.3s ease;
+  transition: border 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
 }
 
 .filter-tab:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: white;
+  border-color: #fa4efd;
+  color: #fa4efd;
+  background: rgba(250, 78, 253, 0.10);
 }
 
 .filter-tab.active {
-  background: #21daf2;
-  color: white;
+  border-color: #fa4efd;
+  color: #fa4efd;
+  background: rgba(250, 78, 253, 0.14);
 }
 
 /* Projects Grid */
@@ -199,9 +196,9 @@ body[data-sidebar-open="false"] .my-projects-page {
 }
 
 .status-badge.status-private {
-  background: rgba(251, 191, 36, 0.1);
-  border-color: rgba(251, 191, 36, 0.3);
-  color: #fbbf24;
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #ef4444;
 }
 
 .status-badge.status-draft {
@@ -294,7 +291,7 @@ body[data-sidebar-open="false"] .my-projects-page {
   font-size: 20px;
   font-weight: 600;
   margin: 0 0 10px 0;
-  color: white;
+  color: #e8e8e8;
   line-height: 1.3;
 }
 
