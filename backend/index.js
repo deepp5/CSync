@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import { PrismaClient } from "@prisma/client";
 import { Server } from "socket.io";
 
+import authRoutes from "./src/routes/authRoutes.js";
 import messageRoutes from "./src/routes/messageRoutes.js";
 import conversationRoutes from "./src/routes/conversationRoutes.js";
 import { verifySupabaseToken } from "./src/utils/authMiddleware.js";
@@ -29,6 +30,7 @@ app.get("/", (req, res) => {
   res.send("Backend working 🚀");
 });
 
+app.use("/auth", authRoutes);
 app.use("/messages", messageRoutes);
 app.use("/conversations", conversationRoutes);
 

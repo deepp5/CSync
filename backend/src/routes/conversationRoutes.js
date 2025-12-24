@@ -1,7 +1,6 @@
 import express from "express";
 import { PrismaClient } from "@prisma/client";
 import { verifySupabaseToken } from "../utils/authMiddleware.js";
-import { ensureUserExists } from "../utils/ensureUser.js";
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -12,12 +11,12 @@ const prisma = new PrismaClient();
  */
 router.get("/", verifySupabaseToken, async (req, res) => {
   try {
-    const me = await ensureUserExists(prisma, req.user);
+    const meId = req.user.id;
 
     // get all my messages newest first
     const msgs = await prisma.message.findMany({
       where: {
-        OR: [{ senderId: me.id }, { receiverId: me.id }],
+        OR: [{ senderId: meId }, { receiverId: meId }],
       },
       orderBy: { createdAt: "desc" },
       take: 500,
@@ -28,7 +27,7 @@ router.get("/", verifySupabaseToken, async (req, res) => {
     const seen = new Set();
 
     for (const m of msgs) {
-      const otherId = m.senderId === me.id ? m.receiverId : m.senderId;
+      const otherId = m.senderId === meId ? m.receiverId : m.senderId;
       if (!seen.has(otherId)) {
         seen.add(otherId);
         partnerIds.push(otherId);
@@ -52,8 +51,8 @@ router.get("/", verifySupabaseToken, async (req, res) => {
     const conversations = partnerIds.map((otherId) => {
       const last = msgs.find(
         (m) =>
-          (m.senderId === me.id && m.receiverId === otherId) ||
-          (m.senderId === otherId && m.receiverId === me.id)
+          (m.senderId === meId && m.receiverId === otherId) ||
+          (m.senderId === otherId && m.receiverId === meId)
       );
 
       const otherUser = userMap.get(otherId) || {

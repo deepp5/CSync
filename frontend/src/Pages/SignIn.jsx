@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import Aurora from "../Components/LandingPage/Aurora";
 import SignInBox from "../Components/Registration/SignInBox";
 import { supabase } from "../supabaseClient";
+import axios from "axios";
 
 export default function SignIn() {
   const [message, setMessage] = useState("");
@@ -15,17 +16,29 @@ export default function SignIn() {
     setMessage("");
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
         setMessage(`❌ ${error.message}`);
-      } else {
-        setMessage("✅ Login successful!");
-        setTimeout(() => (window.location.href = "/home"), 800);
+        return;
       }
+
+      // 🔑 Sync user into Prisma after login
+      await axios.post(
+        "http://localhost:5051/auth/sync",
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${data.session.access_token}`,
+          },
+        }
+      );
+
+      setMessage("✅ Login successful!");
+      setTimeout(() => (window.location.href = "/home"), 500);
     } catch (err) {
       setMessage("⚠️ Something went wrong. Try again.");
     }
