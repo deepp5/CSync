@@ -143,8 +143,27 @@ app.get("/posts", verifySupabaseToken, async (req, res) => {
 
 app.post("/posts", verifySupabaseToken, async (req, res) => {
   try {
-    const userId = req.user.id;
+    console.log("==== CREATE POST HIT ====");
+    console.log("req.user:", req.user);
+    console.log("req.body:", req.body);
 
+    const userId = req.user.id;
+    const { email, user_metadata } = req.user;
+
+    // ✅ 1. ENSURE USER EXISTS IN PRISMA
+    await prisma.user.upsert({
+      where: { id: userId },
+      update: {}, // nothing to update
+      create: {
+        id: userId,
+        email,
+        name: user_metadata?.username || email.split("@")[0],
+        username: user_metadata?.username || email.split("@")[0],
+        skills: [],
+      },
+    });
+
+    // ✅ 2. VALIDATE INPUT
     const {
       title,
       header,
@@ -163,9 +182,12 @@ app.post("/posts", verifySupabaseToken, async (req, res) => {
       !difficulty ||
       !deadline
     ) {
-      return res.status(400).json({ err: "Missing required fields" });
+      return res.status(400).json({ error: "Missing required fields" });
     }
 
+    console.log("✅ User ensured. Creating post…");
+
+    // ✅ 3. CREATE POST
     const post = await prisma.post.create({
       data: {
         title,
@@ -179,10 +201,17 @@ app.post("/posts", verifySupabaseToken, async (req, res) => {
       },
     });
 
-    res.status(201).json(post);
+    console.log("✅ Post created:", post.id);
+    return res.status(201).json(post);
+
   } catch (err) {
+    console.error("🔥 CREATE POST FAILED 🔥");
     console.error(err);
-    res.status(500).json({ err: "Failed to post" });
+
+    return res.status(500).json({
+      error: err.message,
+      meta: err.meta || null,
+    });
   }
 });
 
