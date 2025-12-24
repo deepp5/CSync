@@ -857,14 +857,21 @@ export default function MyProjects() {
   };
 
   const handleChangeStatus = async (projectId, newVisibility) => {
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return;
+
+    // ✅ OPTIMISTIC UPDATE - Update UI instantly
+    setProjects(projects.map(p =>
+      p.id === projectId ? { ...p, visibility: newVisibility } : p
+    ));
+    setShowMenu(null);
+
+    // Then sync with backend in the background
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
       
       const token = session.access_token;
-
-      const project = projects.find(p => p.id === projectId);
-      if (!project) return;
 
       await axios.put(`http://localhost:5051/posts/${projectId}`, {
         ...project,
@@ -873,13 +880,12 @@ export default function MyProjects() {
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
-
-      setProjects(projects.map(p =>
-        p.id === projectId ? { ...p, visibility: newVisibility } : p
-      ));
-      setShowMenu(null);
     } catch (error) {
       console.error("Error updating project visibility:", error);
+      // ❌ Revert on failure
+      setProjects(projects.map(p =>
+        p.id === projectId ? { ...p, visibility: project.visibility } : p
+      ));
       alert("Failed to update project visibility. Please try again.");
     }
   };
