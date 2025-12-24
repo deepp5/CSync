@@ -10,6 +10,19 @@ export default function PostForm({ mode = "create", initialData = {}, createPost
   const [category, setCategory] = useState(initialData.category || "WEB_DEVELOPMENT");
   const [difficulty, setDifficulty] = useState(initialData.difficulty || "BEGINNER");
   const [deadline, setDeadline] = useState(initialData.deadline || "");
+  const [visibility, setVisibility] = useState(initialData.visibility || "DRAFT");
+
+  // Update form when initialData changes (for edit mode)
+  React.useEffect(() => {
+    if (initialData.title) setTitle(initialData.title);
+    if (initialData.header) setHeader(initialData.header);
+    if (initialData.tech) setTech(initialData.tech);
+    if (initialData.description) setDescription(initialData.description);
+    if (initialData.category) setCategory(initialData.category);
+    if (initialData.difficulty) setDifficulty(initialData.difficulty);
+    if (initialData.deadline) setDeadline(initialData.deadline);
+    if (initialData.visibility) setVisibility(initialData.visibility);
+  }, [initialData]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -21,11 +34,13 @@ export default function PostForm({ mode = "create", initialData = {}, createPost
       category,
       difficulty,
       deadline,
+      visibility,
     };
 
     const success = await createPost(data);
 
-    if (success) {
+    if (success && mode === "create") {
+      // Only reset form if we're creating a new post
       setTitle("");
       setHeader("");
       setTech("");
@@ -33,6 +48,7 @@ export default function PostForm({ mode = "create", initialData = {}, createPost
       setCategory("WEB_DEVELOPMENT");
       setDifficulty("BEGINNER");
       setDeadline("");
+      setVisibility("DRAFT");
     }
   };
 
@@ -87,8 +103,9 @@ export default function PostForm({ mode = "create", initialData = {}, createPost
             <select value={category} onChange={(e) => setCategory(e.target.value)}>
               <option value="WEB_DEVELOPMENT">Web Development</option>
               <option value="MOBILE">Mobile App</option>
-              <option value="AI_ML">Machine Learning</option>
+              <option value="AI_ML">AI / Machine Learning</option>
               <option value="GAME_DEV">Game Development</option>
+              <option value="SYSTEMS">Systems / Backend</option>
               <option value="OTHER">Other</option>
             </select>
           </div>
@@ -124,7 +141,7 @@ export default function PostForm({ mode = "create", initialData = {}, createPost
       </div>
 
       <button type="submit" className="submit-btn">
-        {mode === "create" ? "Create Post" : "Save Changes"}
+        {mode === "create" ? "Create Post" : "Update Post"}
       </button>
 
     </form>
