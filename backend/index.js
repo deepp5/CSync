@@ -231,6 +231,119 @@ app.get("/posts/me", verifySupabaseToken, async (req, res) => {
   }
 });
 
+// Update post
+app.put("/posts/:id", verifySupabaseToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const postId = req.params.id;
+
+    // Check if post exists and belongs to user
+    const existingPost = await prisma.post.findUnique({
+      where: { id: postId },
+    });
+
+    if (!existingPost) {
+      return res.status(404).json({ error: "Post not found" });
+    }
+
+    if (existingPost.userId !== userId) {
+      return res.status(403).json({ error: "Not authorized to update this post" });
+    }
+
+    // Update post
+    const {
+      title,
+      header,
+      techStack,
+      description,
+      category,
+      difficulty,
+      deadline,
+      visibility,
+    } = req.body;
+
+    const updatedPost = await prisma.post.update({
+      where: { id: postId },
+      data: {
+        title,
+        header,
+        techStack,
+        description,
+        category,
+        difficulty,
+        deadline: deadline ? new Date(deadline) : existingPost.deadline,
+        visibility: visibility || existingPost.visibility,
+      },
+    });
+
+    res.json(updatedPost);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Delete post
+app.delete("/posts/:id", verifySupabaseToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const postId = req.params.id;
+
+    // Check if post exists and belongs to user
+    const existingPost = await prisma.post.findUnique({
+      where: { id: postId },
+    });
+
+    if (!existingPost) {
+      return res.status(404).json({ error: "Post not found" });
+    }
+
+    if (existingPost.userId !== userId) {
+      return res.status(403).json({ error: "Not authorized to delete this post" });
+    }
+
+    // Delete post
+    await prisma.post.delete({
+      where: { id: postId },
+    });
+
+    res.json({ message: "Post deleted successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get single post by ID
+app.get("/posts/:id", verifySupabaseToken, async (req, res) => {
+  try {
+    const postId = req.params.id;
+
+    const post = await prisma.post.findUnique({
+      where: { id: postId },
+      include: {
+        User: {
+          select: {
+            id: true,
+            name: true,
+            username: true,
+            profilePicture: true,
+          },
+        },
+      },
+    });
+
+    if (!post) {
+      return res.status(404).json({ error: "Post not found" });
+    }
+
+    res.json(post);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ===========================
 // START SERVER
 // ===========================

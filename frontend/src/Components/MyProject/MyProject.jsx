@@ -754,11 +754,8 @@
 // MyProjectsPage.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-
-// ⛔ COMMENTED OUT FOR UI-ONLY TEST
-// import axios from "axios";
-// import { supabase } from "../../supabaseClient";
-
+import axios from "axios";
+import { supabase } from "../../supabaseClient";
 import './MyProject.css';
 import { 
   FiEdit2, 
@@ -785,51 +782,30 @@ export default function MyProjects() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // ⛔ BACKEND CALLS DISABLED FOR NOW
-    // async function fetchMyProjects() {
-    //   const { data: { session } } = await supabase.auth.getSession();
-    //   if (!session) return;
-    //
-    //   const token = session.access_token;
-    //
-    //   const res = await axios.get("http://localhost:5051/posts/me", {
-    //     headers: { Authorization: `Bearer ${token}` }
-    //   });
-    //
-    //   setProjects(res.data);
-    //   setLoading(false);
-    // }
-    //
-    // fetchMyProjects();
+    async function fetchMyProjects() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          setLoading(false);
+          return;
+        }
 
-    // ✅ TEMP MOCK DATA so UI renders
-    setProjects([
-      {
-        id: "1",
-        title: "Real-Time Collaboration Platform",
-        description: "A comprehensive real-time collaboration tool with live editing and project management.",
-        techStack: ["React", "Node.js", "Postgres", "Socket.io"],
-        status: "PUBLIC",
-        updatedAt: new Date().toISOString(),
-      },
-      {
-        id: "2",
-        title: "E-Commerce Dashboard",
-        description: "Modern admin dashboard with analytics, inventory, and order tracking.",
-        techStack: ["React", "TypeScript", "Express", "PostgreSQL"],
-        status: "PRIVATE",
-        updatedAt: new Date().toISOString(),
-      },
-      {
-        id: "3",
-        title: "AI Task Manager",
-        description: "Smart task management app that uses AI to prioritize tasks.",
-        techStack: ["Python", "React", "FastAPI"],
-        status: "DRAFT",
-        updatedAt: new Date().toISOString(),
+        const token = session.access_token;
+
+        const res = await axios.get("http://localhost:5051/posts/me", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        setProjects(res.data);
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching projects:", error);
+        setProjects([]);
+        setLoading(false);
       }
-    ]);
-    setLoading(false);
+    }
+
+    fetchMyProjects();
   }, []);
 
   // Filter and search projects
@@ -841,10 +817,10 @@ export default function MyProjects() {
       title.includes(searchQuery.toLowerCase()) ||
       desc.includes(searchQuery.toLowerCase());
 
-    // NOTE: your backend version uses "PUBLIC/PRIVATE/DRAFT"
+    // NOTE: backend uses "PUBLIC/PRIVATE/DRAFT"
     // so filterStatus is 'public'/'private'/'draft' -> uppercased
     const matchesFilter =
-      filterStatus === 'all' || project.status === filterStatus.toUpperCase();
+      filterStatus === 'all' || project.visibility === filterStatus.toUpperCase();
 
     return matchesSearch && matchesFilter;
   });
@@ -862,41 +838,50 @@ export default function MyProjects() {
     );
     if (!confirmed) return;
 
-    // ⛔ DISABLED BACKEND DELETE
-    // const { data: { session } } = await supabase.auth.getSession();
-    // if (!session) return;
-    // const token = session.access_token;
-    // await axios.delete(`http://localhost:5051/posts/${projectId}`, {
-    //   headers: { Authorization: `Bearer ${token}` }
-    // });
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      
+      const token = session.access_token;
+      
+      await axios.delete(`http://localhost:5051/posts/${projectId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
 
-    // ✅ UI-only delete
-    setProjects(projects.filter(p => p.id !== projectId));
-    setShowMenu(null);
+      setProjects(projects.filter(p => p.id !== projectId));
+      setShowMenu(null);
+    } catch (error) {
+      console.error("Error deleting project:", error);
+      alert("Failed to delete project. Please try again.");
+    }
   };
 
-  const handleChangeStatus = async (projectId, newStatus) => {
-    // ⛔ DISABLED BACKEND UPDATE
-    // const { data: { session } } = await supabase.auth.getSession();
-    // if (!session) return;
-    // const token = session.access_token;
-    //
-    // const project = projects.find(p => p.id === projectId);
-    // if (!project) return;
-    //
-    // await axios.put(`http://localhost:5051/posts/${projectId}`, {
-    //   ...project,
-    //   techStack: project.techStack,
-    //   status: newStatus
-    // }, {
-    //   headers: { Authorization: `Bearer ${token}` }
-    // });
+  const handleChangeStatus = async (projectId, newVisibility) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      
+      const token = session.access_token;
 
-    // ✅ UI-only update
-    setProjects(projects.map(p =>
-      p.id === projectId ? { ...p, status: newStatus } : p
-    ));
-    setShowMenu(null);
+      const project = projects.find(p => p.id === projectId);
+      if (!project) return;
+
+      await axios.put(`http://localhost:5051/posts/${projectId}`, {
+        ...project,
+        techStack: project.techStack,
+        visibility: newVisibility
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      setProjects(projects.map(p =>
+        p.id === projectId ? { ...p, visibility: newVisibility } : p
+      ));
+      setShowMenu(null);
+    } catch (error) {
+      console.error("Error updating project visibility:", error);
+      alert("Failed to update project visibility. Please try again.");
+    }
   };
 
   const handleShareProject = (projectId) => {
@@ -915,18 +900,18 @@ export default function MyProjects() {
     setShowMenu(null);
   };
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (visibility) => {
     const badges = {
       PUBLIC: { label: 'Public', class: 'status-public' },
       PRIVATE: { label: 'Private', class: 'status-private' },
       DRAFT: { label: 'Draft', class: 'status-draft' }
     };
-    return badges[status] || badges.DRAFT;
+    return badges[visibility] || badges.DRAFT;
   };
 
-  const getStatusIcon = (status) => {
-    if (status === 'PUBLIC') return <FiEye />;
-    if (status === 'PRIVATE') return <FiLock />;
+  const getStatusIcon = (visibility) => {
+    if (visibility === 'PUBLIC') return <FiEye />;
+    if (visibility === 'PRIVATE') return <FiLock />;
     return <FiEyeOff />;
   };
 
@@ -1025,7 +1010,7 @@ export default function MyProjects() {
         ) : (
           <div className="projects-grid">
             {filteredProjects.map((project) => {
-              const statusBadge = getStatusBadge(project.status);
+              const statusBadge = getStatusBadge(project.visibility);
               
               return (
                 <div
@@ -1035,7 +1020,7 @@ export default function MyProjects() {
                   {/* Card Header */}
                   <div className="card-header-manage">
                     <span className={`status-badge ${statusBadge.class}`}>
-                      {getStatusIcon(project.status)}
+                      {getStatusIcon(project.visibility)}
                       {statusBadge.label}
                     </span>
 
@@ -1052,7 +1037,7 @@ export default function MyProjects() {
                       
                       {showMenu === project.id && (
                         <div className="card-menu-dropdown">
-                          {project.status === 'DRAFT' && (
+                          {project.visibility === 'DRAFT' && (
                             <>
                               <button 
                                 className="menu-item"
@@ -1076,7 +1061,7 @@ export default function MyProjects() {
                             </>
                           )}
 
-                          {project.status === 'PUBLIC' && (
+                          {project.visibility === 'PUBLIC' && (
                             <>
                               <button 
                                 className="menu-item"
@@ -1091,7 +1076,7 @@ export default function MyProjects() {
                             </>
                           )}
 
-                          {project.status === 'PRIVATE' && (
+                          {project.visibility === 'PRIVATE' && (
                             <>
                               <button 
                                 className="menu-item"
