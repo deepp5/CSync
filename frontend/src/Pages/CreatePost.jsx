@@ -22,9 +22,11 @@ export default function CreatePost() {
     <div className="createpost-container">
         <Sidebar />
         <div className="createpost-content">
-            <h1 className="createpost-title">Create New Post</h1>
-            <div className="createpost-form-wrapper">
-                <PostForm createPost={createPost}/>
+            <div className="createpost-content-wrapper">
+                <h1 className="createpost-title">Create New Post</h1>
+                <div className="createpost-form-wrapper">
+                    <PostForm createPost={createPost}/>
+                </div>
             </div>
         </div>
     </div>

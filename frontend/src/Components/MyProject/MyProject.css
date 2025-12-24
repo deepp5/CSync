@@ -1,11 +1,11 @@
 /* MyProjectsPage.css */
 
 .my-projects-page {
-  margin-left: 230px;
+  margin-left: 230px !important;
   min-height: 100vh;
   background: #0a0a0a;
   color: white;
-  padding: 40px;
+  padding: 40px !important;
   transition: margin-left 0.3s ease;
 }
 
@@ -14,8 +14,8 @@ body[data-sidebar-open="false"] .my-projects-page {
 }
 
 .my-projects-container {
-  max-width: 1400px;
-  margin: 0 auto;
+  max-width: 1400px !important;
+  margin: 0 auto !important;
 }
 
 /* Header */
@@ -34,7 +34,7 @@ body[data-sidebar-open="false"] .my-projects-page {
 .page-title {
   font-size: 32px;
   font-weight: 700;
-  margin: 0 0 8px 0;
+  margin: 0 0 12px 0 !important;
   color: #e8e8e8;
   line-height: 1.2;
 }
