@@ -116,7 +116,9 @@
 /* Reuse the same toggle style */
 .toggle-password {
   position: absolute;
-  right: 12px;
+  top: 34.20%;  
+  right: 44px;
+  transform: scaleZ(5%);
   background: transparent;
   border: none;
   cursor: pointer;
@@ -125,12 +127,14 @@
   color: rgba(255, 255, 255, 0.8);
   transition: color 0.2s;
   z-index: 10;
+  width: 20px;
+  height: 20px;
 }
 
-.toggle-password:hover {
+/* .toggle-password:hover {
   color: #fff;
   transform: scale(1.1);
-}
+} */
 
 .signup-checkbox {
   display: flex;
@@ -143,6 +147,7 @@
 .signup-checkbox input {
   margin-right: 8px;
   accent-color: #667eea;
+  cursor: pointer;
 }
 
 .signup-submit {

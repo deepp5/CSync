@@ -1,162 +1,179 @@
 .postform {
-    display: flex;
-    flex-direction: column;
-    gap: 32px;
-    width: 100%;
-  }
-  
-  .form-columns {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 60px;
-    width: 100%;
-  }
-  
-  .left-col {
-    flex: 1.15;
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-  }
-  
-  .right-col {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-  }
-  
-  .form-section {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-  
-  .form-section label {
-    font-size: 15px;
-    color: #d8d8d8;
-    font-weight: 500;
-  }
-  
-  .postform input,
-  .postform textarea,
-  .postform select {
-    width: 95%;
-    padding: 12px 14px;
-    background: #0f0f11;
-    border: 1px solid rgba(255,255,255,0.12);
-    color: white;
-    border-radius: 8px;
-    font-size: 15px;
-    transition: border 0.25s ease, box-shadow 0.25s ease;
-  }
-  
-  .postform input[type="date"]::-webkit-calendar-picker-indicator {
-    filter: invert(1);
-  }
-  
-  .postform textarea {
-    min-height: 95px;
-    resize: vertical;
-  }
-  
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}
+
+.form-columns {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 40px;
+  width: 100%;
+}
+
+.left-col {
+  flex: 1.15;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.right-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: fit-content;
+}
+
+.form-section label {
+  font-size: 15px;
+  color: #d8d8d8;
+  font-weight: 500;
+  min-height: 20px;
+  line-height: 1.3;
+}
+
+.postform input,
+.postform textarea,
+.postform select {
+  width: 100%;
+  padding: 14px 14px;
+  background: #0f0f11;
+  border: 1px solid rgba(255,255,255,0.12);
+  color: #e8e8e8;
+  border-radius: 8px;
+  font-size: 15px;
+  transition: border 0.25s ease, box-shadow 0.25s ease;
+  height: 48px;
+  box-sizing: border-box;
+}
+
+.postform textarea {
+  height: auto;
+}
+
+.postform input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
+.postform textarea {
+  min-height: 95px;
+  resize: vertical;
+}
+
 .postform input:hover,
 .postform select:hover,
 .postform textarea:hover {
-      border-color: #ffffff;
-      border-width: 1px;
-      outline: none;
+    border-color: #ffffff;
+    border-width: 1px;
+    outline: none;
 }
 
 .postform input:focus,
 .postform select:focus,
 .postform textarea:focus {
-    border-color: #ffffff;
-    border-width: 1px;
-    outline: none;
+  border-color: #ffffff;
+  border-width: 1px;
+  outline: none;
 }
-  
+
 .submit-btn {
-    position: relative;
-    padding: 12px 26px;
-    border-radius: 10px;
-    font-size: 16px;
-    font-weight: 600;
-    color: white;
-    background: #141416;
-    cursor: pointer;
-    transition: transform 0.25s ease, opacity 0.25s ease;
-    overflow: hidden;
-    border: none;
+  position: relative;
+  padding: 12px 26px;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #e8e8e8;
+  background: #141416;
+  cursor: pointer;
+  transition: transform 0.25s ease, opacity 0.25s ease;
+  overflow: hidden;
+  border: none;
 }
-  
-  .submit-btn::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    padding: 2px;
-    background: linear-gradient(
-      90deg,
-      #cf40d1 0%,
-      #1696a7 50%,
-      #cf40d1 100%
-    );
-    background-size: 300% 300%;
-    -webkit-mask:
-      linear-gradient(#000 0 0) content-box,
-      linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-            mask-composite: exclude;
 
-    opacity: 0.15;
-    transition: opacity 0.3s ease;
-  }
-  
-  .submit-btn:hover::before {
-    opacity: 1;
-    animation: borderFlow 4s linear infinite;
-  }
-  
+.submit-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 2px;
+  background: linear-gradient(
+    90deg,
+    #cf40d1 0%,
+    #1696a7 50%,
+    #cf40d1 100%
+  );
+  background-size: 300% 300%;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
 
-  .submit-btn:hover {
-    transform: translateY(-0.001px);
-  }
-  
-  
+  opacity: 0.15;
+  transition: opacity 0.3s ease;
+}
+
+.submit-btn:hover::before {
+  opacity: 1;
+  animation: borderFlow 4s linear infinite;
+}
+
+
+.submit-btn:hover {
+  transform: translateY(-0.001px);
+}
+
+
 
 .postform select {
-    width: 95%;
-    padding: 12px 40px 12px 14px; 
-    background: #0f0f11;
-    border: 1px solid rgba(255,255,255,0.12);
-    color: white;
-    border-radius: 8px;
-    font-size: 15px;
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    background-image: url("data:image/svg+xml;utf8,<svg fill='white' height='16' viewBox='0 0 20 20' width='16' xmlns='http://www.w3.org/2000/svg'><path d='M5 7l5 5 5-5'/></svg>");
-    background-repeat: no-repeat;
-    background-position: right 14px center;
+  width: 100%;
+  padding: 0px 40px 0px 14px; 
+  background: #0f0f11;
+  border: 1px solid rgba(255,255,255,0.12);
+  color: #e8e8e8;
+  border-radius: 8px;
+  font-size: 15px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg fill='white' height='16' viewBox='0 0 20 20' width='16' xmlns='http://www.w3.org/2000/svg'><path d='M5 7l5 5 5-5'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  height: 48px;
+  line-height: 48px;
+  box-sizing: border-box;
 }
-  
+
+.full-width textarea {
+width: 100%;
+min-height: 110px;
+}
+
 @media (max-width: 990px) {
-    .form-columns {
-      flex-direction: column;
-      gap: 40px;
-    }
-  
-    .left-col,
-    .right-col {
-      flex: none;
-      width: 100%;
-    }
-  
-    .postform input,
-    .postform textarea,
-    .postform select {
-      width: 100%;
-    }
+  .form-columns {
+    flex-direction: column;
+    gap: 40px;
+  }
+
+  .left-col,
+  .right-col {
+    flex: none;
+    width: 100%;
+  }
+
+  .postform input,
+  .postform textarea,
+  .postform select {
+    width: 100%;
+  }
 }

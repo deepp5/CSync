@@ -1,68 +1,99 @@
+// pages/Setup.jsx
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
+import "../Components/SetUp/SetUpBox.css";
+import Aurora from "../Components/LandingPage/Aurora.jsx";
+
+function normalizeUsername(input) {
+  return String(input || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9_]/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 24);
+}
 
 export default function Setup() {
+  const navigate = useNavigate();
+
   const [user, setUser] = useState(null);
   const [username, setUsername] = useState("");
   const [school, setSchool] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // -----------------------------
-  // 1. Load the authenticated user
-  // -----------------------------
+  // Load session safely (works for OAuth redirects)
   useEffect(() => {
-    async function loadUser() {
-      const { data } = await supabase.auth.getUser();
+    let isMounted = true;
 
-      if (!data.user) {
-        window.location.href = "/login";
+    async function load() {
+      const { data, error } = await supabase.auth.getSession();
+
+      if (!isMounted) return;
+
+      const session = data?.session;
+
+      if (error || !session?.user) {
+        navigate("/login", { replace: true });
         return;
       }
 
-      const loggedInUser = data.user;
-      setUser(loggedInUser);
+      const u = session.user;
+      setUser(u);
 
-      // Check if profile already completed
-      const { data: existingProfile } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", loggedInUser.id)
-        .maybeSingle();
+      const meta = u.user_metadata || {};
+      const metaUsername = meta.username;
+      const metaSchool = meta.school;
 
-      if (existingProfile) {
-        window.location.href = "/home";
+      // ✅ If already completed → go home
+      if (metaUsername && metaSchool) {
+        navigate("/home", { replace: true });
+        return;
       }
+
+      // Optional: prefill if any exists
+      if (metaUsername) setUsername(metaUsername);
+      if (metaSchool) setSchool(metaSchool);
     }
 
-    loadUser();
-  }, []);
+    load();
 
-  // -----------------------------
-  // 2. Save username + school
-  // -----------------------------
+    // keep user updated if auth state changes
+    const { data: sub } = supabase.auth.onAuthStateChange((_evt, session) => {
+      if (!isMounted) return;
+      setUser(session?.user || null);
+    });
+
+    return () => {
+      isMounted = false;
+      sub?.subscription?.unsubscribe?.();
+    };
+  }, [navigate]);
+
   const handleSetup = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
-    const cleanUsername = username.toLowerCase();
+    const cleanUsername = normalizeUsername(username);
 
-    // Step A: check if username taken
-    const { data: nameCheck } = await supabase
-      .from("profiles")
-      .select("username")
-      .eq("username", cleanUsername);
-
-    if (nameCheck && nameCheck.length > 0) {
-      setError("❌ Username already taken!");
+    if (!cleanUsername || cleanUsername.length < 3) {
+      setError("Username must be at least 3 characters.");
       setLoading(false);
       return;
     }
 
-    // Step B: update auth metadata
+    if (!school.trim()) {
+      setError("School is required.");
+      setLoading(false);
+      return;
+    }
+
+    // ✅ Store in Supabase auth metadata (no profiles table)
     const { error: metaErr } = await supabase.auth.updateUser({
-      data: { username: cleanUsername, school },
+      data: { username: cleanUsername, school: school.trim() },
     });
 
     if (metaErr) {
@@ -71,57 +102,62 @@ export default function Setup() {
       return;
     }
 
-    // Step C: insert into profiles
-    const { error: insertErr } = await supabase.from("profiles").insert({
-      id: user.id,
-      username: cleanUsername,
-      school,
-      // ❌ removed email because it doesn't exist in table
-    });
+    // ✅ Refresh session so new metadata is immediately available
+    await supabase.auth.refreshSession();
 
-    if (insertErr) {
-      setError(insertErr.message);
-      setLoading(false);
-      return;
-    }
-
-    // Step D: redirect to home
-    window.location.href = "/home";
+    navigate("/home", { replace: true });
   };
 
   if (!user) return <p>Loading...</p>;
 
   return (
-    <div style={{ padding: 40 }}>
-      <h2>Finish setting up your account</h2>
+    <div>
+      <Aurora
+        colorStops={["#fa4efd", "#9172f8", "#21daf2"]}
+        blend={0.5}
+        amplitude={1.15}
+        speed={0.6}
+      />
 
-      <form onSubmit={handleSetup}>
-        {/* Username */}
-        <label>Username</label>
-        <input
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          required
-        />
+      <div className="setup-clear-box">
+        <h2 className="setup-title">Finish setting up your account</h2>
 
-        <br />
-        <br />
+        <form onSubmit={handleSetup} className="setup-form">
+          <div className="setup-input-group">
+            <label>Username</label>
+            <input
+              type="text"
+              className="setup-input"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Choose a username"
+              required
+              disabled={loading}
+            />
+          </div>
 
-        {/* School */}
-        <label>School</label>
-        <input
-          value={school}
-          onChange={(e) => setSchool(e.target.value)}
-          required
-        />
+          <div className="setup-input-group">
+            <label>School</label>
+            <input
+              type="text"
+              className="setup-input"
+              value={school}
+              onChange={(e) => setSchool(e.target.value)}
+              placeholder="Enter your school name"
+              required
+              disabled={loading}
+            />
+          </div>
 
-        <br />
-        <br />
+          <div className="setup-submit">
+            <button type="submit" disabled={loading}>
+              {loading ? "Saving..." : "Continue"}
+            </button>
+          </div>
+        </form>
 
-        <button disabled={loading}>{loading ? "Saving..." : "Continue"}</button>
-      </form>
-
-      {error && <p style={{ color: "red" }}>{error}</p>}
+        {error && <p className="error-message">{error}</p>}
+      </div>
     </div>
   );
 }

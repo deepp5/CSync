@@ -3,10 +3,158 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
+model Comment {
+  id            String    @id @default(uuid())
+  content       String
+  postId        String
+  userId        String
+  parentId      String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime
+  Comment       Comment?  @relation("CommentToComment", fields: [parentId], references: [id], onDelete: Cascade)
+  other_Comment Comment[] @relation("CommentToComment")
+  Post          Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  User          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([parentId])
+  @@index([postId])
+  @@index([userId])
+}
+
+model Follow {
+  id                            String   @id
+  followerId                    String
+  followingId                   String
+  createdAt                     DateTime @default(now())
+  User_Follow_followerIdToUser  User     @relation("Follow_followerIdToUser", fields: [followerId], references: [id], onDelete: Cascade)
+  User_Follow_followingIdToUser User     @relation("Follow_followingIdToUser", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+}
+
+model Like {
+  id        String   @id
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+  Post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([postId])
+  @@index([userId])
+}
+
+model Message {
+  id                            Int      @id @default(autoincrement())
+  senderId                      String
+  receiverId                    String
+  content                       String
+  createdAt                     DateTime @default(now())
+
+  attachmentUrl  String?
+  attachmentPath String?
+  attachmentName String?
+  attachmentType String?
+  attachmentSize Int?
+
+  User_Message_receiverIdToUser User     @relation("Message_receiverIdToUser", fields: [receiverId], references: [id])
+  User_Message_senderIdToUser   User     @relation("Message_senderIdToUser", fields: [senderId], references: [id])
+
+  @@index([createdAt])
+  @@index([receiverId])
+  @@index([senderId])
+}
+
+model Post {
+  id          String     @id @default(uuid())
+  title       String
+  header      String
+  techStack   String[]
+  description String
+  category    Category
+  difficulty  Difficulty
+  deadline    DateTime
+  visibility  Visibility @default(DRAFT)
+  likes       Int        @default(0)
+  views       Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  userId      String
+  Comment     Comment[]
+  Like        Like[]
+  User        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([category])
+  @@index([createdAt])
+  @@index([userId])
+  @@index([visibility])
+}
+
+model User {
+  id             String   @id
+  email          String   @unique
+  name           String
+  username       String   @unique
+  skills         String[] @default([])
+
+  bio            String?
+  githubUrl      String?
+  linkedinUrl    String?
+  profilePicture String?
+  schoolCompany  String?
+  isOAuthUser    Boolean  @default(false)
+  oauthProvider  String?
+
+  profileVisibility ProfileVisibility @default(FOLLOWERS)
+  showEmail         Boolean            @default(false)
+  allowMessages    Boolean            @default(true)
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  Post           Post[]
+  Comment        Comment[]
+  Like           Like[]
+
+  Follow_Follow_followerIdToUser  Follow[] @relation("Follow_followerIdToUser")
+  Follow_Follow_followingIdToUser Follow[] @relation("Follow_followingIdToUser")
+
+  Message_Message_receiverIdToUser Message[] @relation("Message_receiverIdToUser")
+  Message_Message_senderIdToUser   Message[] @relation("Message_senderIdToUser")
+
+  @@index([email])
+  @@index([username])
+}
+
+enum Category {
+  WEB_DEVELOPMENT
+  MOBILE
+  AI_ML
+  GAME_DEV
+  SYSTEMS
+  OTHER
+}
+
+enum Difficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum Visibility {
+  PUBLIC
+  PRIVATE
+  DRAFT
+}
+enum ProfileVisibility {
+  FOLLOWERS
+  PRIVATE
 }

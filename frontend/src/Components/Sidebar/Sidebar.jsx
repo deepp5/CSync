@@ -1,49 +1,120 @@
-import React from "react";
+// Sidebar.jsx
+import React, { useState, useEffect } from "react";
 import "./Sidebar.css";
-import whiteCSync from '../../assets/colorCSync.png';
-import { FiHome, FiMessageSquare, FiPlusSquare, FiUser, FiSettings, FiList } from "react-icons/fi";
+import whiteCSync from "../../assets/colorCSync.png";
+import {
+  FiHome,
+  FiMessageSquare,
+  FiPlusSquare,
+  FiUser,
+  FiSettings,
+  FiList,
+  FiMenu,
+} from "react-icons/fi";
 import { Link } from "react-router-dom";
+import { prefetchMyProjects } from "../../utils/prefetchProjects";
 
 const Sidebar = () => {
+  const [isOpen, setIsOpen] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
+      // Auto-close sidebar on mobile
+      if (mobile) {
+        setIsOpen(false);
+      } else {
+        setIsOpen(true);
+      }
+    };
+
+    // Initial check
+    handleResize();
+
+    // Add event listener
+    window.addEventListener("resize", handleResize);
+
+    // Cleanup
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const toggleSidebar = () => {
+    setIsOpen(!isOpen);
+  };
+
+  // Notify other components about sidebar state
+  useEffect(() => {
+    document.body.setAttribute("data-sidebar-open", isOpen);
+  }, [isOpen]);
+
   return (
-    <div className="sidebar">
-      {/* Logo */}
-        <div className="sidebar-logo" onClick={() => window.location.href = "/home"}>
-            <img src={whiteCSync} className="logo-img" />
-            <h2>CSync</h2>
+    <>
+      {/* Toggle Button - Shows when sidebar is closed */}
+      {!isOpen && (
+        <button className="sidebar-toggle-btn" onClick={toggleSidebar}>
+          <FiMenu />
+        </button>
+      )}
+
+      {/* Sidebar */}
+      <div className={`sidebar ${isOpen ? "open" : "closed"}`}>
+        {/* Logo */}
+        <div
+          className="sidebar-logo"
+          onClick={() => (window.location.href = "/home")}
+        >
+          <img src={whiteCSync} className="logo-img" alt="CSync Logo" />
+          {isOpen && <h2>CSync</h2>}
         </div>
 
+        {/* Navigation */}
+        <div className="sidebar-links">
+          <Link className="sidebar-btn" to="/home">
+            <FiHome className="icon" />
+            {isOpen && <span>Home</span>}
+          </Link>
 
-      {/* Navigation */}
-      <div className="sidebar-links">
-        <Link className="sidebar-btn" to="/home">
-          <FiHome className="icon" /> Home
-        </Link>
+          <Link className="sidebar-btn" to="/messages">
+            <FiMessageSquare className="icon" />
+            {isOpen && <span>Messages</span>}
+          </Link>
 
-        <button className="sidebar-btn">
-          <FiMessageSquare className="icon" /> Messages
-        </button>
-
-        <button className="sidebar-btn">
+          <Link 
+            className="sidebar-btn" 
+            to="/myproject"
+            onMouseEnter={() => prefetchMyProjects()}
+          >
             <FiList className="icon" /> My Projects
-        </button>
+          </Link>
 
-        <Link className="sidebar-btn" to="/createpost">
-          <FiPlusSquare className="icon" /> Create Post
-        </Link>
+          <Link className="sidebar-btn" to="/createpost">
+            <FiPlusSquare className="icon" />
+            {isOpen && <span>Create Post</span>}
+          </Link>
+        </div>
+        
+
+        {/* Bottom Section */}
+        <div className="sidebar-bottom">
+          <Link className="sidebar-btn profile-btn" to="/profile">
+            <FiUser className="icon" />
+            {isOpen && <span>Profile</span>}
+          </Link>
+
+          <Link className="sidebar-btn profile-btn" to="/settings">
+            <FiSettings className="icon" />
+            {isOpen && <span>Settings</span>}
+          </Link>
+        </div>
       </div>
 
-      {/* Bottom Section */}
-      <div className="sidebar-bottom">
-        <button className="sidebar-btn profile-btn">
-          <FiUser className="icon" /> Profile
-        </button>
-
-        <button className="sidebar-btn">
-          <FiSettings className="icon" /> Settings
-        </button>
-      </div>
-    </div>
+      {/* Overlay for mobile */}
+      {isOpen && isMobile && (
+        <div className="sidebar-overlay" onClick={toggleSidebar}></div>
+      )}
+    </>
   );
 };
 
