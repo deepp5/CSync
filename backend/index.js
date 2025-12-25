@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import { PrismaClient } from "@prisma/client";
 import { Server } from "socket.io";
 
+import authRoutes from "./src/routes/authRoutes.js";
 import messageRoutes from "./src/routes/messageRoutes.js";
 import conversationRoutes from "./src/routes/conversationRoutes.js";
 import { verifySupabaseToken } from "./src/utils/authMiddleware.js";
@@ -36,6 +37,7 @@ app.get("/", (req, res) => {
   res.send("Backend working 🚀");
 });
 
+app.use("/auth", authRoutes);
 app.use("/messages", messageRoutes);
 app.use("/conversations", conversationRoutes);
 app.use("/posts", commentRoutes);
@@ -140,7 +142,17 @@ app.get("/posts", verifySupabaseToken, async (req, res) => {
         NOT: { userId },
         visibility: "PUBLIC",
       },
-      orderBy: { createdAt: "desc" },
+      include: {
+        User: {
+          select: {
+            id: true,
+            username: true,
+            name: true,
+            profilePicture: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" }, // Newest first
     });
 
     res.json(posts);
@@ -257,6 +269,9 @@ app.delete("/posts/:id", verifySupabaseToken, async (req, res) => {
 
 app.get("/posts/:id", verifySupabaseToken, async (req, res) => {
   try {
+    const postId = req.params.id;
+    const userId = req.user.id;
+
     const post = await prisma.post.findUnique({
       where: { id: req.params.id },
       include: {
@@ -266,6 +281,9 @@ app.get("/posts/:id", verifySupabaseToken, async (req, res) => {
             name: true,
             username: true,
             profilePicture: true,
+            bio: true,
+            githubUrl: true,
+            linkedinUrl: true,
           },
         },
       },
@@ -275,7 +293,278 @@ app.get("/posts/:id", verifySupabaseToken, async (req, res) => {
       return res.status(404).json({ error: "Post not found" });
     }
 
-    res.json(post);
+    // Check if current user has liked this post
+    const userLike = await prisma.like.findUnique({
+      where: {
+        postId_userId: {
+          postId: postId,
+          userId: userId,
+        },
+      },
+    });
+
+    // Check if current user is following the post author
+    const userFollow = await prisma.follow.findUnique({
+      where: {
+        followerId_followingId: {
+          followerId: userId,
+          followingId: post.userId,
+        },
+      },
+    });
+
+    res.json({
+      ...post,
+      isLiked: !!userLike,
+      isFollowing: !!userFollow,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Increment view count for a post
+app.post("/posts/:id/view", verifySupabaseToken, async (req, res) => {
+  try {
+    const postId = req.params.id;
+
+    // Check if post exists
+    const post = await prisma.post.findUnique({
+      where: { id: postId },
+    });
+
+    if (!post) {
+      return res.status(404).json({ error: "Post not found" });
+    }
+
+    // Increment view count
+    const updatedPost = await prisma.post.update({
+      where: { id: postId },
+      data: { views: { increment: 1 } },
+    });
+
+    res.json({ views: updatedPost.views });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Like a post
+app.post("/posts/:id/like", verifySupabaseToken, async (req, res) => {
+  try {
+    const postId = req.params.id;
+    const userId = req.user.id;
+
+    // Check if post exists
+    const post = await prisma.post.findUnique({
+      where: { id: postId },
+    });
+
+    if (!post) {
+      return res.status(404).json({ error: "Post not found" });
+    }
+
+    // Check if already liked
+    const existingLike = await prisma.like.findUnique({
+      where: {
+        postId_userId: {
+          postId: postId,
+          userId: userId,
+        },
+      },
+    });
+
+    if (existingLike) {
+      return res.status(400).json({ error: "Already liked this post" });
+    }
+
+    // Create like and increment post likes count
+    await prisma.$transaction([
+      prisma.like.create({
+        data: {
+          id: `${postId}_${userId}_${Date.now()}`,
+          postId: postId,
+          userId: userId,
+        },
+      }),
+      prisma.post.update({
+        where: { id: postId },
+        data: { likes: { increment: 1 } },
+      }),
+    ]);
+
+    const updatedPost = await prisma.post.findUnique({
+      where: { id: postId },
+    });
+
+    res.json({ likes: updatedPost.likes, isLiked: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Unlike a post
+app.delete("/posts/:id/like", verifySupabaseToken, async (req, res) => {
+  try {
+    const postId = req.params.id;
+    const userId = req.user.id;
+
+    // Check if like exists
+    const existingLike = await prisma.like.findUnique({
+      where: {
+        postId_userId: {
+          postId: postId,
+          userId: userId,
+        },
+      },
+    });
+
+    if (!existingLike) {
+      return res.status(400).json({ error: "Haven't liked this post" });
+    }
+
+    // Delete like and decrement post likes count
+    await prisma.$transaction([
+      prisma.like.delete({
+        where: {
+          postId_userId: {
+            postId: postId,
+            userId: userId,
+          },
+        },
+      }),
+      prisma.post.update({
+        where: { id: postId },
+        data: { likes: { decrement: 1 } },
+      }),
+    ]);
+
+    const updatedPost = await prisma.post.findUnique({
+      where: { id: postId },
+    });
+
+    res.json({ likes: updatedPost.likes, isLiked: false });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get user by ID
+app.get("/users/:id", verifySupabaseToken, async (req, res) => {
+  try {
+    const userId = req.params.id;
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        username: true,
+        profilePicture: true,
+        bio: true,
+        githubUrl: true,
+        linkedinUrl: true,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    res.json(user);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Follow a user
+app.post("/users/:id/follow", verifySupabaseToken, async (req, res) => {
+  try {
+    const followingId = req.params.id;
+    const followerId = req.user.id;
+
+    // Can't follow yourself
+    if (followerId === followingId) {
+      return res.status(400).json({ error: "Cannot follow yourself" });
+    }
+
+    // Check if user exists
+    const userToFollow = await prisma.user.findUnique({
+      where: { id: followingId },
+    });
+
+    if (!userToFollow) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Check if already following
+    const existingFollow = await prisma.follow.findUnique({
+      where: {
+        followerId_followingId: {
+          followerId: followerId,
+          followingId: followingId,
+        },
+      },
+    });
+
+    if (existingFollow) {
+      // Already following - return success (idempotent)
+      return res.json({ isFollowing: true });
+    }
+
+    // Create follow
+    await prisma.follow.create({
+      data: {
+        id: `${followerId}_${followingId}_${Date.now()}`,
+        followerId: followerId,
+        followingId: followingId,
+      },
+    });
+
+    res.json({ isFollowing: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Unfollow a user
+app.delete("/users/:id/follow", verifySupabaseToken, async (req, res) => {
+  try {
+    const followingId = req.params.id;
+    const followerId = req.user.id;
+
+    // Check if follow exists
+    const existingFollow = await prisma.follow.findUnique({
+      where: {
+        followerId_followingId: {
+          followerId: followerId,
+          followingId: followingId,
+        },
+      },
+    });
+
+    if (!existingFollow) {
+      // Not following - return success (idempotent)
+      return res.json({ isFollowing: false });
+    }
+
+    // Delete follow
+    await prisma.follow.delete({
+      where: {
+        followerId_followingId: {
+          followerId: followerId,
+          followingId: followingId,
+        },
+      },
+    });
+
+    res.json({ isFollowing: false });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

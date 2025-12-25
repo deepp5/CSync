@@ -1,7 +1,6 @@
 import express from "express";
 import { PrismaClient } from "@prisma/client";
 import { verifySupabaseToken } from "../utils/authMiddleware.js";
-import { ensureUserExists } from "../utils/ensureUser.js";
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -15,6 +14,7 @@ router.get("/", verifySupabaseToken, async (req, res) => {
     });
 
     const me = await ensureUserExists(prisma, req.user);
+    const meId = req.user.id;
 
     console.log("✅ [CONVERSATIONS] ensureUserExists returned:", {
       id: me.id,
@@ -26,7 +26,7 @@ router.get("/", verifySupabaseToken, async (req, res) => {
     // Get latest messages involving me (newest first)
     const msgs = await prisma.message.findMany({
       where: {
-        OR: [{ senderId: me.id }, { receiverId: me.id }],
+        OR: [{ senderId: meId }, { receiverId: meId }],
       },
       orderBy: { createdAt: "desc" },
       select: {
@@ -41,13 +41,10 @@ router.get("/", verifySupabaseToken, async (req, res) => {
     // Build unique conversations by other user
     const convoMap = new Map();
     for (const m of msgs) {
-      const otherId = m.senderId === me.id ? m.receiverId : m.senderId;
-      if (!convoMap.has(otherId)) {
-        convoMap.set(otherId, {
-          userId: otherId,
-          lastMessage: m.content,
-          updatedAt: m.createdAt,
-        });
+      const otherId = m.senderId === meId ? m.receiverId : m.senderId;
+      if (!seen.has(otherId)) {
+        seen.add(otherId);
+        partnerIds.push(otherId);
       }
     }
 
@@ -65,9 +62,21 @@ router.get("/", verifySupabaseToken, async (req, res) => {
 
     const userMap = new Map(users.map((u) => [u.id, u]));
 
-    const result = otherIds.map((otherId) => {
-      const conv = convoMap.get(otherId);
-      const u = userMap.get(otherId);
+    // shape response
+    const conversations = partnerIds.map((otherId) => {
+      const last = msgs.find(
+        (m) =>
+          (m.senderId === meId && m.receiverId === otherId) ||
+          (m.senderId === otherId && m.receiverId === meId)
+      );
+
+      const otherUser = userMap.get(otherId) || {
+        id: otherId,
+        name: "Unknown User",
+        username: null,
+        profilePicture: null,
+        email: null,
+      };
 
       return {
         ...conv,

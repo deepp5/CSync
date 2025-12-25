@@ -110,6 +110,7 @@ body[data-sidebar-open="false"] .post-detail-page {
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
   padding: 40px;
+  padding-bottom: 30px;
   max-width: 900px;
   width: 100%;
 }
@@ -227,10 +228,21 @@ body[data-sidebar-open="false"] .post-detail-page {
 }
 
 /* Post Description */
+.post-description-section {
+  margin-bottom: 0;
+}
+
+.description-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.75);
+  margin: 0 0 12px 0;
+}
+
 .post-description {
   line-height: 1.7;
   font-size: 15px;
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(255, 255, 255, 0.5);
   margin-bottom: 0;
   white-space: pre-wrap;
 }
@@ -244,7 +256,7 @@ body[data-sidebar-open="false"] .post-detail-page {
 
 /* Tech Stack Section */
 .post-tech-stack {
-  margin-bottom: 0;
+  margin: 24px 0;
 }
 
 .tech-stack-tags {

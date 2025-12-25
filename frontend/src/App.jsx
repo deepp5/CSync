@@ -14,8 +14,10 @@ import SettingsPage from "./Pages/SettingsPage";
 import PostDetailPage from "./Pages/PostDetailPage";
 import MessagesPage from "./Pages/MessagesPage";
 import MyProjectPage from "./Pages/MyProjectPage";
+import useAuth from "./hooks/useAuth";
 
 export default function App() {
+  useAuth();
   return (
     <Router>
       <Routes>

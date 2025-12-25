@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import Aurora from "../Components/LandingPage/Aurora";
 import SignInBox from "../Components/Registration/SignInBox";
 import { supabase } from "../supabaseClient";
+import axios from "axios";
 
 export default function SignIn() {
   const [message, setMessage] = useState("");
@@ -20,20 +21,35 @@ export default function SignIn() {
 
       if (error) {
         setMessage(`❌ ${error.message}`);
-        setLoading(false);
         return;
       }
 
+      // 🔑 Sync user into Prisma after login (optional but good)
+      // (Only run if you actually have this endpoint)
+      if (data?.session?.access_token) {
+        await axios.post(
+          "http://localhost:5051/auth/sync",
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${data.session.access_token}`,
+            },
+          }
+        );
+      }
+
+      // ✅ Decide where to go based on metadata
       const meta = data?.user?.user_metadata || {};
-      const done = meta.username && meta.school;
+      const done = Boolean(meta.username && meta.school);
 
       setMessage("✅ Login successful!");
       window.location.href = done ? "/home" : "/setup";
     } catch (err) {
+      console.error(err);
       setMessage("⚠️ Something went wrong. Try again.");
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   const loginWithGoogle = async () => {

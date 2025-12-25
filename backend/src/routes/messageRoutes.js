@@ -2,7 +2,6 @@
 import express from "express";
 import { PrismaClient } from "@prisma/client";
 import { verifySupabaseToken } from "../utils/authMiddleware.js";
-import { ensureUserExists } from "../utils/ensureUser.js";
 
 // ✅ NEW (upload)
 import multer from "multer";
@@ -66,15 +65,10 @@ function makeStoragePath({ senderId, receiverId, originalname }) {
 ========================= */
 router.get("/:receiverId", verifySupabaseToken, async (req, res) => {
   try {
-    const me = await ensureUserExists(prisma, req.user);
-    const { receiverId } = req.params;
-
-    // ✅ Ensure receiver exists without forcing username (avoid collisions)
-    await ensureUserExists(prisma, {
-      id: receiverId,
-      email: `${receiverId}@placeholder.local`,
-      user_metadata: {}, // DO NOT set username here
+    const me = await prisma.user.findUnique({
+      where: { id: req.user.id },
     });
+    const { receiverId } = req.params;
 
     const messages = await prisma.message.findMany({
       where: {
@@ -98,19 +92,14 @@ router.get("/:receiverId", verifySupabaseToken, async (req, res) => {
 ========================= */
 router.post("/", verifySupabaseToken, async (req, res) => {
   try {
-    const me = await ensureUserExists(prisma, req.user);
+    const me = await prisma.user.findUnique({
+      where: { id: req.user.id },
+    });
     const { receiverId, content } = req.body;
 
     if (!receiverId || !content) {
       return res.status(400).json({ error: "Missing fields" });
     }
-
-    // ✅ Ensure receiver exists (no username)
-    await ensureUserExists(prisma, {
-      id: receiverId,
-      email: `${receiverId}@placeholder.local`,
-      user_metadata: {},
-    });
 
     const message = await prisma.message.create({
       data: {

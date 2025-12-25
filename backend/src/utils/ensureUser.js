@@ -1,12 +1,14 @@
-// src/utils/ensureUser.js
-export async function ensureUserExists(prisma, supabaseUser) {
-  const id = supabaseUser?.id || supabaseUser?.sub;
-  if (!id) {
-    console.log("❌ Bad supabase payload (missing id):", supabaseUser);
-    throw new Error("Missing user id (sub)");
+export async function ensureUserExists(prisma, supabaseJwtPayload) {
+  const id = supabaseJwtPayload?.id || supabaseJwtPayload?.sub;
+  const email = supabaseJwtPayload?.email;
+  const user_metadata = supabaseJwtPayload?.user_metadata || {};
+
+  if (!id || !email) {
+    throw new Error("Invalid Supabase payload");
   }
 
-  const email = supabaseUser?.email || null;
+  const username =
+    user_metadata?.username || email.split("@")[0] + "_" + id.slice(0, 5);
 
   // ✅ Merge both: sometimes data is in raw_user_meta_data, sometimes in user_metadata
   const meta = {

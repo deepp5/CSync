@@ -45,6 +45,22 @@ export default function SignUp() {
         const meta = data.session.user.user_metadata || {};
         const done = meta.username && meta.school;
         window.location.href = done ? "/home" : "/setup";
+        try {
+          const accessToken = data.session.access_token;
+
+          await fetch("http://localhost:5051/auth/sync", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          });
+
+          setMessage("🎉 Account created! Redirecting...");
+          window.location.href = "/home";
+        } catch (syncErr) {
+          console.error("Auth sync failed:", syncErr);
+          setMessage("⚠️ Account created, but failed to sync profile.");
+        }
       }
     } catch (err) {
       console.error(err);

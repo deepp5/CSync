@@ -1,5 +1,5 @@
 // PostDetailPage.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { supabase } from "../../supabaseClient";
@@ -9,7 +9,6 @@ import {
   FiMail,
   FiMessageSquare,
   FiHeart,
-  FiBookmark,
   FiShare2,
   FiEye,
   FiArrowLeft,
@@ -26,7 +25,6 @@ const PostDetail = () => {
   const [loading, setLoading] = useState(true);
 
   const [isLiked, setIsLiked] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
 
   const [likeCount, setLikeCount] = useState(0);
@@ -35,6 +33,9 @@ const PostDetail = () => {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [replyTo, setReplyTo] = useState(null);
+
+  // Track if we've already counted the view for this post
+  const viewCountedRef = useRef({});
 
   // ===============================
   // COMMENTS: FETCH
@@ -67,6 +68,8 @@ const PostDetail = () => {
   // POST: FETCH
   // ===============================
   useEffect(() => {
+    let isMounted = true;
+
     async function fetchPost() {
       try {
         const {
@@ -84,6 +87,8 @@ const PostDetail = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
 
+        if (!isMounted) return;
+
         setPost(response.data);
         setLikeCount(response.data.likes || 0);
         setViewCount(response.data.views || 0);
@@ -91,29 +96,133 @@ const PostDetail = () => {
         // ✅ load comments after post loads
         await fetchComments();
 
+        setIsLiked(response.data.isLiked || false);
+        setIsFollowing(response.data.isFollowing || false);
         setLoading(false);
+
+        // Increment view count only once per post ID
+        if (!viewCountedRef.current[id]) {
+          viewCountedRef.current[id] = true;
+          const viewResponse = await axios
+            .post(
+              `http://localhost:5051/posts/${id}/view`,
+              {},
+              {
+                headers: { Authorization: `Bearer ${token}` },
+              }
+            )
+            .catch((err) => console.error("Error incrementing view:", err));
+
+          // Update view count locally with the response
+          if (isMounted && viewResponse?.data?.views) {
+            setViewCount(viewResponse.data.views);
+          }
+        }
       } catch (error) {
         console.error("Error fetching post:", error);
-        setPost(null);
-        setLoading(false);
+        if (isMounted) {
+          setPost(null);
+          setLoading(false);
+        }
       }
     }
 
     fetchPost();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
+    return () => {
+      isMounted = false;
+    };
   }, [id, navigate]);
 
-  const handleLike = () => {
+  const handleLike = async () => {
+    // Store previous state for rollback
+    const previousIsLiked = isLiked;
+    const previousLikeCount = likeCount;
+
+    // OPTIMISTIC UPDATE - Update UI immediately
     setIsLiked(!isLiked);
     setLikeCount(isLiked ? likeCount - 1 : likeCount + 1);
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) {
+        // Rollback if not authenticated
+        setIsLiked(previousIsLiked);
+        setLikeCount(previousLikeCount);
+        navigate("/login");
+        return;
+      }
+
+      const token = session.access_token;
+
+      if (previousIsLiked) {
+        // Unlike the post
+        await axios.delete(`http://localhost:5051/posts/${id}/like`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      } else {
+        // Like the post
+        await axios.post(
+          `http://localhost:5051/posts/${id}/like`,
+          {},
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+      }
+    } catch (error) {
+      console.error("Error toggling like:", error);
+      // Rollback on error
+      setIsLiked(previousIsLiked);
+      setLikeCount(previousLikeCount);
+    }
   };
 
-  const handleSave = () => {
-    setIsSaved(!isSaved);
-  };
+  const handleFollow = async () => {
+    // Store previous state for rollback
+    const previousIsFollowing = isFollowing;
 
-  const handleFollow = () => {
+    // OPTIMISTIC UPDATE - Update UI immediately
     setIsFollowing(!isFollowing);
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) {
+        // Rollback if not authenticated
+        setIsFollowing(previousIsFollowing);
+        navigate("/login");
+        return;
+      }
+
+      const token = session.access_token;
+
+      if (previousIsFollowing) {
+        // Unfollow the user
+        await axios.delete(
+          `http://localhost:5051/users/${post.User.id}/follow`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+      } else {
+        // Follow the user
+        await axios.post(
+          `http://localhost:5051/users/${post.User.id}/follow`,
+          {},
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+      }
+    } catch (error) {
+      console.error("Error toggling follow:", error);
+      // Rollback on error
+      setIsFollowing(previousIsFollowing);
+    }
   };
 
   const handleShare = () => {
@@ -172,6 +281,8 @@ const PostDetail = () => {
 
   const handleContactOwner = () => {
     window.location.href = `mailto:${post.author?.email || ""}`;
+    // Navigate to messages page with the post author's ID
+    navigate(`/messages?user=${post.User.id}`);
   };
 
   const getTimeAgo = (dateString) => {
@@ -269,9 +380,7 @@ const PostDetail = () => {
                   className={`action-btn-icon ${isSaved ? "saved" : ""}`}
                   onClick={handleSave}
                   title="Save"
-                >
-                  <FiBookmark />
-                </button>
+                ></button>
                 <button
                   className="action-btn-icon"
                   onClick={handleShare}
@@ -297,7 +406,10 @@ const PostDetail = () => {
             </div>
 
             {/* Post Description */}
-            <div className="post-description">{post.description}</div>
+            <div className="post-description-section">
+              <h3 className="description-title">Description:</h3>
+              <div className="post-description">{post.description}</div>
+            </div>
 
             {/* Separator */}
             <div className="post-separator"></div>

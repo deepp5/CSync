@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import "./Messages.css";
 import {
   FiSearch,
@@ -9,6 +9,7 @@ import {
   FiCheckCircle,
 } from "react-icons/fi";
 import { useAuth } from "../../context/AuthContext";
+import { useSearchParams } from "react-router-dom";
 import { io } from "socket.io-client";
 
 const API_BASE = "http://localhost:5051";
@@ -55,6 +56,8 @@ function parseAttachmentFromContent(content) {
 
 const Messages = () => {
   const { user, accessToken, loading } = useAuth();
+  const [searchParams] = useSearchParams();
+  const socketRef = useRef(null);
 
   const [conversations, setConversations] = useState([]);
   const [selectedChatId, setSelectedChatId] = useState(null);
@@ -63,7 +66,6 @@ const Messages = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [error, setError] = useState("");
 
-  const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
 
   // ✅ hidden file input for attachments
@@ -98,7 +100,21 @@ const Messages = () => {
             const displayName =
               (safeString(c.username) ? `@${safeString(c.username)}` : "") ||
               safeString(c.name) ||
-              `User ${otherUserId.slice(0, 6)}`;
+              safeString(c.user?.name) ||
+              safeString(c.otherUser?.name) ||
+              `User ${otherUserId}`;
+
+            const username =
+              safeString(c.username) ||
+              safeString(c.user?.username) ||
+              safeString(c.otherUser?.username) ||
+              `user_${otherUserId}`;
+
+            const createdAt =
+              c.createdAt ||
+              c.updatedAt ||
+              c.lastMessageAt ||
+              new Date().toISOString();
 
             return {
               userId: otherUserId,
@@ -118,16 +134,110 @@ const Messages = () => {
           })
           .filter(Boolean);
 
-        setConversations(formatted);
-        setSelectedChatId((prev) => prev || formatted[0]?.userId || null);
-      } catch (e) {
-        console.error(e);
+        // Sort conversations by most recent (timestamp or lastMessageAt)
+        const sortedFormatted = formatted.sort((a, b) => {
+          const timeA = new Date(a.createdAt).getTime();
+          const timeB = new Date(b.createdAt).getTime();
+          return timeB - timeA; // Most recent first
+        });
+
+        setConversations(sortedFormatted);
+
+        // Check if there's a user parameter in URL (from Message button)
+        const targetUserId = searchParams.get("user");
+
+        if (targetUserId) {
+          // Check if conversation already exists
+          const existingConv = formatted.find((c) => c.userId === targetUserId);
+
+          if (existingConv) {
+            // Select existing conversation
+            setSelectedChatId(targetUserId);
+          } else {
+            // Create a new conversation placeholder and select it
+            // We'll fetch user details from the backend
+            fetchUserAndCreateConversation(targetUserId);
+          }
+        } else {
+          // ✅ Auto-select first chat if no user param
+          setSelectedChatId((prev) => {
+            if (prev) return prev;
+            return formatted.length > 0 ? formatted[0].userId : null;
+          });
+        }
+      } catch (err) {
+        console.error(err);
         setError("Failed to load conversations.");
       }
     };
 
+    const fetchUserAndCreateConversation = async (userId) => {
+      try {
+        // Fetch user details from backend
+        const res = await fetch(`${API_BASE}/users/${userId}`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+
+        if (res.ok) {
+          const userData = await res.json();
+
+          // Create new conversation entry
+          const newConv = {
+            id: userId,
+            userId: userId,
+            name: userData.name || `User ${userId}`,
+            username: userData.username || `user_${userId}`,
+            avatar: (userData.name?.[0] || userId[0] || "?").toUpperCase(),
+            lastMessage: "",
+            timestamp: "",
+            unread: 0,
+            online: false,
+            createdAt: new Date().toISOString(),
+          };
+
+          setConversations((prev) => [newConv, ...prev]);
+          setSelectedChatId(userId);
+        } else {
+          // If user fetch fails, still create a basic conversation
+          const newConv = {
+            id: userId,
+            userId: userId,
+            name: `User ${userId.substring(0, 8)}`,
+            username: `user_${userId.substring(0, 8)}`,
+            avatar: "U",
+            lastMessage: "",
+            timestamp: "",
+            unread: 0,
+            online: false,
+            createdAt: new Date().toISOString(),
+          };
+
+          setConversations((prev) => [newConv, ...prev]);
+          setSelectedChatId(userId);
+        }
+      } catch (err) {
+        console.error("Error fetching user:", err);
+        // Create basic conversation anyway
+        const newConv = {
+          id: userId,
+          userId: userId,
+          name: `User ${userId.substring(0, 8)}`,
+          username: `user_${userId.substring(0, 8)}`,
+          avatar: "U",
+          lastMessage: "",
+          timestamp: "",
+          unread: 0,
+          online: false,
+          createdAt: new Date().toISOString(),
+        };
+
+        setConversations((prev) => [newConv, ...prev]);
+        setSelectedChatId(userId);
+      }
+    };
+
     fetchConversations();
-  }, [accessToken]);
+  }, [accessToken, searchParams]);
 
   // ===============================
   // FETCH MESSAGES (CHAT CHANGE)
@@ -162,8 +272,9 @@ const Messages = () => {
             c.userId === selectedChatId ? { ...c, unread: 0 } : c
           )
         );
-      } catch (e) {
-        console.error(e);
+      } catch (err) {
+        console.error(err);
+        setError("Failed to load messages.");
         setMessages([]);
         setError("Failed to load messages.");
       }
@@ -172,99 +283,97 @@ const Messages = () => {
     fetchMessages();
   }, [selectedChatId, accessToken]);
 
-  // ===============================
-  // AUTO SCROLL
-  // ===============================
+  /* ===============================
+     SOCKET.IO - Real-time messages
+  =============================== */
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (!accessToken || !user?.id) return;
 
-  // ===============================
-  // SOCKET CONNECT (ONCE)
-  // ===============================
-  useEffect(() => {
-    if (!accessToken) return;
+    // Connect to Socket.io
+    const socket = io(API_BASE, {
+      auth: { token: accessToken },
+    });
 
-    if (!socketRef.current) {
-      socketRef.current = io(API_BASE, {
-        auth: { token: accessToken },
-        transports: ["websocket"],
-      });
+    socketRef.current = socket;
 
-      socketRef.current.on("connect", () => {
-        console.log("🟢 socket connected:", socketRef.current.id);
-      });
+    socket.on("connect", () => {
+      console.log("✅ Socket connected");
+    });
 
-      socketRef.current.on("connect_error", (e) => {
-        console.log("🔴 socket connect_error:", e.message);
-      });
-    }
-  }, [accessToken]);
+    socket.on("receive_message", (message) => {
+      console.log("📨 Received message:", message);
 
-  // ===============================
-  // SOCKET: RECEIVE MESSAGE (REALTIME)
-  // ===============================
-  useEffect(() => {
-    const socket = socketRef.current;
-    if (!socket || !user?.id) return;
-
-    const myId = safeString(user.id);
-
-    const onNewMessage = (message) => {
       const senderId = safeString(message.senderId);
-      const receiverId = safeString(message.receiverId);
-      const otherId = senderId === myId ? receiverId : senderId;
+      const content = safeString(message.content);
 
+      // If the message is from the currently selected chat, add it to messages
+      if (senderId === selectedChatId) {
+        const newMessage = {
+          id: message.id ?? `${Date.now()}`,
+          senderId: senderId,
+          receiverId: safeString(message.receiverId),
+          content: content,
+          createdAt: message.createdAt || new Date().toISOString(),
+          read: false,
+        };
+        setMessages((prev) => [...prev, newMessage]);
+      }
+
+      // Update conversations list - move this conversation to top and increment unread
       setConversations((prev) => {
-        const isChatOpen = safeString(selectedChatId) === safeString(otherId);
-        let found = false;
+        const existingIndex = prev.findIndex((c) => c.userId === senderId);
 
-        const updated = prev.map((c) => {
-          if (c.userId !== otherId) return c;
-          found = true;
-          return {
-            ...c,
-            lastMessage: safeString(message.content),
-            updatedAt: message.createdAt || new Date().toISOString(),
-            timestamp: formatTime(message.createdAt),
-            unread: isChatOpen ? 0 : Number(c.unread || 0) + 1,
-          };
-        });
+        if (existingIndex !== -1) {
+          // Conversation exists - move to top and update
+          const updated = [...prev];
+          const existing = updated[existingIndex];
 
-        if (!found) {
+          updated.splice(existingIndex, 1);
           updated.unshift({
-            userId: otherId,
-            name: `User ${shortId(otherId)}`,
-            username: "",
-            avatar: (otherId?.[0] || "?").toUpperCase(),
-            lastMessage: safeString(message.content),
-            updatedAt: message.createdAt || new Date().toISOString(),
-            timestamp: formatTime(message.createdAt),
-            unread: safeString(selectedChatId) === safeString(otherId) ? 0 : 1,
-            online: false,
+            ...existing,
+            lastMessage: content,
+            timestamp: formatTime(new Date()),
+            unread:
+              senderId === selectedChatId
+                ? existing.unread
+                : existing.unread + 1,
+            createdAt: new Date().toISOString(),
           });
+
+          return updated;
+        } else {
+          // New conversation - add to top
+          return [
+            {
+              id: senderId,
+              userId: senderId,
+              name: `User ${senderId.substring(0, 8)}`,
+              username: `user_${senderId.substring(0, 8)}`,
+              avatar: "U",
+              lastMessage: content,
+              timestamp: formatTime(new Date()),
+              unread: 1,
+              online: false,
+              createdAt: new Date().toISOString(),
+            },
+            ...prev,
+          ];
         }
-
-        updated.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
-        return updated;
       });
+    });
 
-      if (safeString(selectedChatId) !== safeString(otherId)) return;
+    socket.on("disconnect", () => {
+      console.log("❌ Socket disconnected");
+    });
 
-      setMessages((prev) => {
-        const msgId = safeString(message.id);
-        if (msgId && prev.some((m) => safeString(m.id) === msgId)) return prev;
-        return [...prev, message];
-      });
+    return () => {
+      socket.disconnect();
     };
+  }, [accessToken, user?.id, selectedChatId]);
 
-    socket.on("new_message", onNewMessage);
-    return () => socket.off("new_message", onNewMessage);
-  }, [user?.id, selectedChatId]);
-
-  // ===============================
-  // FILTER CONVERSATIONS
-  // ===============================
+  /* ===============================
+     FILTER CONVERSATIONS
+  =============================== */
   const filteredConversations = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return conversations;
@@ -302,18 +411,31 @@ const Messages = () => {
     setMessages((prev) => [...prev, optimistic]);
     setMessageInput("");
 
-    setConversations((prev) =>
-      prev.map((c) =>
-        c.userId === selectedChatId
-          ? {
-              ...c,
-              lastMessage: text,
-              updatedAt: optimistic.createdAt,
-              timestamp: formatTime(optimistic.createdAt),
-            }
-          : c
-      )
-    );
+    // Update left panel preview immediately AND move to top
+    setConversations((prev) => {
+      const existingIndex = prev.findIndex((c) => c.userId === receiverId);
+
+      if (existingIndex !== -1) {
+        const updated = [...prev];
+        const existing = updated[existingIndex];
+
+        // Remove from current position
+        updated.splice(existingIndex, 1);
+
+        // Add to top with updated info
+        updated.unshift({
+          ...existing,
+          lastMessage: text,
+          timestamp: formatTime(new Date().toISOString()),
+          unread: 0, // Clear unread when you send
+          createdAt: new Date().toISOString(),
+        });
+
+        return updated;
+      }
+
+      return prev;
+    });
 
     try {
       const res = await fetch(`${API_BASE}/messages`, {
