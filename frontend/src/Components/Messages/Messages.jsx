@@ -346,18 +346,27 @@ const Messages = () => {
     setMessages((prev) => [...prev, optimistic]);
     setMessageInput("");
 
-    setConversations((prev) =>
-      prev.map((c) =>
-        c.userId === selectedChatId
-          ? {
-              ...c,
-              lastMessage: text,
-              updatedAt: optimistic.createdAt,
-              timestamp: formatTime(optimistic.createdAt),
-            }
-          : c
-      )
-    );
+    setConversations((prev) => {
+      const existing = prev.find((c) => c.userId === selectedChatId);
+
+      const updatedConversation = {
+        ...(existing || {}),
+        userId: selectedChatId,
+        name: existing?.name || `User ${shortId(selectedChatId)}`,
+        username: existing?.username || "",
+        avatar: existing?.avatar || (selectedChatId?.[0] || "?").toUpperCase(),
+        lastMessage: text,
+        updatedAt: optimistic.createdAt,
+        timestamp: formatTime(optimistic.createdAt),
+        unread: 0,
+        online: existing?.online || false,
+      };
+
+      return [
+        updatedConversation,
+        ...prev.filter((c) => c.userId !== selectedChatId),
+      ];
+    });
 
     try {
       const res = await fetch(`${API_BASE}/messages`, {
