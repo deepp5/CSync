@@ -5,6 +5,9 @@ import {
   FiMoreVertical,
   FiSend,
   FiPaperclip,
+  FiSmile,
+  FiPhone,
+  FiVideo,
   FiCheck,
   FiCheckCircle,
 } from "react-icons/fi";
@@ -30,50 +33,21 @@ function formatTime(ts) {
   }
 }
 
-function shortId(id) {
-  if (!id) return "";
-  return id.length > 10 ? `${id.slice(0, 6)}…${id.slice(-4)}` : id;
-}
-
-// Parse attachment created by backend route:
-// content: `📎 filename\nhttps://...`
-function parseAttachmentFromContent(content) {
-  const text = safeString(content);
-  if (!text.startsWith("📎")) return null;
-
-  const lines = text
-    .split("\n")
-    .map((l) => l.trim())
-    .filter(Boolean);
-  if (lines.length < 2) return null;
-
-  const fileName = lines[0].replace(/^📎\s*/, "").trim() || "Attachment";
-  const fileUrl = lines[1];
-
-  if (!/^https?:\/\//i.test(fileUrl)) return null;
-  return { fileName, fileUrl };
-}
-
 const Messages = () => {
   const { user, accessToken, loading } = useAuth();
   const [searchParams] = useSearchParams();
   const socketRef = useRef(null);
 
   const [conversations, setConversations] = useState([]);
-  const [selectedChatId, setSelectedChatId] = useState(null);
+  const [selectedChatId, setSelectedChatId] = useState(null); // always a STRING userId
   const [messages, setMessages] = useState([]);
   const [messageInput, setMessageInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [error, setError] = useState("");
 
-  const messagesEndRef = useRef(null);
-
-  // ✅ hidden file input for attachments
-  const fileInputRef = useRef(null);
-
-  // ===============================
-  // FETCH CONVERSATIONS
-  // ===============================
+  /* ===============================
+     FETCH CONVERSATIONS
+  =============================== */
   useEffect(() => {
     if (!accessToken) return;
 
@@ -84,21 +58,26 @@ const Messages = () => {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
 
-        if (!res.ok) throw new Error("Failed to fetch conversations");
+        if (!res.ok) {
+          const txt = await res.text().catch(() => "");
+          throw new Error(`GET /conversations failed (${res.status}) ${txt}`);
+        }
+
         const data = await res.json();
         const arr = Array.isArray(data) ? data : [];
 
+        // Normalize backend -> UI
         const formatted = arr
           .map((c) => {
             const otherUserId =
               safeString(c.userId) ||
               safeString(c.otherUserId) ||
-              safeString(c.partnerId);
+              safeString(c.partnerId) ||
+              safeString(c.user_id);
 
             if (!otherUserId) return null;
 
             const displayName =
-              (safeString(c.username) ? `@${safeString(c.username)}` : "") ||
               safeString(c.name) ||
               safeString(c.user?.name) ||
               safeString(c.otherUser?.name) ||
@@ -111,25 +90,23 @@ const Messages = () => {
               `user_${otherUserId}`;
 
             const createdAt =
-              c.createdAt ||
-              c.updatedAt ||
-              c.lastMessageAt ||
-              new Date().toISOString();
+              c.createdAt || c.updatedAt || c.lastMessageAt || new Date().toISOString();
 
             return {
+              id: otherUserId, // IMPORTANT: id is the other user's id (string)
               userId: otherUserId,
               name: displayName,
-              username: safeString(c.username) || "",
+              username,
               avatar: (
                 displayName?.[0] ||
                 otherUserId?.[0] ||
                 "?"
               ).toUpperCase(),
-              lastMessage: safeString(c.lastMessage),
-              updatedAt: c.updatedAt || c.createdAt || new Date().toISOString(),
-              timestamp: formatTime(c.updatedAt || Date.now()),
+              lastMessage: safeString(c.lastMessage) || "",
+              timestamp: formatTime(createdAt),
               unread: Number(c.unread || 0),
-              online: Boolean(c.online),
+              online: Boolean(c.online || false),
+              createdAt,
             };
           })
           .filter(Boolean);
@@ -144,12 +121,12 @@ const Messages = () => {
         setConversations(sortedFormatted);
 
         // Check if there's a user parameter in URL (from Message button)
-        const targetUserId = searchParams.get("user");
-
+        const targetUserId = searchParams.get('user');
+        
         if (targetUserId) {
           // Check if conversation already exists
-          const existingConv = formatted.find((c) => c.userId === targetUserId);
-
+          const existingConv = formatted.find(c => c.userId === targetUserId);
+          
           if (existingConv) {
             // Select existing conversation
             setSelectedChatId(targetUserId);
@@ -180,7 +157,7 @@ const Messages = () => {
 
         if (res.ok) {
           const userData = await res.json();
-
+          
           // Create new conversation entry
           const newConv = {
             id: userId,
@@ -239,9 +216,9 @@ const Messages = () => {
     fetchConversations();
   }, [accessToken, searchParams]);
 
-  // ===============================
-  // FETCH MESSAGES (CHAT CHANGE)
-  // ===============================
+  /* ===============================
+     FETCH MESSAGES (when chat selected)
+  =============================== */
   useEffect(() => {
     if (!selectedChatId || !accessToken) return;
 
@@ -252,21 +229,29 @@ const Messages = () => {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
 
-        if (!res.ok) throw new Error("Failed to fetch messages");
+        if (!res.ok) {
+          const txt = await res.text().catch(() => "");
+          throw new Error(
+            `GET /messages/${selectedChatId} failed (${res.status}) ${txt}`
+          );
+        }
+
         const data = await res.json();
         const arr = Array.isArray(data) ? data : [];
 
+        // Normalize messages just in case
         const normalized = arr.map((m, idx) => ({
           id: m.id ?? `${m.createdAt || Date.now()}-${idx}`,
-          senderId: safeString(m.senderId),
-          receiverId: safeString(m.receiverId),
-          content: safeString(m.content),
-          createdAt: m.createdAt || new Date().toISOString(),
+          senderId: safeString(m.senderId || m.sender_id),
+          receiverId: safeString(m.receiverId || m.receiver_id),
+          content: safeString(m.content || m.message),
+          createdAt: m.createdAt || m.created_at || new Date().toISOString(),
           read: Boolean(m.read),
         }));
 
         setMessages(normalized);
 
+        // Clear unread count when opening a conversation
         setConversations((prev) =>
           prev.map((c) =>
             c.userId === selectedChatId ? { ...c, unread: 0 } : c
@@ -276,7 +261,6 @@ const Messages = () => {
         console.error(err);
         setError("Failed to load messages.");
         setMessages([]);
-        setError("Failed to load messages.");
       }
     };
 
@@ -302,7 +286,7 @@ const Messages = () => {
 
     socket.on("receive_message", (message) => {
       console.log("📨 Received message:", message);
-
+      
       const senderId = safeString(message.senderId);
       const content = safeString(message.content);
 
@@ -322,24 +306,21 @@ const Messages = () => {
       // Update conversations list - move this conversation to top and increment unread
       setConversations((prev) => {
         const existingIndex = prev.findIndex((c) => c.userId === senderId);
-
+        
         if (existingIndex !== -1) {
           // Conversation exists - move to top and update
           const updated = [...prev];
           const existing = updated[existingIndex];
-
+          
           updated.splice(existingIndex, 1);
           updated.unshift({
             ...existing,
             lastMessage: content,
             timestamp: formatTime(new Date()),
-            unread:
-              senderId === selectedChatId
-                ? existing.unread
-                : existing.unread + 1,
+            unread: senderId === selectedChatId ? existing.unread : existing.unread + 1,
             createdAt: new Date().toISOString(),
           });
-
+          
           return updated;
         } else {
           // New conversation - add to top
@@ -377,9 +358,11 @@ const Messages = () => {
   const filteredConversations = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return conversations;
+
     return conversations.filter(
-      (c) =>
-        c.name.toLowerCase().includes(q) || c.username.toLowerCase().includes(q)
+      (conv) =>
+        conv.name.toLowerCase().includes(q) ||
+        conv.username.toLowerCase().includes(q)
     );
   }, [conversations, searchQuery]);
 
@@ -387,21 +370,36 @@ const Messages = () => {
     return conversations.find((c) => c.userId === selectedChatId) || null;
   }, [conversations, selectedChatId]);
 
-  // ===============================
-  // SEND TEXT MESSAGE (OPTIMISTIC)
-  // ===============================
+  /* ===============================
+     SEND MESSAGE
+  =============================== */
   const handleSendMessage = async (e) => {
     e.preventDefault();
     setError("");
 
     const text = messageInput.trim();
-    if (!text || !selectedChatId) return;
+    const receiverId = safeString(selectedConversation?.userId); // ✅ always comes from selected conversation
 
+    // Debug
+    console.log("SEND handler fired", { receiverId, text });
+
+    if (!text) return;
+    if (!receiverId) {
+      setError("No conversation selected.");
+      return;
+    }
+    if (!accessToken) {
+      setError("Missing access token.");
+      return;
+    }
+
+    // Optimistic message (shows immediately)
     const tempId = `temp-${Date.now()}`;
+    const myId = safeString(user?.id);
     const optimistic = {
       id: tempId,
-      senderId: safeString(user?.id),
-      receiverId: safeString(selectedChatId),
+      senderId: myId,
+      receiverId,
       content: text,
       createdAt: new Date().toISOString(),
       read: false,
@@ -414,14 +412,14 @@ const Messages = () => {
     // Update left panel preview immediately AND move to top
     setConversations((prev) => {
       const existingIndex = prev.findIndex((c) => c.userId === receiverId);
-
+      
       if (existingIndex !== -1) {
         const updated = [...prev];
         const existing = updated[existingIndex];
-
+        
         // Remove from current position
         updated.splice(existingIndex, 1);
-
+        
         // Add to top with updated info
         updated.unshift({
           ...existing,
@@ -430,10 +428,10 @@ const Messages = () => {
           unread: 0, // Clear unread when you send
           createdAt: new Date().toISOString(),
         });
-
+        
         return updated;
       }
-
+      
       return prev;
     });
 
@@ -444,96 +442,36 @@ const Messages = () => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${accessToken}`,
         },
-        body: JSON.stringify({ receiverId: selectedChatId, content: text }),
+        body: JSON.stringify({ receiverId, content: text }),
       });
 
+      // If backend errors, put UI back
       if (!res.ok) {
         const txt = await res.text().catch(() => "");
-        throw new Error(`POST /messages failed ${res.status}: ${txt}`);
+        console.error("POST /messages failed:", res.status, txt);
+
+        setMessages((prev) => prev.filter((m) => m.id !== tempId));
+        setError("Failed to send message (backend error).");
+        return;
       }
 
       const saved = await res.json();
-      setMessages((prev) => prev.map((m) => (m.id === tempId ? saved : m)));
+
+      const savedMsg = {
+        id: saved.id ?? tempId,
+        senderId: safeString(saved.senderId || saved.sender_id),
+        receiverId: safeString(saved.receiverId || saved.receiver_id),
+        content: safeString(saved.content || saved.message),
+        createdAt: saved.createdAt || saved.created_at || optimistic.createdAt,
+        read: Boolean(saved.read),
+      };
+
+      // Replace optimistic with real message
+      setMessages((prev) => prev.map((m) => (m.id === tempId ? savedMsg : m)));
     } catch (err) {
-      console.error(err);
+      console.error("Send message error:", err);
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
-      setError("Failed to send message.");
-    }
-  };
-
-  // ===============================
-  // ATTACH: PICK FILE
-  // ===============================
-  const handleAttachClick = () => {
-    if (!selectedChatId) return;
-    fileInputRef.current?.click();
-  };
-
-  // ===============================
-  // ATTACH: UPLOAD FILE
-  // ===============================
-  const handleFileSelected = async (e) => {
-    const file = e.target.files?.[0];
-    e.target.value = ""; // allow re-select same file
-    if (!file || !selectedChatId) return;
-
-    const tempId = `temp-file-${Date.now()}`;
-    const optimistic = {
-      id: tempId,
-      senderId: safeString(user?.id),
-      receiverId: safeString(selectedChatId),
-      content: `📎 ${file.name}\nUploading...`,
-      createdAt: new Date().toISOString(),
-      read: false,
-      __optimistic: true,
-    };
-
-    setMessages((prev) => [...prev, optimistic]);
-
-    setConversations((prev) =>
-      prev.map((c) =>
-        c.userId === selectedChatId
-          ? {
-              ...c,
-              lastMessage: `📎 ${file.name}`,
-              updatedAt: optimistic.createdAt,
-              timestamp: formatTime(optimistic.createdAt),
-            }
-          : c
-      )
-    );
-
-    try {
-      const form = new FormData();
-      form.append("receiverId", selectedChatId);
-      form.append("file", file);
-
-      const res = await fetch(`${API_BASE}/messages/upload`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: form,
-      });
-
-      if (!res.ok) {
-        const txt = await res.text().catch(() => "");
-        throw new Error(`POST /messages/upload failed ${res.status}: ${txt}`);
-      }
-
-      // Backend returns:
-      // { message, attachment: { url, name, ... } }
-      const payload = await res.json();
-
-      const savedMessage = payload?.message ?? payload; // fallback if your route returns just message
-
-      setMessages((prev) =>
-        prev.map((m) => (m.id === tempId ? savedMessage : m))
-      );
-    } catch (err) {
-      console.error(err);
-      setMessages((prev) => prev.filter((m) => m.id !== tempId));
-      setError("Failed to upload file.");
+      setError("Failed to send message (network error).");
     }
   };
 
@@ -542,15 +480,17 @@ const Messages = () => {
   return (
     <div className="messaging-page">
       <div className="messaging-container">
-        {/* LEFT PANEL */}
-        <aside className="conversations-panel">
+        {/* Left Side - Conversations List */}
+        <div className="conversations-panel">
           <div className="conversations-header">
             <h2 className="conversations-title">Messages</h2>
           </div>
 
+          {/* Search Bar */}
           <div className="search-container">
             <FiSearch className="search-icon" />
             <input
+              type="text"
               className="search-input"
               placeholder="Search conversations..."
               value={searchQuery}
@@ -558,56 +498,63 @@ const Messages = () => {
             />
           </div>
 
+          {/* Conversations List */}
           <div className="conversations-list">
-            {filteredConversations.map((c) => (
-              <button
-                key={c.userId}
-                type="button"
+            {filteredConversations.map((conversation) => (
+              <div
+                key={conversation.userId}
                 className={`conversation-item ${
-                  selectedChatId === c.userId ? "active" : ""
+                  selectedChatId === conversation.userId ? "active" : ""
                 }`}
-                onClick={() => {
-                  setSelectedChatId(c.userId);
-                  setConversations((prev) =>
-                    prev.map((x) =>
-                      x.userId === c.userId ? { ...x, unread: 0 } : x
-                    )
-                  );
-                }}
+                onClick={() => setSelectedChatId(conversation.userId)}
               >
                 <div className="conversation-avatar-container">
-                  <div className="conversation-avatar">{c.avatar}</div>
-                  {c.online && <div className="online-indicator" />}
+                  <div className="conversation-avatar">
+                    {conversation.avatar}
+                  </div>
+                  {conversation.online && (
+                    <div className="online-indicator"></div>
+                  )}
                 </div>
 
                 <div className="conversation-details">
                   <div className="conversation-header">
-                    <span className="conversation-name">{c.name}</span>
-                    <span className="conversation-time">{c.timestamp}</span>
+                    <span className="conversation-name">
+                      {conversation.name}
+                    </span>
+                    <span className="conversation-time">
+                      {conversation.timestamp}
+                    </span>
                   </div>
-
                   <div className="conversation-preview">
-                    <span className="last-message">{c.lastMessage || " "}</span>
-                    {c.unread > 0 && (
-                      <span className="unread-badge">{c.unread}</span>
+                    <span className="last-message">
+                      {conversation.lastMessage}
+                    </span>
+                    {conversation.unread > 0 && (
+                      <span className="unread-badge">
+                        {conversation.unread}
+                      </span>
                     )}
                   </div>
                 </div>
-              </button>
+              </div>
             ))}
-
-            {filteredConversations.length === 0 && (
-              <div className="empty-left">No conversations found</div>
-            )}
           </div>
 
-          {error && <div className="error-banner">{error}</div>}
-        </aside>
+          {error && (
+            <div
+              style={{ padding: "10px", color: "#ff6b6b", fontSize: "0.9rem" }}
+            >
+              {error}
+            </div>
+          )}
+        </div>
 
-        {/* RIGHT PANEL */}
-        <main className="chat-panel">
+        {/* Right Side - Chat Window */}
+        <div className="chat-panel">
           {selectedConversation ? (
             <>
+              {/* Chat Header */}
               <div className="chat-header">
                 <div className="chat-header-info">
                   <div className="chat-avatar-container">
@@ -615,10 +562,9 @@ const Messages = () => {
                       {selectedConversation.avatar}
                     </div>
                     {selectedConversation.online && (
-                      <div className="online-indicator" />
+                      <div className="online-indicator"></div>
                     )}
                   </div>
-
                   <div className="chat-user-info">
                     <h3 className="chat-user-name">
                       {selectedConversation.name}
@@ -629,29 +575,29 @@ const Messages = () => {
                   </div>
                 </div>
 
-                {/* ✅ Removed call/video buttons; keep only More */}
                 <div className="chat-actions">
-                  <button
-                    className="chat-action-btn"
-                    type="button"
-                    aria-label="More"
-                  >
+                  <button className="chat-action-btn" type="button">
+                    <FiPhone />
+                  </button>
+                  <button className="chat-action-btn" type="button">
+                    <FiVideo />
+                  </button>
+                  <button className="chat-action-btn" type="button">
                     <FiMoreVertical />
                   </button>
                 </div>
               </div>
 
+              {/* Messages Area */}
               <div className="messages-container">
                 <div className="messages-list">
-                  {messages.map((m) => {
+                  {messages.map((message) => {
                     const isOwn =
-                      safeString(m.senderId) === safeString(user?.id);
-
-                    const attachment = parseAttachmentFromContent(m.content);
+                      safeString(message.senderId) === safeString(user?.id);
 
                     return (
                       <div
-                        key={m.id}
+                        key={message.id}
                         className={`message ${
                           isOwn ? "message-own" : "message-other"
                         }`}
@@ -663,34 +609,14 @@ const Messages = () => {
                         )}
 
                         <div className="message-bubble">
-                          {attachment ? (
-                            <p className="message-content">
-                              📎{" "}
-                              <a
-                                href={attachment.fileUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                style={{
-                                  color: "inherit",
-                                  textDecoration: "underline",
-                                }}
-                              >
-                                {attachment.fileName}
-                              </a>
-                            </p>
-                          ) : (
-                            <p className="message-content">
-                              {safeString(m.content)}
-                            </p>
-                          )}
-
+                          <p className="message-content">{message.content}</p>
                           <div className="message-footer">
                             <span className="message-time">
-                              {formatTime(m.createdAt)}
+                              {formatTime(message.createdAt)}
                             </span>
                             {isOwn && (
                               <span className="message-status">
-                                {m.read ? (
+                                {message.read ? (
                                   <FiCheckCircle className="read-icon" />
                                 ) : (
                                   <FiCheck className="sent-icon" />
@@ -702,38 +628,28 @@ const Messages = () => {
                       </div>
                     );
                   })}
-                  <div ref={messagesEndRef} />
                 </div>
               </div>
 
+              {/* Message Input */}
               <div className="message-input-container">
-                {/* ✅ Attach is functional */}
-                <button
-                  className="input-action-btn"
-                  type="button"
-                  aria-label="Attach"
-                  onClick={handleAttachClick}
-                >
+                <button className="input-action-btn" type="button">
                   <FiPaperclip />
                 </button>
 
-                {/* hidden input */}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  style={{ display: "none" }}
-                  onChange={handleFileSelected}
-                />
-
+                {/* ✅ Put send inside form so Enter + click both work */}
                 <form onSubmit={handleSendMessage} className="message-form">
                   <input
+                    type="text"
                     className="message-input"
+                    placeholder="Type a message..."
                     value={messageInput}
                     onChange={(e) => setMessageInput(e.target.value)}
-                    placeholder="Type a message..."
                   />
 
-                  {/* ✅ Removed emoji button */}
+                  <button className="input-action-btn" type="button">
+                    <FiSmile />
+                  </button>
 
                   <button
                     className="send-btn"
@@ -754,7 +670,7 @@ const Messages = () => {
               </div>
             </div>
           )}
-        </main>
+        </div>
       </div>
     </div>
   );
