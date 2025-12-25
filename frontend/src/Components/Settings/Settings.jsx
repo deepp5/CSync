@@ -1,17 +1,11 @@
-// SettingsPage.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
 import './Settings.css';
 import { 
   FiUser, 
   FiLock, 
-  FiBell, 
   FiEye, 
-  FiShield, 
-  FiMail,
-  FiTrash2,
-  FiDownload,
   FiLogOut,
   FiCheck
 } from 'react-icons/fi';
@@ -19,33 +13,65 @@ import {
 const Settings = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('account');
+  const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState({
     // Account Settings
-    displayName: 'John Doe',
-    email: 'john.doe@example.com',
+    displayName: '',
+    username: '',
+    email: '',
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
     
     // Privacy Settings
-    profileVisibility: 'public',
+    profileVisibility: 'FOLLOWERS',
     showEmail: false,
-    showProjects: true,
     allowMessages: true,
-    
-    // Notification Settings
-    emailNotifications: true,
-    projectUpdates: true,
-    newFollowers: true,
-    messages: true,
-    weeklyDigest: false,
-    
-    // Appearance
-    theme: 'dark',
-    language: 'en'
   });
 
   const [saveStatus, setSaveStatus] = useState('');
+
+  // Fetch user settings on mount
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  const fetchSettings = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        navigate('/login');
+        return;
+      }
+
+      const token = session.access_token;
+      const response = await fetch('http://localhost:5051/settings', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch settings');
+      }
+
+      const data = await response.json();
+      setSettings(prev => ({
+        ...prev,
+        displayName: data.name || '',
+        username: data.username || '',
+        email: data.email || '',
+        profileVisibility: data.profileVisibility || 'FOLLOWERS',
+        showEmail: data.showEmail || false,
+        allowMessages: data.allowMessages || true,
+      }));
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching settings:', error);
+      setLoading(false);
+    }
+  };
 
   const handleInputChange = (field, value) => {
     setSettings(prev => ({
@@ -54,17 +80,57 @@ const Settings = () => {
     }));
   };
 
-  const handleSaveSettings = (section) => {
+  const handleSaveAccount = async () => {
     setSaveStatus('Saving...');
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        navigate('/login');
+        return;
+      }
+
+      const token = session.access_token;
+      const response = await fetch('http://localhost:5051/settings/account', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          displayName: settings.displayName,
+          username: settings.username,
+          email: settings.email,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update account');
+      }
+
+      const updatedData = await response.json();
+      setSettings(prev => ({
+        ...prev,
+        displayName: updatedData.name,
+        email: updatedData.email,
+      }));
+
       setSaveStatus('Saved successfully!');
       setTimeout(() => setSaveStatus(''), 3000);
-    }, 1000);
+    } catch (error) {
+      console.error('Error updating account:', error);
+      setSaveStatus('');
+      alert(error.message);
+    }
   };
 
   const handleChangePassword = async () => {
+    if (!settings.currentPassword) {
+      alert('Please enter your current password.');
+      return;
+    }
     if (settings.newPassword !== settings.confirmPassword) {
       alert('Passwords do not match!');
       return;
@@ -78,12 +144,29 @@ const Settings = () => {
     setSaveStatus('Updating password...');
     
     try {
-      const { error } = await supabase.auth.updateUser({
-        password: settings.newPassword
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        navigate('/login');
+        return;
+      }
+
+      const token = session.access_token;
+      const response = await fetch('http://localhost:5051/settings/password', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          currentPassword: settings.currentPassword,
+          newPassword: settings.newPassword,
+        }),
       });
 
-      if (error) {
-        throw error;
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update password');
       }
 
       setSaveStatus('Password updated successfully!');
@@ -97,61 +180,118 @@ const Settings = () => {
     } catch (error) {
       console.error('Error updating password:', error);
       setSaveStatus('');
-      alert('Failed to update password. Please try again.');
+      alert(error.message);
     }
   };
 
-  const handleExportData = () => {
-    setSaveStatus('Preparing your data for download...');
-    setTimeout(() => {
-      setSaveStatus('Data exported successfully!');
-      setTimeout(() => setSaveStatus(''), 3000);
-    }, 1500);
-  };
-
-  const handleDeleteAccount = () => {
-    const confirmed = window.confirm(
-      'Are you sure you want to delete your account? This action cannot be undone.'
-    );
+  const handleSavePrivacy = async () => {
+    setSaveStatus('Saving...');
     
-    if (confirmed) {
-      const doubleConfirm = window.confirm(
-        'This will permanently delete all your data. Are you absolutely sure?'
-      );
-      
-      if (doubleConfirm) {
-        console.log('Account deletion initiated');
-        // Handle account deletion
-      }
-    }
-  };
-
-  const handleLogout = async () => {
-    const confirmed = window.confirm('Are you sure you want to log out?');
-    if (!confirmed) return;
-
     try {
-      const { error } = await supabase.auth.signOut();
+      const { data: { session } } = await supabase.auth.getSession();
       
-      if (error) {
-        throw error;
+      if (!session) {
+        navigate('/login');
+        return;
       }
 
-      // Redirect to login page
-      navigate('/login');
+      const token = session.access_token;
+      const response = await fetch('http://localhost:5051/settings/privacy', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          profileVisibility: settings.profileVisibility,
+          showEmail: settings.showEmail,
+          allowMessages: settings.allowMessages,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update privacy settings');
+      }
+
+      setSaveStatus('Saved successfully!');
+      setTimeout(() => setSaveStatus(''), 3000);
     } catch (error) {
-      console.error('Error logging out:', error);
-      alert('Failed to log out. Please try again.');
+      console.error('Error updating privacy:', error);
+      setSaveStatus('');
+      alert(error.message);
     }
   };
+
+  async function handleLogout() {
+  try {
+    const { data } = await supabase.auth.getSession();
+    const session = data?.session;
+
+    // If there is no session, you're already "logged out" locally.
+    if (!session) {
+      // optional: clear your app auth state here
+      window.location.href = "/login";
+      return;
+    }
+
+    // Prefer local to avoid global token revocation weirdness
+    const { error } = await supabase.auth.signOut({ scope: "local" });
+
+    // If Supabase returns 403 or session-missing, treat it as success
+    if (error) {
+      const msg = String(error.message || "");
+      const name = String(error.name || "");
+
+      if (name.includes("AuthSessionMissingError") || msg.includes("403")) {
+        window.location.href = "/login";
+        return;
+      }
+
+      throw error;
+    }
+
+    window.location.href = "/login";
+  } catch (e) {
+    console.error("Logout failed:", e);
+    // final fallback: still redirect / clear UI
+    window.location.href = "/login";
+  }
+}
+
+  // const handleLogout = async () => {
+  //   const confirmed = window.confirm('Are you sure you want to log out?');
+  //   if (!confirmed) return;
+
+  //   try {
+  //     const { error } = await supabase.auth.signOut();
+      
+  //     if (error) {
+  //       throw error;
+  //     }
+
+  //     navigate('/login');
+  //   } catch (error) {
+  //     console.error('Error logging out:', error);
+  //     alert('Failed to log out. Please try again.');
+  //   }
+  // };
 
   const tabs = [
     { id: 'account', label: 'Account', icon: <FiUser /> },
     { id: 'security', label: 'Security', icon: <FiLock /> },
     { id: 'privacy', label: 'Privacy', icon: <FiEye /> },
-    { id: 'notifications', label: 'Notifications', icon: <FiBell /> },
-    { id: 'data', label: 'Data & Storage', icon: <FiDownload /> }
   ];
+
+  if (loading) {
+    return (
+      <div className="settings-page">
+        <div className="settings-container">
+          <p>Loading settings...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="settings-page">
@@ -205,6 +345,17 @@ const Settings = () => {
                     placeholder="Your display name"
                   />
                 </div>
+                <div className="setting-group">
+                  <label className="setting-label">Username</label>
+                  <input
+                    type="text"
+                    className="setting-input"
+                    value={settings.username}
+                    onChange={(e) => handleInputChange('username', e.target.value)}
+                    placeholder="your_username"
+                  />
+                </div>
+
 
                 <div className="setting-group">
                   <label className="setting-label">Email Address</label>
@@ -218,22 +369,7 @@ const Settings = () => {
                   <p className="setting-hint">We'll send verification to your new email</p>
                 </div>
 
-                <div className="setting-group">
-                  <label className="setting-label">Language</label>
-                  <select
-                    className="setting-select"
-                    value={settings.language}
-                    onChange={(e) => handleInputChange('language', e.target.value)}
-                  >
-                    <option value="en">English</option>
-                    <option value="es">Spanish</option>
-                    <option value="fr">French</option>
-                    <option value="de">German</option>
-                    <option value="zh">Chinese</option>
-                  </select>
-                </div>
-
-                <button className="save-btn" onClick={() => handleSaveSettings('account')}>
+                <button className="save-btn" onClick={handleSaveAccount}>
                   Save Changes
                 </button>
               </div>
@@ -249,7 +385,7 @@ const Settings = () => {
                     <FiLock className="card-icon" />
                     <h3>Change Password</h3>
                   </div>
-                  
+
                   <div className="setting-group">
                     <label className="setting-label">Current Password</label>
                     <input
@@ -287,17 +423,6 @@ const Settings = () => {
                     Update Password
                   </button>
                 </div>
-
-                <div className="security-card">
-                  <div className="card-header">
-                    <FiShield className="card-icon" />
-                    <h3>Two-Factor Authentication</h3>
-                  </div>
-                  <p className="card-description">
-                    Add an extra layer of security to your account
-                  </p>
-                  <button className="secondary-btn">Enable 2FA</button>
-                </div>
               </div>
             )}
 
@@ -306,19 +431,6 @@ const Settings = () => {
               <div className="settings-section">
                 <h2 className="section-title">Privacy Settings</h2>
                 
-                <div className="setting-group">
-                  <label className="setting-label">Profile Visibility</label>
-                  <select
-                    className="setting-select"
-                    value={settings.profileVisibility}
-                    onChange={(e) => handleInputChange('profileVisibility', e.target.value)}
-                  >
-                    <option value="public">Public - Anyone can view</option>
-                    <option value="followers">Followers Only</option>
-                    <option value="private">Private - Only you</option>
-                  </select>
-                </div>
-
                 <div className="toggle-group">
                   <div className="toggle-item">
                     <div className="toggle-info">
@@ -330,21 +442,6 @@ const Settings = () => {
                         type="checkbox"
                         checked={settings.showEmail}
                         onChange={(e) => handleInputChange('showEmail', e.target.checked)}
-                      />
-                      <span className="toggle-slider"></span>
-                    </label>
-                  </div>
-
-                  <div className="toggle-item">
-                    <div className="toggle-info">
-                      <h4>Show Projects</h4>
-                      <p>Allow others to view your projects</p>
-                    </div>
-                    <label className="toggle-switch">
-                      <input
-                        type="checkbox"
-                        checked={settings.showProjects}
-                        onChange={(e) => handleInputChange('showProjects', e.target.checked)}
                       />
                       <span className="toggle-slider"></span>
                     </label>
@@ -366,135 +463,19 @@ const Settings = () => {
                   </div>
                 </div>
 
-                <button className="save-btn" onClick={() => handleSaveSettings('privacy')}>
+                <button className="save-btn" onClick={handleSavePrivacy}>
                   Save Privacy Settings
                 </button>
               </div>
             )}
 
-            {/* Notification Settings */}
-            {activeTab === 'notifications' && (
-              <div className="settings-section">
-                <h2 className="section-title">Notification Preferences</h2>
-                
-                <div className="toggle-group">
-                  <div className="toggle-item">
-                    <div className="toggle-info">
-                      <h4>Email Notifications</h4>
-                      <p>Receive notifications via email</p>
-                    </div>
-                    <label className="toggle-switch">
-                      <input
-                        type="checkbox"
-                        checked={settings.emailNotifications}
-                        onChange={(e) => handleInputChange('emailNotifications', e.target.checked)}
-                      />
-                      <span className="toggle-slider"></span>
-                    </label>
-                  </div>
-
-                  <div className="toggle-item">
-                    <div className="toggle-info">
-                      <h4>Project Updates</h4>
-                      <p>Get notified when projects you follow are updated</p>
-                    </div>
-                    <label className="toggle-switch">
-                      <input
-                        type="checkbox"
-                        checked={settings.projectUpdates}
-                        onChange={(e) => handleInputChange('projectUpdates', e.target.checked)}
-                      />
-                      <span className="toggle-slider"></span>
-                    </label>
-                  </div>
-
-                  <div className="toggle-item">
-                    <div className="toggle-info">
-                      <h4>New Followers</h4>
-                      <p>Be notified when someone follows you</p>
-                    </div>
-                    <label className="toggle-switch">
-                      <input
-                        type="checkbox"
-                        checked={settings.newFollowers}
-                        onChange={(e) => handleInputChange('newFollowers', e.target.checked)}
-                      />
-                      <span className="toggle-slider"></span>
-                    </label>
-                  </div>
-
-                  <div className="toggle-item">
-                    <div className="toggle-info">
-                      <h4>Messages</h4>
-                      <p>Receive notifications for new messages</p>
-                    </div>
-                    <label className="toggle-switch">
-                      <input
-                        type="checkbox"
-                        checked={settings.messages}
-                        onChange={(e) => handleInputChange('messages', e.target.checked)}
-                      />
-                      <span className="toggle-slider"></span>
-                    </label>
-                  </div>
-
-                  <div className="toggle-item">
-                    <div className="toggle-info">
-                      <h4>Weekly Digest</h4>
-                      <p>Receive a weekly summary of activities</p>
-                    </div>
-                    <label className="toggle-switch">
-                      <input
-                        type="checkbox"
-                        checked={settings.weeklyDigest}
-                        onChange={(e) => handleInputChange('weeklyDigest', e.target.checked)}
-                      />
-                      <span className="toggle-slider"></span>
-                    </label>
-                  </div>
-                </div>
-
-                <button className="save-btn" onClick={() => handleSaveSettings('notifications')}>
-                  Save Notification Settings
-                </button>
-              </div>
-            )}
-
-            {/* Data & Storage Settings */}
-            {activeTab === 'data' && (
-              <div className="settings-section">
-                <h2 className="section-title">Data & Storage</h2>
-                
-                <div className="data-card">
-                  <div className="card-header">
-                    <FiDownload className="card-icon" />
-                    <h3>Export Your Data</h3>
-                  </div>
-                  <p className="card-description">
-                    Download a copy of all your data including profile, projects, and messages
-                  </p>
-                  <button className="secondary-btn" onClick={handleExportData}>
-                    Export Data
-                  </button>
-                </div>
-
-                <div className="data-card danger-card">
-                  <div className="card-header">
-                    <FiTrash2 className="card-icon" />
-                    <h3>Delete Account</h3>
-                  </div>
-                  <p className="card-description">
-                    Permanently delete your account and all associated data. This action cannot be undone.
-                  </p>
-                  <button className="danger-btn" onClick={handleDeleteAccount}>
-                    Delete Account
-                  </button>
-                </div>
-              </div>
-            )}
-
           </div>
         </div>
+      </div>
+
+
+      <div className='settings-beta-box' aria-live='polite'>
+        This is a beta version. Some changes may not be reflected on your profile
       </div>
     </div>
   );

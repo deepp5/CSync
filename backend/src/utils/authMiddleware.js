@@ -60,14 +60,14 @@ export const verifySupabaseToken = (req, res, next) => {
         return res.status(403).json({ error: "Invalid token" });
       }
 
-      // DEBUG: Log the entire decoded token
-      console.log(
-        "[DEBUG] Full decoded token:",
-        JSON.stringify(decoded, null, 2)
-      );
-      console.log("[DEBUG] decoded.sub:", decoded?.sub);
-      console.log("[DEBUG] decoded.email:", decoded?.email);
-      console.log("[DEBUG] decoded.user_metadata:", decoded?.user_metadata);
+      // // DEBUG: Log the entire decoded token
+      // console.log(
+      //   "[DEBUG] Full decoded token:",
+      //   JSON.stringify(decoded, null, 2)
+      // );
+      // console.log("[DEBUG] decoded.sub:", decoded?.sub);
+      // console.log("[DEBUG] decoded.email:", decoded?.email);
+      // console.log("[DEBUG] decoded.user_metadata:", decoded?.user_metadata);
 
       // Attach user data from token
       req.user = {
@@ -77,10 +77,10 @@ export const verifySupabaseToken = (req, res, next) => {
         user_metadata: decoded?.user_metadata || {},
       };
 
-      console.log(
-        "[SUCCESS] req.user set to:",
-        JSON.stringify(req.user, null, 2)
-      );
+      // console.log(
+      //   "[SUCCESS] req.user set to:",
+      //   JSON.stringify(req.user, null, 2)
+      // );
 
       if (!req.user.id || !req.user.email) {
         console.error("[ERROR] Bad supabase payload:", decoded);

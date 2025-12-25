@@ -7,6 +7,9 @@ import { Server } from "socket.io";
 
 import messageRoutes from "./src/routes/messageRoutes.js";
 import conversationRoutes from "./src/routes/conversationRoutes.js";
+import settingsRoutes from "./src/routes/settingsRoutes.js"
+
+
 import { verifySupabaseToken } from "./src/utils/authMiddleware.js";
 import { ensureUserExists } from "./src/utils/ensureUser.js";
 
@@ -31,6 +34,7 @@ app.get("/", (req, res) => {
 
 app.use("/messages", messageRoutes);
 app.use("/conversations", conversationRoutes);
+app.use("/settings", settingsRoutes);
 
 // ===========================
 // SOCKET.IO (AUTH + LAZY SYNC)
@@ -145,10 +149,6 @@ app.get("/posts", verifySupabaseToken, async (req, res) => {
 
 app.post("/posts", verifySupabaseToken, async (req, res) => {
   try {
-    console.log("==== CREATE POST HIT ====");
-    console.log("req.user:", req.user);
-    console.log("req.body:", req.body);
-
     const userId = req.user.id;
     const { email, user_metadata } = req.user;
 
@@ -205,7 +205,6 @@ app.post("/posts", verifySupabaseToken, async (req, res) => {
       },
     });
 
-    console.log("✅ Post created:", post.id);
     return res.status(201).json(post);
 
   } catch (err) {
