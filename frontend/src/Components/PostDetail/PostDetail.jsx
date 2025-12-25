@@ -281,8 +281,6 @@ const PostDetail = () => {
   };
 
   const handleContactOwner = () => {
-    window.location.href = `mailto:${post.author?.email || ""}`;
-    // Navigate to messages page with the post author's ID
     navigate(`/messages?user=${post.User.id}`);
   };
 
@@ -410,7 +408,7 @@ const PostDetail = () => {
             {/* Separator */}
             <div className="post-separator"></div>
 
-            {/* Tech Stack */}
+            {/* Tech Stack ee*/}
             <div className="post-tech-stack">
               <div className="tech-stack-tags">
                 {post.techStack &&
