@@ -281,7 +281,6 @@ const PostDetail = () => {
   };
 
   const handleContactOwner = () => {
-    window.location.href = `mailto:${post.author?.email || ""}`;
     // Navigate to messages page with the post author's ID
     navigate(`/messages?user=${post.User.id}`);
   };
@@ -377,11 +376,6 @@ const PostDetail = () => {
                 >
                   <FiHeart />
                 </button>
-                <button
-                  className={`action-btn-icon ${isSaved ? "saved" : ""}`}
-                  onClick={handleSave}
-                  title="Save"
-                ></button>
                 <button
                   className="action-btn-icon"
                   onClick={handleShare}
