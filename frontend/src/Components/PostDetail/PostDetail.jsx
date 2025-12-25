@@ -220,7 +220,8 @@ const PostDetail = () => {
   };
 
   const handleContactOwner = () => {
-    window.location.href = `mailto:${post.author?.email || ''}`;
+    // Navigate to messages page with the post author's ID
+    navigate(`/messages?user=${post.User.id}`);
   };
 
 

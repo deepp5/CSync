@@ -517,6 +517,35 @@ app.delete("/posts/:id/like", verifySupabaseToken, async (req, res) => {
   }
 });
 
+// Get user by ID
+app.get("/users/:id", verifySupabaseToken, async (req, res) => {
+  try {
+    const userId = req.params.id;
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        username: true,
+        profilePicture: true,
+        bio: true,
+        githubUrl: true,
+        linkedinUrl: true,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    res.json(user);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Follow a user
 app.post("/users/:id/follow", verifySupabaseToken, async (req, res) => {
   try {
