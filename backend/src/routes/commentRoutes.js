@@ -3,7 +3,6 @@ import express from "express";
 import { PrismaClient } from "@prisma/client";
 import crypto from "crypto"; // ✅ ADD THIS
 import { verifySupabaseToken } from "../utils/authMiddleware.js";
-import { ensureUserExists } from "../utils/ensureUser.js";
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -16,8 +15,6 @@ router.get("/:postId/comments", verifySupabaseToken, async (req, res) => {
   try {
     const { postId } = req.params;
 
-    // Ensure current user exists (for consistent auth behavior)
-    await ensureUserExists(prisma, req.user);
 
     const comments = await prisma.comment.findMany({
       where: { postId, parentId: null },
@@ -97,7 +94,7 @@ router.get("/:postId/comments", verifySupabaseToken, async (req, res) => {
 ========================= */
 router.post("/:postId/comments", verifySupabaseToken, async (req, res) => {
   try {
-    const me = await ensureUserExists(prisma, req.user);
+    const me = req.user;
     const { postId } = req.params;
     const { content, parentId } = req.body;
 
@@ -174,7 +171,7 @@ router.delete(
   verifySupabaseToken,
   async (req, res) => {
     try {
-      const me = await ensureUserExists(prisma, req.user);
+      const me = req.user;
       const { postId, commentId } = req.params;
 
       const comment = await prisma.comment.findUnique({
