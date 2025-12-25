@@ -58,6 +58,13 @@ model Message {
   receiverId                    String
   content                       String
   createdAt                     DateTime @default(now())
+
+  attachmentUrl  String?
+  attachmentPath String?
+  attachmentName String?
+  attachmentType String?
+  attachmentSize Int?
+
   User_Message_receiverIdToUser User     @relation("Message_receiverIdToUser", fields: [receiverId], references: [id])
   User_Message_senderIdToUser   User     @relation("Message_senderIdToUser", fields: [senderId], references: [id])
 
@@ -147,7 +154,6 @@ enum Visibility {
   PRIVATE
   DRAFT
 }
-
 enum ProfileVisibility {
   FOLLOWERS
   PRIVATE
