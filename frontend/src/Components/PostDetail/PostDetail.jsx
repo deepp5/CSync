@@ -33,6 +33,7 @@ const PostDetail = () => {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [replyTo, setReplyTo] = useState(null);
+  const [isSaved, setIsSaved] = useState(false);
 
   // Track if we've already counted the view for this post
   const viewCountedRef = useRef({});
@@ -376,11 +377,6 @@ const PostDetail = () => {
                 >
                   <FiHeart />
                 </button>
-                <button
-                  className={`action-btn-icon ${isSaved ? "saved" : ""}`}
-                  onClick={handleSave}
-                  title="Save"
-                ></button>
                 <button
                   className="action-btn-icon"
                   onClick={handleShare}
