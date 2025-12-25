@@ -53,11 +53,11 @@ model Like {
 }
 
 model Message {
+  id                            Int      @id @default(autoincrement())
   senderId                      String
   receiverId                    String
   content                       String
   createdAt                     DateTime @default(now())
-  id                            Int      @id @default(autoincrement())
   User_Message_receiverIdToUser User     @relation("Message_receiverIdToUser", fields: [receiverId], references: [id])
   User_Message_senderIdToUser   User     @relation("Message_senderIdToUser", fields: [senderId], references: [id])
 
@@ -67,20 +67,20 @@ model Message {
 }
 
 model Post {
-  id          String     @id
+  id          String     @id @default(uuid())
   title       String
   header      String
   techStack   String[]
   description String
   category    Category
   difficulty  Difficulty
-  createdAt   DateTime   @default(now())
-  userId      String
   deadline    DateTime
-  likes       Int        @default(0)
-  updatedAt   DateTime
-  views       Int        @default(0)
   visibility  Visibility @default(DRAFT)
+  likes       Int        @default(0)
+  views       Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  userId      String
   Comment     Comment[]
   Like        Like[]
   User        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -92,30 +92,36 @@ model Post {
 }
 
 model User {
-  id                               String            @id
-  name                             String
-  email                            String            @unique
-  createdAt                        DateTime          @default(now())
-  bio                              String?
-  githubUrl                        String?
-  isOAuthUser                      Boolean           @default(false)
-  linkedinUrl                      String?
-  oauthProvider                    String?
-  profilePicture                   String?
-  schoolCompany                    String?
-  skills                           String[]          @default([])
-  updatedAt                        DateTime
-  username                         String            @unique
-  allowMessages                    Boolean           @default(true)
-  profileVisibility                ProfileVisibility @default(FOLLOWERS)
-  showEmail                        Boolean           @default(false)
-  Comment                          Comment[]
-  Follow_Follow_followerIdToUser   Follow[]          @relation("Follow_followerIdToUser")
-  Follow_Follow_followingIdToUser  Follow[]          @relation("Follow_followingIdToUser")
-  Like                             Like[]
-  Message_Message_receiverIdToUser Message[]         @relation("Message_receiverIdToUser")
-  Message_Message_senderIdToUser   Message[]         @relation("Message_senderIdToUser")
-  Post                             Post[]
+  id             String   @id
+  email          String   @unique
+  name           String
+  username       String   @unique
+  skills         String[] @default([])
+
+  bio            String?
+  githubUrl      String?
+  linkedinUrl    String?
+  profilePicture String?
+  schoolCompany  String?
+  isOAuthUser    Boolean  @default(false)
+  oauthProvider  String?
+
+  profileVisibility ProfileVisibility @default(FOLLOWERS)
+  showEmail         Boolean            @default(false)
+  allowMessages    Boolean            @default(true)
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  Post           Post[]
+  Comment        Comment[]
+  Like           Like[]
+
+  Follow_Follow_followerIdToUser  Follow[] @relation("Follow_followerIdToUser")
+  Follow_Follow_followingIdToUser Follow[] @relation("Follow_followingIdToUser")
+
+  Message_Message_receiverIdToUser Message[] @relation("Message_receiverIdToUser")
+  Message_Message_senderIdToUser   Message[] @relation("Message_senderIdToUser")
 
   @@index([email])
   @@index([username])
@@ -136,13 +142,13 @@ enum Difficulty {
   ADVANCED
 }
 
+enum Visibility {
+  PUBLIC
+  PRIVATE
+  DRAFT
+}
+
 enum ProfileVisibility {
   FOLLOWERS
   PRIVATE
-}
-
-enum Visibility {
-  DRAFT
-  PRIVATE
-  PUBLIC
 }
