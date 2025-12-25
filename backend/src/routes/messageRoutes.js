@@ -2,6 +2,7 @@
 import express from "express";
 import { PrismaClient } from "@prisma/client";
 import { verifySupabaseToken } from "../utils/authMiddleware.js";
+import { ensureUserExists } from "../utils/ensureUser.js";
 
 // ✅ NEW (upload)
 import multer from "multer";
