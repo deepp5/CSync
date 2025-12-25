@@ -1,71 +1,106 @@
 // PostDetailPage.jsx
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { supabase } from '../../supabaseClient';
-import './PostDetail.css';
-import { 
-  FiUser, 
-  FiMail, 
-  FiMessageSquare, 
-  FiHeart, 
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import axios from "axios";
+import { supabase } from "../../supabaseClient";
+import "./PostDetail.css";
+import {
+  FiUser,
+  FiMail,
+  FiMessageSquare,
+  FiHeart,
   FiBookmark,
   FiShare2,
-  FiClock,
   FiEye,
-  FiMoreVertical,
   FiArrowLeft,
   FiGithub,
-  FiLinkedin
-} from 'react-icons/fi';
-import { IoIosArrowForward } from 'react-icons/io';
+  FiLinkedin,
+} from "react-icons/fi";
+import { IoIosArrowForward } from "react-icons/io";
 
 const PostDetail = () => {
   const { id } = useParams(); // Get post ID from URL
   const navigate = useNavigate();
-  
-  // Mock post data - replace with actual API call
+
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
+
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
+
   const [likeCount, setLikeCount] = useState(0);
   const [viewCount, setViewCount] = useState(0);
-  
-  const [comments, setComments] = useState([]);
-  const [newComment, setNewComment] = useState('');
-  const [replyTo, setReplyTo] = useState(null);
-  
 
-  // Fetch post data based on ID
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState("");
+  const [replyTo, setReplyTo] = useState(null);
+
+  // ===============================
+  // COMMENTS: FETCH
+  // ===============================
+  const fetchComments = async () => {
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session) return;
+
+      const token = session.access_token;
+
+      const res = await axios.get(
+        `http://localhost:5051/posts/${id}/comments`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      setComments(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error("Error fetching comments:", err);
+      setComments([]);
+    }
+  };
+
+  // ===============================
+  // POST: FETCH
+  // ===============================
   useEffect(() => {
     async function fetchPost() {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
         if (!session) {
-          navigate('/login');
+          navigate("/login");
           return;
         }
 
         const token = session.access_token;
 
         const response = await axios.get(`http://localhost:5051/posts/${id}`, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
 
         setPost(response.data);
         setLikeCount(response.data.likes || 0);
         setViewCount(response.data.views || 0);
+
+        // ✅ load comments after post loads
+        await fetchComments();
+
         setLoading(false);
       } catch (error) {
-        console.error('Error fetching post:', error);
+        console.error("Error fetching post:", error);
         setPost(null);
         setLoading(false);
       }
     }
 
     fetchPost();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, navigate]);
 
   const handleLike = () => {
@@ -85,62 +120,65 @@ const PostDetail = () => {
     if (navigator.share) {
       navigator.share({
         title: post.title,
-        text: post.description.substring(0, 100) + '...',
-        url: window.location.href
+        text: post.description.substring(0, 100) + "...",
+        url: window.location.href,
       });
     } else {
       navigator.clipboard.writeText(window.location.href);
-      alert('Link copied to clipboard!');
+      alert("Link copied to clipboard!");
     }
   };
 
-  const handleCommentSubmit = (e) => {
+  // ===============================
+  // COMMENTS: SUBMIT (NEW OR REPLY)
+  // ===============================
+  const handleCommentSubmit = async (e) => {
     e.preventDefault();
     if (!newComment.trim()) return;
 
-    const comment = {
-      id: Date.now(),
-      author: {
-        name: 'Current User',
-        username: 'current_user',
-        avatar: 'C'
-      },
-      content: newComment,
-      createdAt: new Date().toISOString(),
-      likes: 0,
-      replies: []
-    };
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
-    if (replyTo) {
-      // Add as reply
-      setComments(comments.map(c => {
-        if (c.id === replyTo) {
-          return {
-            ...c,
-            replies: [...c.replies, comment]
-          };
+      if (!session) {
+        navigate("/login");
+        return;
+      }
+
+      const token = session.access_token;
+
+      await axios.post(
+        `http://localhost:5051/posts/${id}/comments`,
+        {
+          content: newComment.trim(),
+          parentId: replyTo || null,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
         }
-        return c;
-      }));
-      setReplyTo(null);
-    } else {
-      // Add as new comment
-      setComments([comment, ...comments]);
-    }
+      );
 
-    setNewComment('');
+      setNewComment("");
+      setReplyTo(null);
+
+      // ✅ easiest + correct (tree): re-fetch
+      await fetchComments();
+    } catch (err) {
+      console.error("Error creating comment:", err);
+      alert("Failed to post comment");
+    }
   };
 
   const handleContactOwner = () => {
-    window.location.href = `mailto:${post.author?.email || ''}`;
+    window.location.href = `mailto:${post.author?.email || ""}`;
   };
-
 
   const getTimeAgo = (dateString) => {
     const date = new Date(dateString);
     const now = new Date();
     const seconds = Math.floor((now - date) / 1000);
-    
+
     if (seconds < 60) return `${seconds}s ago`;
     if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
     if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
@@ -152,7 +190,7 @@ const PostDetail = () => {
     const labels = {
       BEGINNER: "Beginner",
       INTERMEDIATE: "Intermediate",
-      ADVANCED: "Advanced"
+      ADVANCED: "Advanced",
     };
     return labels[difficulty] || difficulty;
   };
@@ -161,7 +199,7 @@ const PostDetail = () => {
     const classes = {
       BEGINNER: "difficulty-easy",
       INTERMEDIATE: "difficulty-medium",
-      ADVANCED: "difficulty-hard"
+      ADVANCED: "difficulty-hard",
     };
     return classes[difficulty] || "difficulty-medium";
   };
@@ -173,7 +211,7 @@ const PostDetail = () => {
       AI_ML: "AI/ML",
       GAME_DEV: "Game Dev",
       SYSTEMS: "Systems",
-      OTHER: "Other"
+      OTHER: "Other",
     };
     return labels[category] || category;
   };
@@ -220,22 +258,22 @@ const PostDetail = () => {
             <div className="post-title-row">
               <h1 className="post-title">{post.title}</h1>
               <div className="post-actions-top">
-                <button 
-                  className={`action-btn-icon ${isLiked ? 'liked' : ''}`}
+                <button
+                  className={`action-btn-icon ${isLiked ? "liked" : ""}`}
                   onClick={handleLike}
                   title="Like"
                 >
                   <FiHeart />
                 </button>
-                <button 
-                  className={`action-btn-icon ${isSaved ? 'saved' : ''}`}
+                <button
+                  className={`action-btn-icon ${isSaved ? "saved" : ""}`}
                   onClick={handleSave}
                   title="Save"
                 >
                   <FiBookmark />
                 </button>
-                <button 
-                  className="action-btn-icon" 
+                <button
+                  className="action-btn-icon"
                   onClick={handleShare}
                   title="Share"
                 >
@@ -246,16 +284,20 @@ const PostDetail = () => {
 
             {/* Category and Difficulty badges */}
             <div className="post-meta-badges">
-              <span className="category-badge">{getCategoryLabel(post.category)}</span>
-              <span className={`difficulty-badge ${getDifficultyClass(post.difficulty)}`}>
+              <span className="category-badge">
+                {getCategoryLabel(post.category)}
+              </span>
+              <span
+                className={`difficulty-badge ${getDifficultyClass(
+                  post.difficulty
+                )}`}
+              >
                 {getDifficultyLabel(post.difficulty)}
               </span>
             </div>
 
             {/* Post Description */}
-            <div className="post-description">
-              {post.description}
-            </div>
+            <div className="post-description">{post.description}</div>
 
             {/* Separator */}
             <div className="post-separator"></div>
@@ -263,9 +305,12 @@ const PostDetail = () => {
             {/* Tech Stack */}
             <div className="post-tech-stack">
               <div className="tech-stack-tags">
-                {post.techStack && post.techStack.map((tech, index) => (
-                  <span key={index} className="tech-tag">{tech}</span>
-                ))}
+                {post.techStack &&
+                  post.techStack.map((tech, index) => (
+                    <span key={index} className="tech-tag">
+                      {tech}
+                    </span>
+                  ))}
               </div>
             </div>
 
@@ -274,16 +319,14 @@ const PostDetail = () => {
 
             {/* Comments Section */}
             <div className="comments-section">
-              <h3 className="comments-title">
-                Comments ({comments.length})
-              </h3>
+              <h3 className="comments-title">Comments ({comments.length})</h3>
 
               {/* Comment Form */}
               <form className="comment-form" onSubmit={handleCommentSubmit}>
                 {replyTo && (
                   <div className="reply-indicator">
                     Replying to comment...
-                    <button 
+                    <button
                       type="button"
                       className="cancel-reply"
                       onClick={() => setReplyTo(null)}
@@ -311,21 +354,28 @@ const PostDetail = () => {
                 {comments.map((comment) => (
                   <div key={comment.id} className="comment">
                     <div className="comment-avatar">
-                      {comment.author.avatar}
+                      {comment.author?.avatar || "U"}
                     </div>
                     <div className="comment-content">
                       <div className="comment-header">
-                        <span className="comment-author">{comment.author.name}</span>
-                        <span className="comment-username">@{comment.author.username}</span>
-                        <span className="comment-time">{getTimeAgo(comment.createdAt)}</span>
+                        <span className="comment-author">
+                          {comment.author?.name || "Anonymous"}
+                        </span>
+                        <span className="comment-username">
+                          @{comment.author?.username || "user"}
+                        </span>
+                        <span className="comment-time">
+                          {getTimeAgo(comment.createdAt)}
+                        </span>
                       </div>
                       <p className="comment-text">{comment.content}</p>
                       <div className="comment-actions">
-                        <button className="comment-action-btn">
-                          <FiHeart /> {comment.likes}
+                        <button className="comment-action-btn" type="button">
+                          <FiHeart /> {comment.likes || 0}
                         </button>
-                        <button 
+                        <button
                           className="comment-action-btn"
+                          type="button"
                           onClick={() => setReplyTo(comment.id)}
                         >
                           Reply
@@ -338,18 +388,27 @@ const PostDetail = () => {
                           {comment.replies.map((reply) => (
                             <div key={reply.id} className="comment reply">
                               <div className="comment-avatar">
-                                {reply.author.avatar}
+                                {reply.author?.avatar || "U"}
                               </div>
                               <div className="comment-content">
                                 <div className="comment-header">
-                                  <span className="comment-author">{reply.author.name}</span>
-                                  <span className="comment-username">@{reply.author.username}</span>
-                                  <span className="comment-time">{getTimeAgo(reply.createdAt)}</span>
+                                  <span className="comment-author">
+                                    {reply.author?.name || "Anonymous"}
+                                  </span>
+                                  <span className="comment-username">
+                                    @{reply.author?.username || "user"}
+                                  </span>
+                                  <span className="comment-time">
+                                    {getTimeAgo(reply.createdAt)}
+                                  </span>
                                 </div>
                                 <p className="comment-text">{reply.content}</p>
                                 <div className="comment-actions">
-                                  <button className="comment-action-btn">
-                                    <FiHeart /> {reply.likes}
+                                  <button
+                                    className="comment-action-btn"
+                                    type="button"
+                                  >
+                                    <FiHeart /> {reply.likes || 0}
                                   </button>
                                 </div>
                               </div>
@@ -369,18 +428,24 @@ const PostDetail = () => {
             <div className="author-card">
               <div className="author-info">
                 <div className="author-avatar-large">
-                  {post.User?.username?.charAt(0).toUpperCase() || 'U'}
+                  {post.User?.username?.charAt(0).toUpperCase() || "U"}
                 </div>
-                <h4 className="author-name">{post.User?.name || 'Anonymous'}</h4>
-                <p className="author-username">@{post.User?.username || 'user'}</p>
-                <p className="author-bio">{post.User?.bio || 'No bio available'}</p>
+                <h4 className="author-name">
+                  {post.User?.name || "Anonymous"}
+                </h4>
+                <p className="author-username">
+                  @{post.User?.username || "user"}
+                </p>
+                <p className="author-bio">
+                  {post.User?.bio || "No bio available"}
+                </p>
               </div>
 
               <div className="author-social">
                 {post.User?.githubUrl && (
-                  <a 
-                    href={post.User.githubUrl} 
-                    target="_blank" 
+                  <a
+                    href={post.User.githubUrl}
+                    target="_blank"
                     rel="noopener noreferrer"
                     className="social-link"
                   >
@@ -388,9 +453,9 @@ const PostDetail = () => {
                   </a>
                 )}
                 {post.User?.linkedinUrl && (
-                  <a 
-                    href={post.User.linkedinUrl} 
-                    target="_blank" 
+                  <a
+                    href={post.User.linkedinUrl}
+                    target="_blank"
                     rel="noopener noreferrer"
                     className="social-link"
                   >
@@ -402,12 +467,12 @@ const PostDetail = () => {
               <button className="contact-btn" onClick={handleContactOwner}>
                 <FiMail /> Message
               </button>
-              
-              <button 
-                className={`follow-btn ${isFollowing ? 'following' : ''}`}
+
+              <button
+                className={`follow-btn ${isFollowing ? "following" : ""}`}
                 onClick={handleFollow}
               >
-                <FiUser /> {isFollowing ? 'Following' : 'Follow'}
+                <FiUser /> {isFollowing ? "Following" : "Follow"}
               </button>
             </div>
 
@@ -417,7 +482,9 @@ const PostDetail = () => {
               <div className="stat-item">
                 <FiEye className="stat-icon" />
                 <div className="stat-info">
-                  <span className="stat-value">{viewCount.toLocaleString()}</span>
+                  <span className="stat-value">
+                    {viewCount.toLocaleString()}
+                  </span>
                   <span className="stat-label">Views</span>
                 </div>
               </div>

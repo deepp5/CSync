@@ -455,6 +455,16 @@ body[data-sidebar-open="false"] .messaging-page {
   transform: translateY(-1px);
   filter: brightness(0.95);
 }
+.attachment-link {
+  color: rgba(33, 218, 242, 0.95);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.attachment-link:hover {
+  text-decoration: underline;
+}
 
 .send-btn:disabled {
   background: rgba(255, 255, 255, 0.12);

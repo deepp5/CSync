@@ -1,43 +1,3 @@
-// import { PrismaClient } from "@prisma/client";
-
-// // Ensure a Supabase-auth user exists in our DB
-// // src/utils/ensureUser.js
-// export async function ensureUserExists(prisma, supabaseJwtPayload) {
-//   const id = supabaseJwtPayload?.id || supabaseJwtPayload?.sub;
-//   const email = supabaseJwtPayload?.email;
-//   const user_metadata = supabaseJwtPayload?.user_metadata || {};
-
-//   if (!id || !email) {
-//     console.log("❌ Bad supabase payload:", supabaseJwtPayload);
-//     throw new Error("Invalid Supabase user payload");
-//   }
-
-//   // Prefer username from metadata, otherwise generate a safe fallback
-//   const username =
-//     user_metadata?.username ||
-//     email.split("@")[0] ||
-//     `user_${id.slice(0, 8)}`;
-
-//   const name =
-//     user_metadata?.full_name ||
-//     user_metadata?.name ||
-//     username;
-
-//   return prisma.user.upsert({
-//     where: { id },
-//     update: {},
-//     create: {
-//       id,
-//       email,
-//       name,
-//       username,
-//       skills: [],
-//     },
-//   });
-// }
-
-// src/utils/ensureUser.js
-// src/utils/ensureUser.js
 // src/utils/ensureUser.js
 export async function ensureUserExists(prisma, supabaseUser) {
   const id = supabaseUser?.id || supabaseUser?.sub;
@@ -48,71 +8,97 @@ export async function ensureUserExists(prisma, supabaseUser) {
 
   const email = supabaseUser?.email || null;
 
-  // ✅ Prefer raw_user_meta_data (Supabase) then fallback to user_metadata
-  const meta =
-    supabaseUser?.raw_user_meta_data || supabaseUser?.user_metadata || {};
+  // ✅ Merge both: sometimes data is in raw_user_meta_data, sometimes in user_metadata
+  const meta = {
+    ...(supabaseUser?.user_metadata || {}),
+    ...(supabaseUser?.raw_user_meta_data || {}),
+  };
 
-  // ✅ Pull username exactly like Supabase stores it
+  // ✅ Prefer username exactly like Supabase stores it
   const rawUsername =
-    meta.username ||
-    meta.user_name ||
-    meta.preferred_username ||
-    (email ? email.split("@")[0] : null);
+    meta.username || meta.user_name || meta.preferred_username || null;
 
-  // Normalize username to DB-safe format
-  const baseUsername = String(rawUsername || `user_${id.slice(0, 6)}`)
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9_]/g, "_") // allow only a-z, 0-9, _
-    .replace(/_+/g, "_") // collapse multiple underscores
-    .replace(/^_+|_+$/g, "") // trim underscores
-    .slice(0, 24);
-
-  const name =
-    meta.full_name ||
-    meta.name ||
-    meta.display_name ||
-    rawUsername ||
-    baseUsername ||
-    `User ${id.slice(0, 6)}`;
+  const rawName = meta.full_name || meta.name || meta.display_name || null;
 
   const profilePicture = meta.avatar_url || meta.picture || null;
 
-  // If baseUsername ends up empty for any reason
-  const safeBase = baseUsername || `user_${id.slice(0, 6)}`;
+  // Normalize username to DB-safe format
+  const normalizeUsername = (u) =>
+    String(u || "")
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9_]/g, "_")
+      .replace(/_+/g, "_")
+      .replace(/^_+|_+$/g, "")
+      .slice(0, 24);
 
-  // ✅ Try a few candidates. This avoids Prisma P2002 username collisions.
-  // Order: base -> base + shortId -> base + longerId
+  const baseUsername = normalizeUsername(rawUsername);
+
+  // ✅ We ONLY want to overwrite DB fields if we truly have Supabase values
+  // (avoid replacing good data with placeholders)
+  const shouldUpdateUsername = Boolean(baseUsername);
+  const shouldUpdateName = Boolean(rawName);
+
+  // Create must always include username (unique), so create a fallback
+  const createUsername =
+    baseUsername ||
+    normalizeUsername(email ? email.split("@")[0] : "") ||
+    `user_${id.replace(/-/g, "").slice(0, 10)}`;
+
+  // Name should be human-ish
+  const createName =
+    rawName ||
+    (baseUsername ? `@${baseUsername}` : null) ||
+    (email ? email.split("@")[0] : null) ||
+    `User ${id.slice(0, 6)}`;
+
+  // Try a few username candidates if unique constraint hits
   const candidates = [
-    safeBase,
-    `${safeBase}_${id.slice(0, 6)}`.slice(0, 30),
-    `${safeBase}_${id.slice(0, 10)}`.slice(0, 30),
+    createUsername,
+    `${createUsername}_${id.replace(/-/g, "").slice(0, 4)}`.slice(0, 30),
+    `${createUsername}_${id.replace(/-/g, "").slice(0, 8)}`.slice(0, 30),
   ];
 
-  for (const username of candidates) {
+  // If user exists, fetch once so we can avoid overwriting with placeholders
+  const existing = await prisma.user.findUnique({ where: { id } });
+
+  for (const candidateUsername of candidates) {
     try {
-      // Upsert by ID (always safe)
+      const updateData = {
+        ...(email ? { email } : {}),
+        ...(profilePicture ? { profilePicture } : {}),
+        ...(shouldUpdateName ? { name: rawName } : {}),
+        ...(shouldUpdateUsername ? { username: candidateUsername } : {}),
+      };
+
+      // ✅ If user exists and we don't have new username/name, do NOT overwrite them
+      const createData = {
+        id,
+        email: email || `${id}@placeholder.local`,
+        name: createName,
+        username: candidateUsername,
+        profilePicture,
+        skills: [],
+      };
+
+      // If existing user and we don't have Supabase username, keep their current username
+      if (existing && !shouldUpdateUsername) {
+        delete updateData.username;
+      }
+
+      // If existing user and we don't have Supabase name, keep their current name
+      if (existing && !shouldUpdateName) {
+        delete updateData.name;
+      }
+
       const user = await prisma.user.upsert({
         where: { id },
-        update: {
-          email,
-          name,
-          username,
-          profilePicture,
-        },
-        create: {
-          id,
-          email,
-          name,
-          username,
-          profilePicture,
-          skills: [],
-        },
+        update: updateData,
+        create: createData,
       });
 
       return user;
     } catch (err) {
-      // If username unique constraint fails, try next candidate
       if (err?.code === "P2002" && err?.meta?.target?.includes("username")) {
         continue;
       }
@@ -120,20 +106,18 @@ export async function ensureUserExists(prisma, supabaseUser) {
     }
   }
 
-  // ✅ Last resort (should basically never happen)
+  // Last resort fallback (extremely rare)
   const fallbackUsername = `user_${id.replace(/-/g, "").slice(0, 12)}`;
   return prisma.user.upsert({
     where: { id },
     update: {
-      email,
-      name,
-      username: fallbackUsername,
-      profilePicture,
+      ...(email ? { email } : {}),
+      ...(profilePicture ? { profilePicture } : {}),
     },
     create: {
       id,
-      email,
-      name,
+      email: email || `${id}@placeholder.local`,
+      name: createName,
       username: fallbackUsername,
       profilePicture,
       skills: [],

@@ -1,3 +1,4 @@
+// pages/SignUp.jsx
 import React, { useState } from "react";
 import Aurora from "../Components/LandingPage/Aurora";
 import LoginForm from "../Components/Registration/SignUpBox";
@@ -7,9 +8,6 @@ export default function SignUp() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // -------------------------
-  // 1. Manual Email/Password Signup
-  // -------------------------
   const handleSignup = async (formData) => {
     setLoading(true);
     setMessage("");
@@ -27,22 +25,26 @@ export default function SignUp() {
 
       if (error) {
         setMessage(`❌ ${error.message}`);
+        setLoading(false);
         return;
       }
 
-      // EMAIL CONFIRMATION MODE
+      // email confirm mode
       if (data?.user && !data.session) {
         setMessage("📬 Check your email to confirm your account!");
         setTimeout(() => {
           window.location.href = "/login";
         }, 1500);
+        setLoading(false);
         return;
       }
 
-      // AUTO LOGIN MODE
+      // auto login mode
       if (data?.session) {
         setMessage("🎉 Account created! Redirecting...");
-        window.location.href = "/home";
+        const meta = data.session.user.user_metadata || {};
+        const done = meta.username && meta.school;
+        window.location.href = done ? "/home" : "/setup";
       }
     } catch (err) {
       console.error(err);
@@ -52,16 +54,13 @@ export default function SignUp() {
     }
   };
 
-  // -------------------------
-  // 2. Google Signup → redirect to /setup
-  // -------------------------
   const handleGoogleSignup = async () => {
     setMessage("");
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: "http://localhost:5173/setup",
+        redirectTo: `${window.location.origin}/setup`,
       },
     });
 
@@ -80,7 +79,6 @@ export default function SignUp() {
         speed={0.6}
       />
 
-      {/* Send BOTH handlers to the SignUpBox */}
       <LoginForm
         onSubmit={handleSignup}
         onGoogle={handleGoogleSignup}

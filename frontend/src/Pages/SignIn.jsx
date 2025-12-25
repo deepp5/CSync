@@ -1,3 +1,4 @@
+// pages/SignIn.jsx
 import React, { useState } from "react";
 import Aurora from "../Components/LandingPage/Aurora";
 import SignInBox from "../Components/Registration/SignInBox";
@@ -7,25 +8,27 @@ export default function SignIn() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // -------------------------
-  // 1. Email + Password Sign In
-  // -------------------------
   const loginWithEmail = async ({ email, password }) => {
     setLoading(true);
     setMessage("");
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
         setMessage(`❌ ${error.message}`);
-      } else {
-        setMessage("✅ Login successful!");
-        setTimeout(() => (window.location.href = "/home"), 800);
+        setLoading(false);
+        return;
       }
+
+      const meta = data?.user?.user_metadata || {};
+      const done = meta.username && meta.school;
+
+      setMessage("✅ Login successful!");
+      window.location.href = done ? "/home" : "/setup";
     } catch (err) {
       setMessage("⚠️ Something went wrong. Try again.");
     }
@@ -33,16 +36,13 @@ export default function SignIn() {
     setLoading(false);
   };
 
-  // -------------------------
-  // 2. Google OAuth Sign In → redirect to /setup
-  // -------------------------
   const loginWithGoogle = async () => {
     setMessage("");
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: "http://localhost:5173/setup",
+        redirectTo: `${window.location.origin}/setup`,
       },
     });
 
@@ -61,7 +61,6 @@ export default function SignIn() {
         speed={0.6}
       />
 
-      {/* Your UI card handles both email login + Google login */}
       <SignInBox
         onSubmit={loginWithEmail}
         onGoogle={loginWithGoogle}

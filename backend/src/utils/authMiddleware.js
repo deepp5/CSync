@@ -79,9 +79,9 @@ export const verifySupabaseToken = (req, res, next) => {
         username: req.user.raw_user_meta_data?.username,
       });
 
-      if (!req.user.id || !req.user.email) {
-        console.error("[ERROR] Token missing id/email claims:", decoded);
-        return res.status(401).json({ error: "Token missing id/email claims" });
+      if (!req.user.id) {
+        console.error("[ERROR] Token missing sub:", decoded);
+        return res.status(401).json({ error: "Token missing user id (sub)" });
       }
 
       next();

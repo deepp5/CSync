@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import { supabase } from "../supabaseClient";
 
@@ -9,8 +9,8 @@ import Grid from "../Components/HomePage/Grid/Grid";
 import "../Components/HomePage/HomePage.css";
 
 export default function HomePage() {
-  const [allPosts, setAllPosts] = useState([]); // Store ALL posts
-  const [filteredPosts, setFilteredPosts] = useState([]); // Display filtered posts
+  const [allPosts, setAllPosts] = useState([]);
+  const [filteredPosts, setFilteredPosts] = useState([]);
   const [filters, setFilters] = useState({ category: "", difficulty: "" });
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -30,10 +30,6 @@ export default function HomePage() {
 
       const session = data.session;
 
-      // ✅ Debug logs (safe to remove later)
-      console.log("✅ Supabase User:", session.user);
-      console.log("✅ Supabase Access Token:", session.access_token);
-
       try {
         const response = await axios.get("http://localhost:5051/posts", {
           headers: {
@@ -42,7 +38,7 @@ export default function HomePage() {
         });
 
         setAllPosts(response.data);
-        setFilteredPosts(response.data); // Initially show all posts
+        setFilteredPosts(response.data);
       } catch (err) {
         console.error("Failed to fetch posts:", err);
       }
@@ -51,21 +47,17 @@ export default function HomePage() {
     init();
   }, []);
 
-  // Filter posts whenever filters or search query changes
   useEffect(() => {
     let result = [...allPosts];
 
-    // Filter by category
     if (filters.category) {
       result = result.filter((post) => post.category === filters.category);
     }
 
-    // Filter by difficulty
     if (filters.difficulty) {
       result = result.filter((post) => post.difficulty === filters.difficulty);
     }
 
-    // Filter by search query
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       result = result.filter(
@@ -76,15 +68,16 @@ export default function HomePage() {
     }
 
     setFilteredPosts(result);
-  }, [filters, searchQuery, allPosts]);
+  }, [filters.category, filters.difficulty, searchQuery, allPosts]);
 
-  const handleFilterChange = ({ category, difficulty }) => {
+  // ✅ MEMOIZED callbacks (prevents infinite loop)
+  const handleFilterChange = useCallback(({ category, difficulty }) => {
     setFilters({ category, difficulty });
-  };
+  }, []);
 
-  const handleSearchChange = (query) => {
+  const handleSearchChange = useCallback((query) => {
     setSearchQuery(query);
-  };
+  }, []);
 
   return (
     <div className="home-container">

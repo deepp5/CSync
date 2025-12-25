@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 // SVG Icons as components
 const SearchIcon = () => (
@@ -57,6 +57,18 @@ export default function SearchBar({
   const [searchQuery, setSearchQuery] = useState("");
   const filterRef = useRef(null);
 
+  // ✅ keep latest callbacks without triggering effects
+  const onFilterChangeRef = useRef(onFilterChange);
+  const onSearchChangeRef = useRef(onSearchChange);
+
+  useEffect(() => {
+    onFilterChangeRef.current = onFilterChange;
+  }, [onFilterChange]);
+
+  useEffect(() => {
+    onSearchChangeRef.current = onSearchChange;
+  }, [onSearchChange]);
+
   // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
@@ -68,19 +80,28 @@ export default function SearchBar({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Notify parent component of filter changes
-  useEffect(() => {
-    onFilterChange({ category, difficulty });
-  }, [category, difficulty, onFilterChange]);
+  const handleCategoryChange = (e) => {
+    const next = e.target.value;
+    setCategory(next);
+    onFilterChangeRef.current({ category: next, difficulty });
+  };
 
-  // Notify parent component of search changes
-  useEffect(() => {
-    onSearchChange(searchQuery);
-  }, [searchQuery, onSearchChange]);
+  const handleDifficultyChange = (e) => {
+    const next = e.target.value;
+    setDifficulty(next);
+    onFilterChangeRef.current({ category, difficulty: next });
+  };
+
+  const handleSearchInput = (e) => {
+    const next = e.target.value;
+    setSearchQuery(next);
+    onSearchChangeRef.current(next);
+  };
 
   const handleReset = () => {
     setCategory("");
     setDifficulty("");
+    onFilterChangeRef.current({ category: "", difficulty: "" });
   };
 
   const activeFiltersCount = [category, difficulty].filter(Boolean).length;
@@ -96,14 +117,15 @@ export default function SearchBar({
           placeholder="Search projects..."
           type="text"
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={handleSearchInput}
         />
       </div>
 
       <div style={styles.filterContainer} ref={filterRef}>
         <button
           style={styles.filterBtn}
-          onClick={() => setShowFilters(!showFilters)}
+          onClick={() => setShowFilters((s) => !s)}
+          type="button"
         >
           Filters
           {activeFiltersCount > 0 && (
@@ -124,7 +146,11 @@ export default function SearchBar({
             <div style={styles.filterHeader}>
               <h3 style={styles.filterTitle}>Filter Projects</h3>
               {activeFiltersCount > 0 && (
-                <button className="reset-btn" onClick={handleReset}>
+                <button
+                  style={styles.resetBtn}
+                  type="button"
+                  onClick={handleReset}
+                >
                   Reset
                 </button>
               )}
@@ -135,7 +161,7 @@ export default function SearchBar({
               <select
                 style={styles.filterSelect}
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
+                onChange={handleCategoryChange}
               >
                 {categories.map((c) => (
                   <option key={c.value || "ALL"} value={c.value}>
@@ -150,7 +176,7 @@ export default function SearchBar({
               <select
                 style={styles.filterSelect}
                 value={difficulty}
-                onChange={(e) => setDifficulty(e.target.value)}
+                onChange={handleDifficultyChange}
               >
                 {difficulties.map((d) => (
                   <option key={d.value || "ALL"} value={d.value}>

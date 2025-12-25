@@ -9,7 +9,7 @@ datasource db {
 }
 
 model Comment {
-  id            String    @id
+  id            String    @id @default(uuid())
   content       String
   postId        String
   userId        String
@@ -58,6 +58,13 @@ model Message {
   receiverId                    String
   content                       String
   createdAt                     DateTime @default(now())
+
+  attachmentUrl  String?
+  attachmentPath String?
+  attachmentName String?
+  attachmentType String?
+  attachmentSize Int?
+
   User_Message_receiverIdToUser User     @relation("Message_receiverIdToUser", fields: [receiverId], references: [id])
   User_Message_senderIdToUser   User     @relation("Message_senderIdToUser", fields: [senderId], references: [id])
 
@@ -106,6 +113,10 @@ model User {
   isOAuthUser    Boolean  @default(false)
   oauthProvider  String?
 
+  profileVisibility ProfileVisibility @default(FOLLOWERS)
+  showEmail         Boolean            @default(false)
+  allowMessages    Boolean            @default(true)
+
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -142,4 +153,8 @@ enum Visibility {
   PUBLIC
   PRIVATE
   DRAFT
+}
+enum ProfileVisibility {
+  FOLLOWERS
+  PRIVATE
 }

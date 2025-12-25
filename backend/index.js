@@ -9,6 +9,7 @@ import messageRoutes from "./src/routes/messageRoutes.js";
 import conversationRoutes from "./src/routes/conversationRoutes.js";
 import { verifySupabaseToken } from "./src/utils/authMiddleware.js";
 import { ensureUserExists } from "./src/utils/ensureUser.js";
+import commentRoutes from "./src/routes/commentRoutes.js";
 
 import jwt from "jsonwebtoken";
 import jwksClient from "jwks-rsa";
@@ -37,6 +38,7 @@ app.get("/", (req, res) => {
 
 app.use("/messages", messageRoutes);
 app.use("/conversations", conversationRoutes);
+app.use("/posts", commentRoutes);
 
 /* =========================
    SOCKET.IO SETUP

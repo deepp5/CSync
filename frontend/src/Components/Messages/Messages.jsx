@@ -5,9 +5,6 @@ import {
   FiMoreVertical,
   FiSend,
   FiPaperclip,
-  FiSmile,
-  FiPhone,
-  FiVideo,
   FiCheck,
   FiCheckCircle,
 } from "react-icons/fi";
@@ -37,6 +34,25 @@ function shortId(id) {
   return id.length > 10 ? `${id.slice(0, 6)}…${id.slice(-4)}` : id;
 }
 
+// Parse attachment created by backend route:
+// content: `📎 filename\nhttps://...`
+function parseAttachmentFromContent(content) {
+  const text = safeString(content);
+  if (!text.startsWith("📎")) return null;
+
+  const lines = text
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+  if (lines.length < 2) return null;
+
+  const fileName = lines[0].replace(/^📎\s*/, "").trim() || "Attachment";
+  const fileUrl = lines[1];
+
+  if (!/^https?:\/\//i.test(fileUrl)) return null;
+  return { fileName, fileUrl };
+}
+
 const Messages = () => {
   const { user, accessToken, loading } = useAuth();
 
@@ -49,6 +65,9 @@ const Messages = () => {
 
   const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
+
+  // ✅ hidden file input for attachments
+  const fileInputRef = useRef(null);
 
   // ===============================
   // FETCH CONVERSATIONS
@@ -75,6 +94,7 @@ const Messages = () => {
               safeString(c.partnerId);
 
             if (!otherUserId) return null;
+
             const displayName =
               (safeString(c.username) ? `@${safeString(c.username)}` : "") ||
               safeString(c.name) ||
@@ -84,7 +104,11 @@ const Messages = () => {
               userId: otherUserId,
               name: displayName,
               username: safeString(c.username) || "",
-              avatar: (name?.[0] || otherUserId?.[0] || "?").toUpperCase(),
+              avatar: (
+                displayName?.[0] ||
+                otherUserId?.[0] ||
+                "?"
+              ).toUpperCase(),
               lastMessage: safeString(c.lastMessage),
               updatedAt: c.updatedAt || c.createdAt || new Date().toISOString(),
               timestamp: formatTime(c.updatedAt || Date.now()),
@@ -133,7 +157,6 @@ const Messages = () => {
 
         setMessages(normalized);
 
-        // clear unread when opening
         setConversations((prev) =>
           prev.map((c) =>
             c.userId === selectedChatId ? { ...c, unread: 0 } : c
@@ -192,7 +215,6 @@ const Messages = () => {
       const receiverId = safeString(message.receiverId);
       const otherId = senderId === myId ? receiverId : senderId;
 
-      // update left list preview + unread
       setConversations((prev) => {
         const isChatOpen = safeString(selectedChatId) === safeString(otherId);
         let found = false;
@@ -213,7 +235,7 @@ const Messages = () => {
           updated.unshift({
             userId: otherId,
             name: `User ${shortId(otherId)}`,
-            username: `user_${otherId.slice(0, 6)}`,
+            username: "",
             avatar: (otherId?.[0] || "?").toUpperCase(),
             lastMessage: safeString(message.content),
             updatedAt: message.createdAt || new Date().toISOString(),
@@ -223,17 +245,15 @@ const Messages = () => {
           });
         }
 
-        // keep most recent at top
         updated.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
         return updated;
       });
 
-      // append in open chat only
       if (safeString(selectedChatId) !== safeString(otherId)) return;
 
       setMessages((prev) => {
-        if (prev.some((m) => safeString(m.id) === safeString(message.id)))
-          return prev;
+        const msgId = safeString(message.id);
+        if (msgId && prev.some((m) => safeString(m.id) === msgId)) return prev;
         return [...prev, message];
       });
     };
@@ -259,7 +279,7 @@ const Messages = () => {
   }, [conversations, selectedChatId]);
 
   // ===============================
-  // SEND MESSAGE (OPTIMISTIC)
+  // SEND TEXT MESSAGE (OPTIMISTIC)
   // ===============================
   const handleSendMessage = async (e) => {
     e.preventDefault();
@@ -282,7 +302,6 @@ const Messages = () => {
     setMessages((prev) => [...prev, optimistic]);
     setMessageInput("");
 
-    // update left preview immediately
     setConversations((prev) =>
       prev.map((c) =>
         c.userId === selectedChatId
@@ -317,6 +336,82 @@ const Messages = () => {
       console.error(err);
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
       setError("Failed to send message.");
+    }
+  };
+
+  // ===============================
+  // ATTACH: PICK FILE
+  // ===============================
+  const handleAttachClick = () => {
+    if (!selectedChatId) return;
+    fileInputRef.current?.click();
+  };
+
+  // ===============================
+  // ATTACH: UPLOAD FILE
+  // ===============================
+  const handleFileSelected = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-select same file
+    if (!file || !selectedChatId) return;
+
+    const tempId = `temp-file-${Date.now()}`;
+    const optimistic = {
+      id: tempId,
+      senderId: safeString(user?.id),
+      receiverId: safeString(selectedChatId),
+      content: `📎 ${file.name}\nUploading...`,
+      createdAt: new Date().toISOString(),
+      read: false,
+      __optimistic: true,
+    };
+
+    setMessages((prev) => [...prev, optimistic]);
+
+    setConversations((prev) =>
+      prev.map((c) =>
+        c.userId === selectedChatId
+          ? {
+              ...c,
+              lastMessage: `📎 ${file.name}`,
+              updatedAt: optimistic.createdAt,
+              timestamp: formatTime(optimistic.createdAt),
+            }
+          : c
+      )
+    );
+
+    try {
+      const form = new FormData();
+      form.append("receiverId", selectedChatId);
+      form.append("file", file);
+
+      const res = await fetch(`${API_BASE}/messages/upload`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: form,
+      });
+
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "");
+        throw new Error(`POST /messages/upload failed ${res.status}: ${txt}`);
+      }
+
+      // Backend returns:
+      // { message, attachment: { url, name, ... } }
+      const payload = await res.json();
+
+      const savedMessage = payload?.message ?? payload; // fallback if your route returns just message
+
+      setMessages((prev) =>
+        prev.map((m) => (m.id === tempId ? savedMessage : m))
+      );
+    } catch (err) {
+      console.error(err);
+      setMessages((prev) => prev.filter((m) => m.id !== tempId));
+      setError("Failed to upload file.");
     }
   };
 
@@ -412,21 +507,8 @@ const Messages = () => {
                   </div>
                 </div>
 
+                {/* ✅ Removed call/video buttons; keep only More */}
                 <div className="chat-actions">
-                  <button
-                    className="chat-action-btn"
-                    type="button"
-                    aria-label="Call"
-                  >
-                    <FiPhone />
-                  </button>
-                  <button
-                    className="chat-action-btn"
-                    type="button"
-                    aria-label="Video"
-                  >
-                    <FiVideo />
-                  </button>
                   <button
                     className="chat-action-btn"
                     type="button"
@@ -442,6 +524,9 @@ const Messages = () => {
                   {messages.map((m) => {
                     const isOwn =
                       safeString(m.senderId) === safeString(user?.id);
+
+                    const attachment = parseAttachmentFromContent(m.content);
+
                     return (
                       <div
                         key={m.id}
@@ -456,9 +541,27 @@ const Messages = () => {
                         )}
 
                         <div className="message-bubble">
-                          <p className="message-content">
-                            {safeString(m.content)}
-                          </p>
+                          {attachment ? (
+                            <p className="message-content">
+                              📎{" "}
+                              <a
+                                href={attachment.fileUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                style={{
+                                  color: "inherit",
+                                  textDecoration: "underline",
+                                }}
+                              >
+                                {attachment.fileName}
+                              </a>
+                            </p>
+                          ) : (
+                            <p className="message-content">
+                              {safeString(m.content)}
+                            </p>
+                          )}
+
                           <div className="message-footer">
                             <span className="message-time">
                               {formatTime(m.createdAt)}
@@ -482,13 +585,23 @@ const Messages = () => {
               </div>
 
               <div className="message-input-container">
+                {/* ✅ Attach is functional */}
                 <button
                   className="input-action-btn"
                   type="button"
                   aria-label="Attach"
+                  onClick={handleAttachClick}
                 >
                   <FiPaperclip />
                 </button>
+
+                {/* hidden input */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  style={{ display: "none" }}
+                  onChange={handleFileSelected}
+                />
 
                 <form onSubmit={handleSendMessage} className="message-form">
                   <input
@@ -498,13 +611,7 @@ const Messages = () => {
                     placeholder="Type a message..."
                   />
 
-                  <button
-                    className="input-action-btn"
-                    type="button"
-                    aria-label="Emoji"
-                  >
-                    <FiSmile />
-                  </button>
+                  {/* ✅ Removed emoji button */}
 
                   <button
                     className="send-btn"
