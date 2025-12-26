@@ -112,10 +112,10 @@ export default function HomePage() {
             onSearchChange={handleSearchChange}
           />
 
-          <div className="results-info">
+          {/* <div className="results-info">
             {filteredPosts.length}{" "}
             {filteredPosts.length === 1 ? "project" : "projects"} found
-          </div>
+          </div> */}
 
           <Grid posts={filteredPosts} />
         </div>
