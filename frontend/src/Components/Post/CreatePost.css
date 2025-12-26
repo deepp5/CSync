@@ -57,11 +57,11 @@ body[data-sidebar-open="false"] .createpost-content {
     }
     
     .createpost-title {
-        font-size: 28px;
+        font-size: 24px;
     }
     
     .createpost-content {
-        padding-top: 80px;
+        padding-top: 40px;
     }
 }
   

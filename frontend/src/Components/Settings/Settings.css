@@ -417,12 +417,13 @@ body[data-sidebar-open="false"] .settings-page {
 
   .settings-header {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
     gap: 15px;
   }
 
   .settings-title {
     font-size: 28px;
+    justify-content: center;
   }
 
   .settings-sidebar {
