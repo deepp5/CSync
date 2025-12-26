@@ -1,5 +1,6 @@
 // src/Components/Messages/Messages.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { prefetchCache } from "../../utils/prefetchCache";
 import "./Messages.css";
 import {
   FiSearch,
@@ -109,6 +110,14 @@ const Messages = () => {
 
     const fetchConversations = async () => {
       setError("");
+      // 1️⃣ Try cache first
+      const cached = prefetchCache.get("messages:conversations");
+      if (cached) {
+        setConversations(cached);
+        setSelectedChatId((prev) => prev || cached[0]?.userId || null);
+      }
+
+      // 2️⃣ Always refresh in background
       try {
         const res = await fetch(`${API_BASE}/conversations`, {
           headers: { Authorization: `Bearer ${accessToken}` },
@@ -118,6 +127,7 @@ const Messages = () => {
         const data = await res.json();
         const arr = Array.isArray(data) ? data : [];
 
+        // (keep existing formatting logic)
         const formatted = arr
           .map((c) => {
             const otherUserId =
@@ -158,6 +168,7 @@ const Messages = () => {
 
         setConversations(formatted);
         setSelectedChatId((prev) => prev || formatted[0]?.userId || null);
+        prefetchCache.set("messages:conversations", formatted);
       } catch (e) {
         console.error(e);
         setError("Failed to load conversations.");
@@ -172,6 +183,12 @@ const Messages = () => {
   // ===============================
   useEffect(() => {
     if (!selectedChatId || !accessToken) return;
+
+    // Prefetch cache logic
+    const cached = prefetchCache.get(`messages:thread:${selectedChatId}`);
+    if (cached) {
+      setMessages(cached);
+    }
 
     const fetchMessages = async () => {
       setError("");
@@ -189,6 +206,7 @@ const Messages = () => {
         );
 
         setMessages(normalized);
+        prefetchCache.set(`messages:thread:${selectedChatId}`, normalized);
 
         setConversations((prev) =>
           prev.map((c) =>
@@ -249,6 +267,11 @@ const Messages = () => {
       const senderId = safeString(message.senderId);
       const receiverId = safeString(message.receiverId);
       const otherId = senderId === myId ? receiverId : senderId;
+
+      // Update cache for messages
+      const cacheKey = `messages:thread:${otherId}`;
+      const cached = prefetchCache.get(cacheKey) || [];
+      prefetchCache.set(cacheKey, [...cached, message]);
 
       setConversations((prev) => {
         const isChatOpen = safeString(selectedChatId) === safeString(otherId);
@@ -344,12 +367,18 @@ const Messages = () => {
     optimistic.__optimistic = true;
 
     setMessages((prev) => [...prev, optimistic]);
+    // Update cache after optimistic message
+    prefetchCache.set(
+      `messages:thread:${selectedChatId}`,
+      [...(prefetchCache.get(`messages:thread:${selectedChatId}`) || []), optimistic]
+    );
     setMessageInput("");
 
+    let updatedConversation;
     setConversations((prev) => {
       const existing = prev.find((c) => c.userId === selectedChatId);
 
-      const updatedConversation = {
+      updatedConversation = {
         ...(existing || {}),
         userId: selectedChatId,
         name: existing?.name || `User ${shortId(selectedChatId)}`,
@@ -367,6 +396,17 @@ const Messages = () => {
         ...prev.filter((c) => c.userId !== selectedChatId),
       ];
     });
+    // Update conversations cache as well
+    const convCache = prefetchCache.get("messages:conversations");
+    if (convCache) {
+      prefetchCache.set(
+        "messages:conversations",
+        [
+          updatedConversation,
+          ...convCache.filter(c => c.userId !== selectedChatId)
+        ]
+      );
+    }
 
     try {
       const res = await fetch(`${API_BASE}/messages`, {
@@ -388,6 +428,13 @@ const Messages = () => {
 
       setMessages((prev) =>
         prev.map((m) => (m.id === tempId ? normalizedSaved : m))
+      );
+      // Update cache after replacing optimistic with saved message
+      prefetchCache.set(
+        `messages:thread:${selectedChatId}`,
+        (prefetchCache.get(`messages:thread:${selectedChatId}`) || []).map(m =>
+          m.id === tempId ? normalizedSaved : m
+        )
       );
     } catch (err) {
       console.error(err);

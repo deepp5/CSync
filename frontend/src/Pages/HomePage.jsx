@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import { supabase } from "../supabaseClient";
+import { prefetchCache } from "../utils/prefetchCache";
 
 import Sidebar from "../Components/Sidebar/Sidebar";
 import SearchBar from "../Components/HomePage/Search/SearchBar";
@@ -16,6 +17,22 @@ export default function HomePage() {
 
   useEffect(() => {
     const init = async () => {
+      const cached = prefetchCache.get("homeFeed");
+
+      // ⚡ Instant render if prefetched
+      if (cached) {
+        setAllPosts(cached);
+        setFilteredPosts(cached);
+        // still refresh silently in background
+        fetchFresh();
+        return;
+      }
+
+      // No cache → normal fetch
+      await fetchFresh();
+    };
+
+    const fetchFresh = async () => {
       const { data, error } = await supabase.auth.getSession();
 
       if (error) {
@@ -28,17 +45,18 @@ export default function HomePage() {
         return;
       }
 
-      const session = data.session;
-
       try {
         const response = await axios.get("http://localhost:5051/posts", {
           headers: {
-            Authorization: `Bearer ${session.access_token}`,
+            Authorization: `Bearer ${data.session.access_token}`,
           },
         });
 
         setAllPosts(response.data);
         setFilteredPosts(response.data);
+
+        // ✅ update cache
+        prefetchCache.set("homeFeed", response.data);
       } catch (err) {
         console.error("Failed to fetch posts:", err);
       }

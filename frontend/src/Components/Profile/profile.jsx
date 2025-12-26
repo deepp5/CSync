@@ -7,6 +7,7 @@ import Sidebar from "../Sidebar/Sidebar";
 import Grid from "../HomePage/Grid/Grid";
 import "./Profile.css";
 import { FiEdit2, FiGithub, FiLinkedin, FiMail, FiX, FiCheck } from "react-icons/fi";
+import { prefetchCache } from "../../utils/prefetchCache";
 
 const ProfilePage = () => {
   const { username } = useParams();
@@ -43,33 +44,68 @@ const ProfilePage = () => {
   }, [profile?.name, username]);
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    const cacheKey = `profile:${username}`;
+
+    const fetchFreshProfile = async () => {
       try {
         setLoading(true);
-        setError(null);
 
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token || null;
+        const userId = session?.user?.id || null;
+        setCurrentUserId(userId);
 
-        let token = null;
-        let userId = null;
-
-        if (session) {
-          token = session.access_token;
-          userId = session.user.id;
-          setCurrentUserId(userId);
-        }
-
-        const profileResponse = await axios.get(
+        // Profile
+        const profileRes = await axios.get(
           `http://localhost:5051/api/profile/${username}`,
-          {
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-          }
+          { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+        );
+        const profileData = profileRes.data;
+
+        // Posts
+        const postsRes = await axios.get(
+          `http://localhost:5051/api/profile/${username}/posts`,
+          { headers: token ? { Authorization: `Bearer ${token}` } : {} }
         );
 
-        const profileData = profileResponse.data;
+        // Follow status
+        let followingState = false;
+        if (token && userId && profileData.id !== userId) {
+          const followRes = await axios.get(
+            `http://localhost:5051/api/profile/${username}/follow-status`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          followingState = !!followRes.data?.isFollowing;
+        }
+
+        // Followers / Following
+        let followersData = [];
+        let followingData = [];
+        if (token) {
+          const [followersRes, followingRes] = await Promise.all([
+            axios.get(
+              `http://localhost:5051/api/profile/${username}/followers`,
+              { headers: { Authorization: `Bearer ${token}` } }
+            ),
+            axios.get(
+              `http://localhost:5051/api/profile/${username}/following`,
+              { headers: { Authorization: `Bearer ${token}` } }
+            ),
+          ]);
+          followersData = followersRes.data || [];
+          followingData = followingRes.data || [];
+        }
+
+        // Own profile
+        const own = userId && profileData.id === userId;
+
+        // Overwrite state after all fetches
         setProfile(profileData);
+        setPosts(postsRes.data || []);
+        setIsFollowing(followingState);
+        setIsOwnProfile(!!own);
+        setFollowers(followersData);
+        setFollowing(followingData);
 
         setEditForm({
           schoolCompany: profileData?.schoolCompany || "",
@@ -79,53 +115,70 @@ const ProfilePage = () => {
           skills: Array.isArray(profileData?.skills) ? profileData.skills : [],
         });
         setSkillsInput(
-          Array.isArray(profileData?.skills) ? profileData.skills.join(", ") : ""
+          Array.isArray(profileData?.skills)
+            ? profileData.skills.join(", ")
+            : ""
         );
 
-        const isOwn = userId && profileData.id === userId;
-        setIsOwnProfile(!!isOwn);
-
-        const postsResponse = await axios.get(
-          `http://localhost:5051/api/profile/${username}/posts`,
-          {
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-          }
-        );
-        setPosts(postsResponse.data || []);
-
-        if (token && userId && profileData.id !== userId) {
-          const followResponse = await axios.get(
-            `http://localhost:5051/api/profile/${username}/follow-status`,
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            }
-          );
-          setIsFollowing(!!followResponse.data?.isFollowing);
-        }
-
-        if (token) {
-          const [followersResponse, followingResponse] = await Promise.all([
-            axios.get(`http://localhost:5051/api/profile/${username}/followers`, {
-              headers: { Authorization: `Bearer ${token}` },
-            }),
-            axios.get(`http://localhost:5051/api/profile/${username}/following`, {
-              headers: { Authorization: `Bearer ${token}` },
-            }),
-          ]);
-
-          setFollowers(followersResponse.data || []);
-          setFollowing(followingResponse.data || []);
-        }
+        // Cache everything
+        prefetchCache.set(cacheKey, {
+          profile: profileData,
+          posts: postsRes.data || [],
+          isFollowing: followingState,
+          isOwnProfile: !!own,
+          followers: followersData,
+          following: followingData,
+        });
 
         setLoading(false);
       } catch (err) {
-        console.error("Error fetching profile:", err);
+        console.error("Fresh profile fetch failed:", err);
         setError(err.response?.data?.error || "Failed to load profile");
         setLoading(false);
       }
     };
 
-    fetchProfile();
+    const loadProfile = async () => {
+      try {
+        setError(null);
+
+        // ⚡ Try cache first
+        const cached = prefetchCache.get(cacheKey);
+        if (cached) {
+          setProfile(cached.profile);
+          setPosts(cached.posts);
+          setIsFollowing(cached.isFollowing);
+          setIsOwnProfile(cached.isOwnProfile);
+          setFollowers(cached.followers || []);
+          setFollowing(cached.following || []);
+          setEditForm({
+            schoolCompany: cached.profile?.schoolCompany || "",
+            bio: cached.profile?.bio || "",
+            githubUrl: cached.profile?.githubUrl || "",
+            linkedinUrl: cached.profile?.linkedinUrl || "",
+            skills: Array.isArray(cached.profile?.skills) ? cached.profile.skills : [],
+          });
+          setSkillsInput(
+            Array.isArray(cached.profile?.skills)
+              ? cached.profile.skills.join(", ")
+              : ""
+          );
+          setLoading(false);
+          // Silent background refresh (do not await)
+          fetchFreshProfile();
+          return;
+        }
+
+        // No cache → fetch and show loading
+        await fetchFreshProfile();
+      } catch (err) {
+        console.error("Profile load error:", err);
+        setError("Failed to load profile");
+        setLoading(false);
+      }
+    };
+
+    loadProfile();
   }, [username]);
 
   // Close modals on ESC key
@@ -177,6 +230,7 @@ const ProfilePage = () => {
           },
         }));
       }
+      prefetchCache.clear(`profile:${username}`);
     } catch (err) {
       console.error("Error toggling follow:", err);
     }
@@ -234,6 +288,7 @@ const ProfilePage = () => {
         stats: updated.stats || prev.stats,
       }));
 
+      prefetchCache.clear(`profile:${username}`);
       setIsEditing(false);
     } catch (e) {
       console.error("Save profile failed:", e);
@@ -241,7 +296,7 @@ const ProfilePage = () => {
     }
   };
 
-  if (loading) {
+  if (loading && !profile) {
     return (
       <>
         <Sidebar />

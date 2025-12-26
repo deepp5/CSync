@@ -1,32 +1,32 @@
-// Simple in-memory cache for prefetched data
-const cache = {
-  myProjects: null,
-  timestamp: null,
-};
+const cache = {};
+const timestamps = {};
 
-const CACHE_DURATION = 30000; // 30 seconds
+const CACHE_DURATION = 30_000; // 30s
 
 export const prefetchCache = {
   set(key, data) {
     cache[key] = data;
-    cache.timestamp = Date.now();
+    timestamps[key] = Date.now();
   },
 
   get(key) {
-    // Return null if cache is too old
-    if (cache.timestamp && Date.now() - cache.timestamp > CACHE_DURATION) {
+    const ts = timestamps[key];
+    if (!ts) return null;
+
+    if (Date.now() - ts > CACHE_DURATION) {
       return null;
     }
+
     return cache[key];
   },
 
   clear(key) {
-    cache[key] = null;
+    delete cache[key];
+    delete timestamps[key];
   },
 
   clearAll() {
-    cache.myProjects = null;
-    cache.timestamp = null;
-  }
+    Object.keys(cache).forEach(k => delete cache[k]);
+    Object.keys(timestamps).forEach(k => delete timestamps[k]);
+  },
 };
-
