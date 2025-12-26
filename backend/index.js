@@ -76,35 +76,86 @@ function getKey(header, callback) {
 /* =========================
    SOCKET AUTH (JWT)
 ========================= */
+/* =========================
+   SOCKET AUTH (JWT)
+========================= */
 io.use((socket, next) => {
-  const token = socket.handshake.auth?.token;
+  const raw = socket.handshake.auth?.token;
+  const token = raw?.startsWith("Bearer ") ? raw.slice(7) : raw;
 
   if (!token) {
     return next(new Error("Missing auth token"));
   }
 
+  // Helpful debug (optional)
+  const decodedHeader = jwt.decode(token, { complete: true })?.header;
+  const alg = decodedHeader?.alg;
+  // console.log("Socket token alg:", alg);
+
+  const issuer = `${process.env.SUPABASE_URL}/auth/v1`;
+  const audience = "authenticated";
+
+  // ✅ If Supabase ever gives HS256 tokens, support it too
+  if (alg === "HS256") {
+    const secret = process.env.SUPABASE_JWT_SECRET;
+    if (!secret) {
+      console.error("❌ Missing SUPABASE_JWT_SECRET for HS256 token");
+      return next(new Error("Server missing SUPABASE_JWT_SECRET"));
+    }
+
+    jwt.verify(
+      token,
+      secret,
+      { issuer, audience, algorithms: ["HS256"] },
+      (err, verified) => {
+        if (err) {
+          console.error("❌ Socket JWT error (HS256):", err.message);
+          return next(new Error("Invalid token"));
+        }
+
+        const rawMeta =
+          verified?.raw_user_meta_data || verified?.user_metadata || {};
+
+        socket.supabaseUser = {
+          id: verified.sub,
+          email: verified.email,
+          user_metadata: verified.user_metadata || rawMeta,
+          raw_user_meta_data: rawMeta,
+        };
+
+        return next();
+      }
+    );
+
+    return;
+  }
+
+  // ✅ Default: RS256/ES256 via JWKS (matches your REST middleware)
   jwt.verify(
     token,
     getKey,
     {
-      audience: "authenticated",
-      issuer: `${process.env.SUPABASE_URL}/auth/v1`,
-      algorithms: ["RS256"],
+      issuer,
+      audience,
+      algorithms: ["RS256", "ES256"],
     },
-    (err, decoded) => {
+    (err, verified) => {
       if (err) {
-        console.error("❌ Socket JWT error:", err.message);
+        console.error("❌ Socket JWT error (JWKS):", err.message);
         return next(new Error("Invalid token"));
       }
 
+      const rawMeta =
+        verified?.raw_user_meta_data || verified?.user_metadata || {};
+
       socket.supabaseUser = {
-        id: decoded.sub,
-        email: decoded.email,
-        user_metadata: decoded.user_metadata || {},
-        raw_user_meta_data: decoded.user_metadata || {}, // ✅ alias
+        id: verified.sub,
+        email: verified.email,
+        user_metadata: verified.user_metadata || rawMeta,
+        raw_user_meta_data: rawMeta,
       };
 
-      next();
+      return next();
     }
   );
 });

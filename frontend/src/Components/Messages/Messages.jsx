@@ -36,7 +36,7 @@ function shortId(id) {
 }
 
 /**
- * ✅ Parses your old "attachment in content" format:
+ * Parses your old "attachment in content" format:
  * "📎 filename\nhttps://..."
  */
 function parseLegacyAttachment(content = "") {
@@ -50,13 +50,12 @@ function parseLegacyAttachment(content = "") {
 }
 
 /**
- * ✅ Normalize any message shape into the UI format
+ * Normalize any message shape into the UI format
  */
 function normalizeMessage(raw, fallbackId = "") {
   const content = safeString(raw?.content);
   const legacy = parseLegacyAttachment(content);
 
-  // If backend is returning a "file" message with fields
   const type = raw?.type || (legacy ? "file" : "text");
 
   const fileName =
@@ -75,12 +74,13 @@ function normalizeMessage(raw, fallbackId = "") {
     id: raw?.id ?? fallbackId,
     senderId: safeString(raw?.senderId),
     receiverId: safeString(raw?.receiverId),
-    content, // keep original content for text
+    content,
     createdAt: raw?.createdAt || new Date().toISOString(),
     read: Boolean(raw?.read),
     type,
     fileName,
     fileUrl,
+    sender: raw?.sender || null, // optional
   };
 }
 
@@ -96,13 +96,56 @@ const Messages = () => {
   const [uploading, setUploading] = useState(false);
 
   const socketRef = useRef(null);
-  const messagesEndRef = useRef(null);
 
-  // ✅ hidden file input for attachments
+  // file input
   const fileInputRef = useRef(null);
 
+  // avoid stale closures in socket handlers
+  const selectedChatIdRef = useRef("");
+  const myIdRef = useRef("");
+
+  useEffect(() => {
+    selectedChatIdRef.current = safeString(selectedChatId);
+  }, [selectedChatId]);
+
+  useEffect(() => {
+    myIdRef.current = safeString(user?.id);
+  }, [user?.id]);
+
   // ===============================
-  // FETCH CONVERSATIONS
+  // ✅ SCROLL CONTROL (MAIN FIX)
+  // ===============================
+  const messagesContainerRef = useRef(null);
+  const shouldAutoScrollRef = useRef(true);
+
+  const scrollToBottom = (behavior = "auto") => {
+    requestAnimationFrame(() => {
+      const el = messagesContainerRef.current;
+      if (!el) return;
+      el.scrollTo({ top: el.scrollHeight, behavior });
+    });
+  };
+
+  const handleMessagesScroll = () => {
+    const el = messagesContainerRef.current;
+    if (!el) return;
+
+    const threshold = 80; // px from bottom counts as "near bottom"
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+
+    // if user is near bottom, allow autoscroll. if user scrolls up, stop autoscroll.
+    shouldAutoScrollRef.current = distanceFromBottom < threshold;
+  };
+
+  // Only autoscroll when user is near bottom
+  useEffect(() => {
+    if (shouldAutoScrollRef.current) {
+      scrollToBottom("smooth");
+    }
+  }, [messages]);
+
+  // ===============================
+  // FETCH CONVERSATIONS (initial)
   // ===============================
   useEffect(() => {
     if (!accessToken) return;
@@ -112,6 +155,7 @@ const Messages = () => {
       try {
         const res = await fetch(`${API_BASE}/conversations`, {
           headers: { Authorization: `Bearer ${accessToken}` },
+          cache: "no-store",
         });
 
         if (!res.ok) throw new Error("Failed to fetch conversations");
@@ -132,11 +176,13 @@ const Messages = () => {
               safeString(c.name) ||
               `User ${otherUserId.slice(0, 6)}`;
 
-            // ✅ never show raw link in preview
             const legacy = parseLegacyAttachment(safeString(c.lastMessage));
             const preview = legacy
               ? `📎 ${legacy.name}`
               : safeString(c.lastMessage);
+
+            const updatedAt =
+              c.updatedAt || c.createdAt || new Date().toISOString();
 
             return {
               userId: otherUserId,
@@ -148,13 +194,14 @@ const Messages = () => {
                 "?"
               ).toUpperCase(),
               lastMessage: preview,
-              updatedAt: c.updatedAt || c.createdAt || new Date().toISOString(),
-              timestamp: formatTime(c.updatedAt || c.createdAt || Date.now()),
-              unread: Number(c.unread || 0),
+              updatedAt,
+              timestamp: formatTime(updatedAt),
+              unread: Number(c.unread || 0) || 0,
               online: Boolean(c.online),
             };
           })
-          .filter(Boolean);
+          .filter(Boolean)
+          .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
 
         setConversations(formatted);
         setSelectedChatId((prev) => prev || formatted[0]?.userId || null);
@@ -178,6 +225,7 @@ const Messages = () => {
       try {
         const res = await fetch(`${API_BASE}/messages/${selectedChatId}`, {
           headers: { Authorization: `Bearer ${accessToken}` },
+          cache: "no-store",
         });
 
         if (!res.ok) throw new Error("Failed to fetch messages");
@@ -190,6 +238,11 @@ const Messages = () => {
 
         setMessages(normalized);
 
+        // ✅ when you open a chat, jump to most recent
+        shouldAutoScrollRef.current = true;
+        scrollToBottom("auto");
+
+        // clear unread for this chat in left panel
         setConversations((prev) =>
           prev.map((c) =>
             c.userId === selectedChatId ? { ...c, unread: 0 } : c
@@ -206,81 +259,219 @@ const Messages = () => {
   }, [selectedChatId, accessToken]);
 
   // ===============================
-  // AUTO SCROLL
+  // ✅ POLL OPEN CHAT (backup)
   // ===============================
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (!accessToken || !selectedChatId) return;
+
+    const poll = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/messages/${selectedChatId}`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+          cache: "no-store",
+        });
+        if (!res.ok) return;
+
+        const data = await res.json();
+        const arr = Array.isArray(data) ? data : [];
+        const normalized = arr.map((m, idx) =>
+          normalizeMessage(m, m.id ?? `${m.createdAt || Date.now()}-${idx}`)
+        );
+
+        setMessages((prev) => {
+          const ids = new Set(prev.map((x) => safeString(x.id)));
+          const merged = [...prev];
+          let added = 0;
+
+          for (const m of normalized) {
+            const id = safeString(m.id);
+            if (!ids.has(id)) {
+              merged.push(m);
+              added++;
+            }
+          }
+          return merged;
+        });
+      } catch {
+        // ignore
+      }
+    };
+
+    poll();
+    const interval = setInterval(poll, 1500);
+    return () => clearInterval(interval);
+  }, [accessToken, selectedChatId]);
 
   // ===============================
-  // SOCKET CONNECT (ONCE)
+  // ✅ POLL CONVERSATIONS (do NOT overwrite unread)
   // ===============================
   useEffect(() => {
     if (!accessToken) return;
 
-    if (!socketRef.current) {
-      socketRef.current = io(API_BASE, {
-        auth: { token: accessToken },
-        transports: ["websocket"],
-      });
+    const poll = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/conversations`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+          cache: "no-store",
+        });
+        if (!res.ok) return;
 
-      socketRef.current.on("connect", () => {
-        console.log("🟢 socket connected:", socketRef.current.id);
-      });
+        const data = await res.json();
+        const arr = Array.isArray(data) ? data : [];
 
-      socketRef.current.on("connect_error", (e) => {
-        console.log("🔴 socket connect_error:", e.message);
-      });
-    }
+        const openId = safeString(selectedChatIdRef.current);
+
+        setConversations((prev) => {
+          const prevMap = new Map(prev.map((c) => [c.userId, c]));
+          const next = [];
+
+          for (const c of arr) {
+            const otherId =
+              safeString(c.userId) ||
+              safeString(c.otherUserId) ||
+              safeString(c.partnerId);
+
+            if (!otherId) continue;
+
+            const legacy = parseLegacyAttachment(safeString(c.lastMessage));
+            const preview = legacy
+              ? `📎 ${legacy.name}`
+              : safeString(c.lastMessage);
+
+            const updatedAt =
+              c.updatedAt || c.createdAt || new Date().toISOString();
+
+            const old = prevMap.get(otherId);
+
+            const displayName =
+              (safeString(c.username) ? `@${safeString(c.username)}` : "") ||
+              safeString(c.name) ||
+              old?.name ||
+              `User ${otherId.slice(0, 6)}`;
+
+            next.push({
+              userId: otherId,
+              name: displayName,
+              username: safeString(c.username) || old?.username || "",
+              avatar:
+                old?.avatar ||
+                (displayName?.[0] || otherId?.[0] || "?").toUpperCase(),
+              lastMessage: preview,
+              updatedAt,
+              timestamp: formatTime(updatedAt),
+              unread: otherId === openId ? 0 : Number(old?.unread || 0), // ✅ keep current unread
+              online: Boolean(old?.online),
+            });
+          }
+
+          next.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+          return next;
+        });
+      } catch {
+        // ignore
+      }
+    };
+
+    poll();
+    const interval = setInterval(poll, 2000);
+    return () => clearInterval(interval);
   }, [accessToken]);
 
   // ===============================
-  // SOCKET: RECEIVE MESSAGE (REALTIME)
+  // SOCKET CONNECT + REALTIME RECEIVE
   // ===============================
   useEffect(() => {
-    const socket = socketRef.current;
-    if (!socket || !user?.id) return;
+    if (!accessToken) return;
 
-    const myId = safeString(user.id);
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+      socketRef.current = null;
+    }
+
+    const socket = io(API_BASE, {
+      auth: { token: accessToken },
+      transports: ["websocket", "polling"],
+      reconnection: true,
+    });
+
+    socketRef.current = socket;
+
+    const onConnect = () => console.log("🟢 socket connected:", socket.id);
+    const onConnectError = (e) =>
+      console.log("🔴 socket connect_error:", e.message);
 
     const onNewMessage = (raw) => {
+      const myId = safeString(myIdRef.current);
+      if (!myId) return;
+
       const message = normalizeMessage(raw, raw?.id ?? `socket-${Date.now()}`);
 
       const senderId = safeString(message.senderId);
       const receiverId = safeString(message.receiverId);
+
       const otherId = senderId === myId ? receiverId : senderId;
+      const openChatId = safeString(selectedChatIdRef.current);
+      const isChatOpen = openChatId === safeString(otherId);
+
+      // only increase unread for INCOMING messages (not your own sends)
+      const isIncoming = senderId !== myId;
 
       setConversations((prev) => {
-        const isChatOpen = safeString(selectedChatId) === safeString(otherId);
-        let found = false;
-
         const preview =
           message.type === "file"
             ? `📎 ${message.fileName || "Attachment"}`
             : safeString(message.content);
 
+        let found = false;
+
         const updated = prev.map((c) => {
           if (c.userId !== otherId) return c;
           found = true;
+
+          const incomingUsername = safeString(message.sender?.username);
+          const incomingName = incomingUsername ? `@${incomingUsername}` : null;
+
           return {
             ...c,
+            name: incomingName || c.name,
+            username: incomingUsername || c.username,
+            avatar: (
+              incomingUsername?.[0] ||
+              c.avatar ||
+              otherId?.[0] ||
+              "?"
+            ).toUpperCase(),
             lastMessage: preview,
             updatedAt: message.createdAt || new Date().toISOString(),
             timestamp: formatTime(message.createdAt),
-            unread: isChatOpen ? 0 : Number(c.unread || 0) + 1,
+
+            // ✅ FIX: 1→2→3 for incoming messages (when chat not open)
+            unread: isChatOpen
+              ? 0
+              : isIncoming
+              ? Number(c.unread || 0) + 1
+              : Number(c.unread || 0),
           };
         });
 
         if (!found) {
+          const incomingUsername = safeString(message.sender?.username);
+
           updated.unshift({
             userId: otherId,
-            name: `User ${shortId(otherId)}`,
-            username: "",
-            avatar: (otherId?.[0] || "?").toUpperCase(),
+            name: incomingUsername
+              ? `@${incomingUsername}`
+              : `User ${shortId(otherId)}`,
+            username: incomingUsername || "",
+            avatar: (
+              incomingUsername?.[0] ||
+              otherId?.[0] ||
+              "?"
+            ).toUpperCase(),
             lastMessage: preview,
             updatedAt: message.createdAt || new Date().toISOString(),
             timestamp: formatTime(message.createdAt),
-            unread: safeString(selectedChatId) === safeString(otherId) ? 0 : 1,
+            unread: isChatOpen ? 0 : isIncoming ? 1 : 0,
             online: false,
           });
         }
@@ -289,7 +480,8 @@ const Messages = () => {
         return updated;
       });
 
-      if (safeString(selectedChatId) !== safeString(otherId)) return;
+      // If I am viewing the chat, append it immediately
+      if (!isChatOpen) return;
 
       setMessages((prev) => {
         if (prev.some((m) => safeString(m.id) === safeString(message.id)))
@@ -298,9 +490,18 @@ const Messages = () => {
       });
     };
 
+    socket.on("connect", onConnect);
+    socket.on("connect_error", onConnectError);
     socket.on("new_message", onNewMessage);
-    return () => socket.off("new_message", onNewMessage);
-  }, [user?.id, selectedChatId]);
+
+    return () => {
+      socket.off("connect", onConnect);
+      socket.off("connect_error", onConnectError);
+      socket.off("new_message", onNewMessage);
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, [accessToken]);
 
   // ===============================
   // FILTER CONVERSATIONS
@@ -341,10 +542,13 @@ const Messages = () => {
       },
       tempId
     );
-    optimistic.__optimistic = true;
 
     setMessages((prev) => [...prev, optimistic]);
     setMessageInput("");
+
+    // ✅ if I send, always jump to bottom
+    shouldAutoScrollRef.current = true;
+    scrollToBottom("smooth");
 
     setConversations((prev) => {
       const existing = prev.find((c) => c.userId === selectedChatId);
@@ -397,28 +601,22 @@ const Messages = () => {
   };
 
   // ===============================
-  // ATTACH: PICK FILE
+  // ATTACH
   // ===============================
   const handleAttachClick = () => {
     if (!selectedChatId || uploading) return;
     fileInputRef.current?.click();
   };
 
-  // ===============================
-  // ATTACH: UPLOAD FILE
-  // ===============================
   const handleFileSelected = async (e) => {
     const file = e.target.files?.[0];
-    e.target.value = ""; // allow re-select same file
-
+    e.target.value = "";
     if (!file || !selectedChatId) return;
 
     setUploading(true);
     setError("");
 
     const tempId = `temp-file-${Date.now()}`;
-
-    // optimistic bubble
     const optimistic = normalizeMessage(
       {
         id: tempId,
@@ -433,9 +631,12 @@ const Messages = () => {
       },
       tempId
     );
-    optimistic.__optimistic = true;
 
     setMessages((prev) => [...prev, optimistic]);
+
+    // ✅ sending attachment -> go bottom
+    shouldAutoScrollRef.current = true;
+    scrollToBottom("smooth");
 
     setConversations((prev) =>
       prev.map((c) =>
@@ -457,9 +658,7 @@ const Messages = () => {
 
       const res = await fetch(`${API_BASE}/messages/upload`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
+        headers: { Authorization: `Bearer ${accessToken}` },
         body: form,
       });
 
@@ -468,9 +667,7 @@ const Messages = () => {
         throw new Error(`POST /messages/upload failed ${res.status}: ${txt}`);
       }
 
-      // ✅ IMPORTANT: backend returns { message, attachment }
       const payload = await res.json();
-
       const normalizedSaved = normalizeMessage(
         {
           ...(payload?.message || {}),
@@ -524,6 +721,11 @@ const Messages = () => {
                 }`}
                 onClick={() => {
                   setSelectedChatId(c.userId);
+
+                  // ✅ when selecting a chat, go to most recent
+                  shouldAutoScrollRef.current = true;
+                  scrollToBottom("auto");
+
                   setConversations((prev) =>
                     prev.map((x) =>
                       x.userId === c.userId ? { ...x, unread: 0 } : x
@@ -596,12 +798,16 @@ const Messages = () => {
                 </div>
               </div>
 
-              <div className="messages-container">
+              {/* ✅ IMPORTANT: this must be the scrollable container */}
+              <div
+                className="messages-container"
+                ref={messagesContainerRef}
+                onScroll={handleMessagesScroll}
+              >
                 <div className="messages-list">
                   {messages.map((m) => {
                     const isOwn =
                       safeString(m.senderId) === safeString(user?.id);
-
                     const isFile = m.type === "file";
 
                     return (
@@ -661,12 +867,10 @@ const Messages = () => {
                       </div>
                     );
                   })}
-                  <div ref={messagesEndRef} />
                 </div>
               </div>
 
               <div className="message-input-container">
-                {/* ✅ Attach */}
                 <button
                   className="input-action-btn"
                   type="button"
@@ -678,7 +882,6 @@ const Messages = () => {
                   <FiPaperclip />
                 </button>
 
-                {/* hidden input */}
                 <input
                   ref={fileInputRef}
                   type="file"

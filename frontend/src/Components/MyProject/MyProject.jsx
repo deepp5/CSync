@@ -1,14 +1,14 @@
 // MyProjectsPage.jsx
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { supabase } from "../../supabaseClient";
 import { prefetchCache } from "../../utils/prefetchCache";
-import './MyProject.css';
-import { 
-  FiEdit2, 
-  FiTrash2, 
-  FiEye, 
+import "./MyProject.css";
+import {
+  FiEdit2,
+  FiTrash2,
+  FiEye,
   FiEyeOff,
   FiMoreVertical,
   FiPlus,
@@ -16,13 +16,13 @@ import {
   FiFilter,
   FiCopy,
   FiShare2,
-  FiLock
-} from 'react-icons/fi';
+  FiLock,
+} from "react-icons/fi";
 
 export default function MyProjects() {
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all'); // all, public, private, draft
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all"); // all, public, private, draft
   const [selectedProject, setSelectedProject] = useState(null);
   const [showMenu, setShowMenu] = useState(null);
 
@@ -33,7 +33,7 @@ export default function MyProjects() {
     async function fetchMyProjects() {
       try {
         // ⚡ Check cache first - INSTANT if prefetched!
-        const cachedData = prefetchCache.get('myProjects');
+        const cachedData = prefetchCache.get("myProjects");
         if (cachedData) {
           setProjects(cachedData);
           setLoading(false);
@@ -43,7 +43,9 @@ export default function MyProjects() {
         }
 
         // No cache - fetch normally
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
         if (!session) {
           setLoading(false);
           return;
@@ -52,7 +54,7 @@ export default function MyProjects() {
         const token = session.access_token;
 
         const res = await axios.get("http://localhost:5051/posts/me", {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
 
         setProjects(res.data);
@@ -66,18 +68,20 @@ export default function MyProjects() {
 
     async function fetchFreshData() {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
         if (!session) return;
 
         const token = session.access_token;
 
         const res = await axios.get("http://localhost:5051/posts/me", {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
 
         // Update with fresh data
         setProjects(res.data);
-        prefetchCache.set('myProjects', res.data);
+        prefetchCache.set("myProjects", res.data);
       } catch (error) {
         console.error("Error fetching fresh projects:", error);
       }
@@ -87,7 +91,7 @@ export default function MyProjects() {
   }, []);
 
   // Filter and search projects
-  const filteredProjects = projects.filter(project => {
+  const filteredProjects = projects.filter((project) => {
     const title = (project.title || "").toLowerCase();
     const desc = (project.description || "").toLowerCase();
 
@@ -98,7 +102,8 @@ export default function MyProjects() {
     // NOTE: backend uses "PUBLIC/PRIVATE/DRAFT"
     // so filterStatus is 'public'/'private'/'draft' -> uppercased
     const matchesFilter =
-      filterStatus === 'all' || project.visibility === filterStatus.toUpperCase();
+      filterStatus === "all" ||
+      project.visibility === filterStatus.toUpperCase();
 
     return matchesSearch && matchesFilter;
   });
@@ -117,18 +122,20 @@ export default function MyProjects() {
     if (!confirmed) return;
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) return;
-      
+
       const token = session.access_token;
-      
+
       await axios.delete(`http://localhost:5051/posts/${projectId}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
 
-      const updatedProjects = projects.filter(p => p.id !== projectId);
+      const updatedProjects = projects.filter((p) => p.id !== projectId);
       setProjects(updatedProjects);
-      prefetchCache.set('myProjects', updatedProjects); // Update cache
+      prefetchCache.set("myProjects", updatedProjects); // Update cache
       setShowMenu(null);
     } catch (error) {
       console.error("Error deleting project:", error);
@@ -137,39 +144,45 @@ export default function MyProjects() {
   };
 
   const handleChangeStatus = async (projectId, newVisibility) => {
-    const project = projects.find(p => p.id === projectId);
+    const project = projects.find((p) => p.id === projectId);
     if (!project) return;
 
     // ✅ OPTIMISTIC UPDATE - Update UI instantly
-    const updatedProjects = projects.map(p =>
+    const updatedProjects = projects.map((p) =>
       p.id === projectId ? { ...p, visibility: newVisibility } : p
     );
     setProjects(updatedProjects);
-    prefetchCache.set('myProjects', updatedProjects); // Update cache
+    prefetchCache.set("myProjects", updatedProjects); // Update cache
     setShowMenu(null);
 
     // Then sync with backend in the background
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) return;
-      
+
       const token = session.access_token;
 
-      await axios.put(`http://localhost:5051/posts/${projectId}`, {
-        ...project,
-        techStack: project.techStack,
-        visibility: newVisibility
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await axios.put(
+        `http://localhost:5051/posts/${projectId}`,
+        {
+          ...project,
+          techStack: project.techStack,
+          visibility: newVisibility,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
     } catch (error) {
       console.error("Error updating project visibility:", error);
       // ❌ Revert on failure
-      const revertedProjects = projects.map(p =>
+      const revertedProjects = projects.map((p) =>
         p.id === projectId ? { ...p, visibility: project.visibility } : p
       );
       setProjects(revertedProjects);
-      prefetchCache.set('myProjects', revertedProjects); // Update cache with reverted data
+      prefetchCache.set("myProjects", revertedProjects); // Update cache with reverted data
       alert("Failed to update project visibility. Please try again.");
     }
   };
@@ -180,28 +193,28 @@ export default function MyProjects() {
 
     if (navigator.share) {
       navigator.share({
-        title: 'Check out my project!',
-        url: url
+        title: "Check out my project!",
+        url: url,
       });
     } else {
       navigator.clipboard.writeText(url);
-      alert('Link copied to clipboard!');
+      alert("Link copied to clipboard!");
     }
     setShowMenu(null);
   };
 
   const getStatusBadge = (visibility) => {
     const badges = {
-      PUBLIC: { label: 'Public', class: 'status-public' },
-      PRIVATE: { label: 'Private', class: 'status-private' },
-      DRAFT: { label: 'Draft', class: 'status-draft' }
+      PUBLIC: { label: "Public", class: "status-public" },
+      PRIVATE: { label: "Private", class: "status-private" },
+      DRAFT: { label: "Draft", class: "status-draft" },
     };
     return badges[visibility] || badges.DRAFT;
   };
 
   const getStatusIcon = (visibility) => {
-    if (visibility === 'PUBLIC') return <FiEye />;
-    if (visibility === 'PRIVATE') return <FiLock />;
+    if (visibility === "PUBLIC") return <FiEye />;
+    if (visibility === "PRIVATE") return <FiLock />;
     return <FiEyeOff />;
   };
 
@@ -209,9 +222,9 @@ export default function MyProjects() {
     const date = new Date(dateString);
     const now = new Date();
     const days = Math.floor((now - date) / (1000 * 60 * 60 * 24));
-    
-    if (days === 0) return 'Today';
-    if (days === 1) return 'Yesterday';
+
+    if (days === 0) return "Today";
+    if (days === 1) return "Yesterday";
     if (days < 7) return `${days} days ago`;
     if (days < 30) return `${Math.floor(days / 7)} weeks ago`;
     return date.toLocaleDateString();
@@ -225,7 +238,10 @@ export default function MyProjects() {
           <div className="header-left-mp">
             <h1 className="page-title-mp">My Projects</h1>
           </div>
-          <button className="create-project-btn" onClick={() => navigate('/createpost')}>
+          <button
+            className="create-project-btn"
+            onClick={() => navigate("/createpost")}
+          >
             <FiPlus /> New Project
           </button>
         </div>
@@ -244,27 +260,33 @@ export default function MyProjects() {
           </div>
 
           <div className="filter-tabs">
-            <button 
-              className={`filter-tab ${filterStatus === 'all' ? 'active' : ''}`}
-              onClick={() => setFilterStatus('all')}
+            <button
+              className={`filter-tab ${filterStatus === "all" ? "active" : ""}`}
+              onClick={() => setFilterStatus("all")}
             >
               All
             </button>
-            <button 
-              className={`filter-tab ${filterStatus === 'public' ? 'active' : ''}`}
-              onClick={() => setFilterStatus('public')}
+            <button
+              className={`filter-tab ${
+                filterStatus === "public" ? "active" : ""
+              }`}
+              onClick={() => setFilterStatus("public")}
             >
               Public
             </button>
-            <button 
-              className={`filter-tab ${filterStatus === 'private' ? 'active' : ''}`}
-              onClick={() => setFilterStatus('private')}
+            <button
+              className={`filter-tab ${
+                filterStatus === "private" ? "active" : ""
+              }`}
+              onClick={() => setFilterStatus("private")}
             >
               Private
             </button>
-            <button 
-              className={`filter-tab ${filterStatus === 'draft' ? 'active' : ''}`}
-              onClick={() => setFilterStatus('draft')}
+            <button
+              className={`filter-tab ${
+                filterStatus === "draft" ? "active" : ""
+              }`}
+              onClick={() => setFilterStatus("draft")}
             >
               Drafts
             </button>
@@ -279,14 +301,17 @@ export default function MyProjects() {
         ) : filteredProjects.length === 0 ? (
           <div className="no-projects">
             <div className="no-projects-icon">📁</div>
-            <h3>No projects found</h3>
+            {/* <h3>No projects found</h3> */}
             <p>
-              {searchQuery 
-                ? "Try adjusting your search or filters" 
+              {searchQuery
+                ? "Try adjusting your search or filters"
                 : "Start by creating your first project"}
             </p>
             {!searchQuery && (
-              <button className="create-first-btn" onClick={() => navigate('/createpost')}>
+              <button
+                className="create-first-btn"
+                onClick={() => navigate("/createpost")}
+              >
                 <FiPlus /> Create Your First Project
               </button>
             )}
@@ -295,12 +320,9 @@ export default function MyProjects() {
           <div className="projects-grid">
             {filteredProjects.map((project) => {
               const statusBadge = getStatusBadge(project.visibility);
-              
+
               return (
-                <div
-                  key={project.id}
-                  className="project-card-manage"
-                >
+                <div key={project.id} className="project-card-manage">
                   {/* Card Header */}
                   <div className="card-header-manage">
                     <span className={`status-badge ${statusBadge.class}`}>
@@ -309,34 +331,36 @@ export default function MyProjects() {
                     </span>
 
                     <div className="card-menu-container">
-                      <button 
+                      <button
                         className="card-menu-btn"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setShowMenu(showMenu === project.id ? null : project.id);
+                          setShowMenu(
+                            showMenu === project.id ? null : project.id
+                          );
                         }}
                       >
                         <FiMoreVertical />
                       </button>
-                      
+
                       {showMenu === project.id && (
                         <div className="card-menu-dropdown">
-                          {project.visibility === 'DRAFT' && (
+                          {project.visibility === "DRAFT" && (
                             <>
-                              <button 
+                              <button
                                 className="menu-item"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleChangeStatus(project.id, 'PUBLIC');
+                                  handleChangeStatus(project.id, "PUBLIC");
                                 }}
                               >
                                 <FiEye /> Make Public
                               </button>
-                              <button 
+                              <button
                                 className="menu-item"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleChangeStatus(project.id, 'PRIVATE');
+                                  handleChangeStatus(project.id, "PRIVATE");
                                 }}
                               >
                                 <FiEyeOff /> Make Private
@@ -345,13 +369,13 @@ export default function MyProjects() {
                             </>
                           )}
 
-                          {project.visibility === 'PUBLIC' && (
+                          {project.visibility === "PUBLIC" && (
                             <>
-                              <button 
+                              <button
                                 className="menu-item"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleChangeStatus(project.id, 'PRIVATE');
+                                  handleChangeStatus(project.id, "PRIVATE");
                                 }}
                               >
                                 <FiEyeOff /> Make Private
@@ -360,13 +384,13 @@ export default function MyProjects() {
                             </>
                           )}
 
-                          {project.visibility === 'PRIVATE' && (
+                          {project.visibility === "PRIVATE" && (
                             <>
-                              <button 
+                              <button
                                 className="menu-item"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleChangeStatus(project.id, 'PUBLIC');
+                                  handleChangeStatus(project.id, "PUBLIC");
                                 }}
                               >
                                 <FiEye /> Make Public
@@ -375,7 +399,7 @@ export default function MyProjects() {
                             </>
                           )}
 
-                          <button 
+                          <button
                             className="menu-item"
                             onClick={(e) => {
                               e.stopPropagation();
@@ -385,7 +409,7 @@ export default function MyProjects() {
                             <FiEdit2 /> Edit
                           </button>
 
-                          <button 
+                          <button
                             className="menu-item"
                             onClick={(e) => {
                               e.stopPropagation();
@@ -397,7 +421,7 @@ export default function MyProjects() {
 
                           <div className="menu-divider"></div>
 
-                          <button 
+                          <button
                             className="menu-item danger"
                             onClick={(e) => {
                               e.stopPropagation();
@@ -414,12 +438,18 @@ export default function MyProjects() {
                   {/* Card Content */}
                   <div className="card-content-manage">
                     <h3 className="card-title-manage">{project.title}</h3>
-                    <p className="card-description-manage">{project.description}</p>
-                    
+                    <p className="card-description-manage">
+                      {project.description}
+                    </p>
+
                     <div className="card-skills-manage">
-                      {(project.techStack || []).slice(0, 3).map((skill, index) => (
-                        <span key={index} className="skill-badge">{skill}</span>
-                      ))}
+                      {(project.techStack || [])
+                        .slice(0, 3)
+                        .map((skill, index) => (
+                          <span key={index} className="skill-badge">
+                            {skill}
+                          </span>
+                        ))}
                       {project.techStack && project.techStack.length > 3 && (
                         <span className="skill-badge more">
                           +{project.techStack.length - 3}
@@ -434,7 +464,6 @@ export default function MyProjects() {
                       Updated {getTimeAgo(project.updatedAt)}
                     </span>
                   </div>
-
                 </div>
               );
             })}
