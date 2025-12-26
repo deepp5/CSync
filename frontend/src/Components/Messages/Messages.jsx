@@ -31,7 +31,13 @@ function normalizeConversation(raw) {
   };
 }
 // src/Components/Messages/Messages.jsx
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { prefetchCache } from "../../utils/prefetchCache";
 import "./Messages.css";
 import {
@@ -159,36 +165,56 @@ const Messages = () => {
   }, [user?.id]);
 
   // ===============================
-  // ✅ SCROLL CONTROL (MAIN FIX)
-  // ===============================
-  const messagesContainerRef = useRef(null);
-  const shouldAutoScrollRef = useRef(true);
+// ✅ SCROLL CONTROL (NO JUMP EVER)
+// ===============================
+const messagesContainerRef = useRef(null);
+const shouldAutoScrollRef = useRef(true);
+const firstPaintRef = useRef({ chatId: null, done: false });
 
-  const scrollToBottom = (behavior = "auto") => {
-    requestAnimationFrame(() => {
-      const el = messagesContainerRef.current;
-      if (!el) return;
-      el.scrollTo({ top: el.scrollHeight, behavior });
-    });
-  };
+useEffect(() => {
+  if (!selectedChatId) return;
+  firstPaintRef.current = { chatId: selectedChatId, done: false };
+  shouldAutoScrollRef.current = true;
+}, [selectedChatId]);
 
-  const handleMessagesScroll = () => {
-    const el = messagesContainerRef.current;
-    if (!el) return;
+useLayoutEffect(() => {
+  const el = messagesContainerRef.current;
+  if (!el || !selectedChatId) return;
 
-    const threshold = 80; // px from bottom counts as "near bottom"
-    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+  const isFirstPaint =
+    firstPaintRef.current.chatId === selectedChatId &&
+    !firstPaintRef.current.done;
 
-    // if user is near bottom, allow autoscroll. if user scrolls up, stop autoscroll.
-    shouldAutoScrollRef.current = distanceFromBottom < threshold;
-  };
+  // 🔥 FIRST render → snap BEFORE paint
+  if (isFirstPaint) {
+    el.scrollTop = el.scrollHeight;
+    firstPaintRef.current.done = true;
+    return;
+  }
+
+  // After that → only stick to bottom if user didn't scroll up
+  if (shouldAutoScrollRef.current) {
+    el.scrollTop = el.scrollHeight;
+  }
+}, [messages, selectedChatId]);
+
+const handleMessagesScroll = () => {
+  const el = messagesContainerRef.current;
+  if (!el) return;
+
+  const threshold = 80;
+  const distanceFromBottom =
+    el.scrollHeight - el.scrollTop - el.clientHeight;
+
+  shouldAutoScrollRef.current = distanceFromBottom < threshold;
+};
 
   // Only autoscroll when user is near bottom
-  useEffect(() => {
-    if (shouldAutoScrollRef.current) {
-      scrollToBottom("smooth");
-    }
-  }, [messages]);
+  // useEffect(() => {
+  //   if (shouldAutoScrollRef.current) {
+  //     scrollToBottom("smooth");
+  //   }
+  // }, [messages]);
 
   // ===============================
   // FETCH CONVERSATIONS (initial)
@@ -268,7 +294,7 @@ const Messages = () => {
 
         // ✅ when you open a chat, jump to most recent
         shouldAutoScrollRef.current = true;
-        scrollToBottom("auto");
+        // scrollToBottom("auto");
 
         // clear unread for this chat in left panel
         setConversations((prev) =>
@@ -436,7 +462,7 @@ const Messages = () => {
     let updatedConversation;
     // ✅ if I send, always jump to bottom
     shouldAutoScrollRef.current = true;
-    scrollToBottom("smooth");
+    // scrollToBottom("smooth");
 
       setConversations((prev) => {
         const existing = prev.find((c) => c.userId === selectedChatId);
@@ -544,7 +570,7 @@ const Messages = () => {
 
     // ✅ sending attachment -> go bottom
     shouldAutoScrollRef.current = true;
-    scrollToBottom("smooth");
+    // scrollToBottom("smooth");
 
     setConversations((prev) =>
       prev.map((c) =>
@@ -639,7 +665,7 @@ const Messages = () => {
 
                   // ✅ when selecting a chat, go to most recent
                   shouldAutoScrollRef.current = true;
-                  scrollToBottom("auto");
+                  // scrollToBottom("auto");
 
                   setConversations((prev) =>
                     prev.map((x) =>
