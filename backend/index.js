@@ -8,6 +8,7 @@ import { Server } from "socket.io";
 import messageRoutes from "./src/routes/messageRoutes.js";
 import conversationRoutes from "./src/routes/conversationRoutes.js";
 import settingsRoutes from "./src/routes/settingsRoutes.js"
+import profileRoutes from "./src/routes/profileRoutes.js";
 
 
 import { verifySupabaseToken } from "./src/utils/authMiddleware.js";
@@ -35,6 +36,7 @@ app.get("/", (req, res) => {
 app.use("/messages", messageRoutes);
 app.use("/conversations", conversationRoutes);
 app.use("/settings", settingsRoutes);
+app.use("/api/profile", profileRoutes);
 
 // ===========================
 // SOCKET.IO (AUTH + LAZY SYNC)
