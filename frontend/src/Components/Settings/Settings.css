@@ -358,6 +358,24 @@ body[data-sidebar-open="false"] .settings-page {
   transform: translateX(24px);
 }
 
+.settings-beta-box {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 1000;
+  max-width: 360px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(33, 218, 242, 0.08);
+  border: 1px solid rgba(33, 218, 242, 0.25);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+
+
 /* Responsive Design */
 @media (max-width: 1024px) {
   .settings-content {
@@ -399,12 +417,13 @@ body[data-sidebar-open="false"] .settings-page {
 
   .settings-header {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
     gap: 15px;
   }
 
   .settings-title {
     font-size: 28px;
+    justify-content: center;
   }
 
   .settings-sidebar {

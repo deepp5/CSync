@@ -8,6 +8,9 @@ import { Server } from "socket.io";
 import authRoutes from "./src/routes/authRoutes.js";
 import messageRoutes from "./src/routes/messageRoutes.js";
 import conversationRoutes from "./src/routes/conversationRoutes.js";
+import settingsRoutes from "./src/routes/settingsRoutes.js";
+import profileRoutes from "./src/routes/profileRoutes.js";
+
 import { verifySupabaseToken } from "./src/utils/authMiddleware.js";
 import { ensureUserExists } from "./src/utils/ensureUser.js";
 import commentRoutes from "./src/routes/commentRoutes.js";
@@ -41,6 +44,8 @@ app.use("/auth", authRoutes);
 app.use("/messages", messageRoutes);
 app.use("/conversations", conversationRoutes);
 app.use("/posts", commentRoutes);
+app.use("/settings", settingsRoutes);
+app.use("/api/profile", profileRoutes);
 
 /* =========================
    SOCKET.IO SETUP

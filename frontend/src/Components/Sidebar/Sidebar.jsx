@@ -13,10 +13,12 @@ import {
 } from "react-icons/fi";
 import { Link } from "react-router-dom";
 import { prefetchMyProjects } from "../../utils/prefetchProjects";
+import { supabase } from "../../supabaseClient";
 
 const Sidebar = () => {
   const [isOpen, setIsOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+  const [myUsername, setMyUsername] = useState(null);
 
   useEffect(() => {
     const handleResize = () => {
@@ -29,6 +31,19 @@ const Sidebar = () => {
         setIsOpen(true);
       }
     };
+
+    const loadMe = async () =>{
+      const { data } = await supabase.auth.getSession();
+      const token = data?.session?.access_token;
+      if(!token) return;
+      const res = await fetch("http://localhost:5051/api/profile/me",{
+        headers: { Authorization: `Bearer ${token}`},
+      });
+      if(!res.ok) return;
+      const me = await res.json();
+      setMyUsername(me.username);
+    };
+    loadMe();
 
     // Initial check
     handleResize();
@@ -98,7 +113,7 @@ const Sidebar = () => {
 
         {/* Bottom Section */}
         <div className="sidebar-bottom">
-          <Link className="sidebar-btn profile-btn" to="/profile">
+          <Link className="sidebar-btn profile-btn" to={myUsername ? `/profile/${myUsername}` : "/home"}>
             <FiUser className="icon" />
             {isOpen && <span>Profile</span>}
           </Link>
