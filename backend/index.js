@@ -2,6 +2,7 @@ import express from "express";
 import http from "http";
 import cors from "cors";
 import dotenv from "dotenv";
+dotenv.config();
 import { PrismaClient } from "@prisma/client";
 import { Server } from "socket.io";
 
@@ -17,8 +18,6 @@ import commentRoutes from "./src/routes/commentRoutes.js";
 
 import jwt from "jsonwebtoken";
 import jwksClient from "jwks-rsa";
-
-dotenv.config();
 
 /* =========================
    APP + SERVER
