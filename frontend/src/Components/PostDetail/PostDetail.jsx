@@ -16,6 +16,7 @@ import {
   FiLinkedin,
 } from "react-icons/fi";
 import { IoIosArrowForward } from "react-icons/io";
+import {Link} from "react-router-dom"
 
 const PostDetail = () => {
   const { id } = useParams(); // Get post ID from URL
@@ -350,6 +351,8 @@ const PostDetail = () => {
       </div>
     );
   }
+  const profileUsername = post?.User?.username;
+  const profilePath = profileUsername ? `/profile/${profileUsername}` : null;
 
   return (
     <div className="post-detail-page">
@@ -533,18 +536,28 @@ const PostDetail = () => {
           <div className="post-sidebar">
             <div className="author-card">
               <div className="author-info">
-                <div className="author-avatar-large">
-                  {post.User?.username?.charAt(0).toUpperCase() || "U"}
-                </div>
-                <h4 className="author-name">
-                  {post.User?.name || "Anonymous"}
-                </h4>
-                <p className="author-username">
-                  @{post.User?.username || "user"}
-                </p>
-                <p className="author-bio">
-                  {post.User?.bio || "No bio available"}
-                </p>
+                {profilePath ? (
+                  <Link to={profilePath} className="author-profile-link">
+                    <div className="author-avatar-large">
+                      {post.User?.username?.charAt(0).toUpperCase() || "U"}
+                    </div>
+                  </Link>
+                ) : (
+                  <div className="author-avatar-large">
+                    {post.User?.username?.charAt(0).toUpperCase() || "U"}
+                  </div>
+                )}
+
+                {profilePath ? (
+                  <Link to={profilePath} className="author-profile-link">
+                    <h4 className="author-name">{post.User?.name || "Anonymous"}</h4>
+                  </Link>
+                ) : (
+                  <h4 className="author-name">{post.User?.name || "Anonymous"}</h4>
+                )}
+
+                <p className="author-username">@{post.User?.username || "user"}</p>
+                <p className="author-bio">{post.User?.bio || "No bio available"}</p>
               </div>
 
               <div className="author-social">
