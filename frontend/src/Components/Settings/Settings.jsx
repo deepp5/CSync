@@ -9,31 +9,40 @@ import {
   FiLogOut,
   FiCheck
 } from 'react-icons/fi';
+import { prefetchCache } from "../../utils/prefetchCache";
 
 const Settings = () => {
+  const cachedSettings = prefetchCache.get("settings");
+
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('account');
-  const [loading, setLoading] = useState(true);
-  const [settings, setSettings] = useState({
-    // Account Settings
-    displayName: '',
-    username: '',
-    email: '',
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
-    
-    // Privacy Settings
-    profileVisibility: 'FOLLOWERS',
-    showEmail: false,
-    allowMessages: true,
-  });
+  const [activeTab, setActiveTab] = useState("account");
+  const [settings, setSettings] = useState(
+    cachedSettings || {
+      // Account Settings
+      displayName: '',
+      username: '',
+      email: '',
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+      
+      // Privacy Settings
+      profileVisibility: 'FOLLOWERS',
+      showEmail: false,
+      allowMessages: true,
+    }
+  );
 
   const [saveStatus, setSaveStatus] = useState('');
 
   // Fetch user settings on mount
   useEffect(() => {
-    fetchSettings();
+    if (!cachedSettings) {
+      fetchSettings();
+    } else {
+      // Background refresh
+      fetchSettings();
+    }
   }, []);
 
   const fetchSettings = async () => {
@@ -57,19 +66,24 @@ const Settings = () => {
       }
 
       const data = await response.json();
-      setSettings(prev => ({
-        ...prev,
+      const nextSettings = {
         displayName: data.name || '',
         username: data.username || '',
         email: data.email || '',
         profileVisibility: data.profileVisibility || 'FOLLOWERS',
         showEmail: data.showEmail || false,
         allowMessages: data.allowMessages || true,
+      };
+
+      setSettings(prev => ({
+        ...prev,
+        ...nextSettings,
       }));
-      setLoading(false);
+
+      prefetchCache.set("settings", nextSettings);
+      return;
     } catch (error) {
       console.error('Error fetching settings:', error);
-      setLoading(false);
     }
   };
 
@@ -283,15 +297,6 @@ const Settings = () => {
     { id: 'privacy', label: 'Privacy', icon: <FiEye /> },
   ];
 
-  if (loading) {
-    return (
-      <div className="settings-page">
-        <div className="settings-container">
-          <p>Loading settings...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="settings-page">

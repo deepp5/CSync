@@ -4,6 +4,7 @@ import { prefetchHomeFeed } from "../utils/prefetchHomeFeed";
 import { prefetchProfile } from "../utils/prefetchProfile";
 import { prefetchMessagesWith } from "../utils/prefetchMsg";
 import { prefetchCache } from "../utils/prefetchCache";
+import { prefetchSettings } from "../utils/prefetchSettings.js";
 
 const AuthContext = createContext(null);
 
@@ -26,6 +27,7 @@ export function AuthProvider({ children }) {
         // Fire-and-forget prefetches
         prefetchHomeFeed();
         if (username) prefetchProfile(username);
+        prefetchSettings();
 
         (async () => {
           try {
@@ -70,6 +72,7 @@ export function AuthProvider({ children }) {
 
         prefetchHomeFeed();
         if (username) prefetchProfile(username);
+        prefetchSettings();
 
         (async () => {
           try {
