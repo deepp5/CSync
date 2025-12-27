@@ -231,7 +231,7 @@ export default function MyProjects() {
   };
 
   return (
-    <div className="my-projects-page" style={{ position: "relative", overflow: "hidden" }}>
+    <div className="my-projects-page" style={{ position: "relative", overflow: "visible" }}>
       {/* Ambient glow - top left */}
       <div
         style={{
@@ -337,7 +337,7 @@ export default function MyProjects() {
               const statusBadge = getStatusBadge(project.visibility);
 
               return (
-                <div key={project.id} className="project-card-manage">
+                <div key={project.id} className={`project-card-manage ${showMenu === project.id ? "menu-open" : ""}`}>
                   {/* Card Header */}
                   <div className="card-header-manage">
                     <span className={`status-badge ${statusBadge.class}`}>

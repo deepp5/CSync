@@ -246,6 +246,27 @@ body[data-sidebar-open="false"] .my-projects-page {
 .card-menu-container {
   position: relative;
 }
+/* Make sure grid allows overlays */
+.projects-grid {
+  position: relative;
+  overflow: visible;
+}
+
+/* Default card stacking */
+.project-card-manage {
+  z-index: 1;
+}
+
+/* When menu is open, lift this card above other cards */
+.project-card-manage.menu-open {
+  z-index: 999;
+}
+
+/* Ensure dropdown always sits above content inside the card */
+.card-menu-dropdown {
+  z-index: 1000;
+}
+
 
 .card-menu-btn {
   width: 32px;
