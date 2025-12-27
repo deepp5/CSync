@@ -1,6 +1,5 @@
 // src/Components/Messages/Messages.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { prefetchCache } from "../../utils/prefetchCache";
 import "./Messages.css";
 import {
   FiSearch,
@@ -37,7 +36,7 @@ function shortId(id) {
 }
 
 /**
- * Parses your old "attachment in content" format:
+ * ✅ Parses your old "attachment in content" format:
  * "📎 filename\nhttps://..."
  */
 function parseLegacyAttachment(content = "") {
@@ -51,7 +50,7 @@ function parseLegacyAttachment(content = "") {
 }
 
 /**
- * Normalize any message shape into the UI format
+ * ✅ Normalize any message shape into the UI format
  */
 function normalizeMessage(raw, fallbackId = "") {
   const content = safeString(raw?.content);
@@ -81,7 +80,7 @@ function normalizeMessage(raw, fallbackId = "") {
     type,
     fileName,
     fileUrl,
-    sender: raw?.sender || null, // optional
+    sender: raw?.sender || null,
   };
 }
 
@@ -97,13 +96,15 @@ const Messages = () => {
   const [uploading, setUploading] = useState(false);
 
   const socketRef = useRef(null);
-
-  // file input
+  const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // avoid stale closures in socket handlers
+  // ✅ refs to avoid stale closures
   const selectedChatIdRef = useRef("");
   const myIdRef = useRef("");
+
+  // ✅ track "last read" per conversation (to show unread = 1)
+  const lastReadAtRef = useRef({}); // { [userId]: isoString }
 
   useEffect(() => {
     selectedChatIdRef.current = safeString(selectedChatId);
@@ -114,36 +115,19 @@ const Messages = () => {
   }, [user?.id]);
 
   // ===============================
-  // ✅ SCROLL CONTROL (MAIN FIX)
+  // ✅ SCROLL ISSUE FIX (ONLY ADDITION)
   // ===============================
   const messagesContainerRef = useRef(null);
   const shouldAutoScrollRef = useRef(true);
-
-  const scrollToBottom = (behavior = "auto") => {
-    requestAnimationFrame(() => {
-      const el = messagesContainerRef.current;
-      if (!el) return;
-      el.scrollTo({ top: el.scrollHeight, behavior });
-    });
-  };
 
   const handleMessagesScroll = () => {
     const el = messagesContainerRef.current;
     if (!el) return;
 
-    const threshold = 80; // px from bottom counts as "near bottom"
+    const threshold = 80; // px near bottom counts as "at bottom"
     const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-
-    // if user is near bottom, allow autoscroll. if user scrolls up, stop autoscroll.
     shouldAutoScrollRef.current = distanceFromBottom < threshold;
   };
-
-  // Only autoscroll when user is near bottom
-  useEffect(() => {
-    if (shouldAutoScrollRef.current) {
-      scrollToBottom("smooth");
-    }
-  }, [messages]);
 
   // ===============================
   // FETCH CONVERSATIONS (initial)
@@ -153,14 +137,6 @@ const Messages = () => {
 
     const fetchConversations = async () => {
       setError("");
-      // 1️⃣ Try cache first
-      const cached = prefetchCache.get("messages:conversations");
-      if (cached) {
-        setConversations(cached);
-        setSelectedChatId((prev) => prev || cached[0]?.userId || null);
-      }
-
-      // 2️⃣ Always refresh in background
       try {
         const res = await fetch(`${API_BASE}/conversations`, {
           headers: { Authorization: `Bearer ${accessToken}` },
@@ -171,7 +147,6 @@ const Messages = () => {
         const data = await res.json();
         const arr = Array.isArray(data) ? data : [];
 
-        // (keep existing formatting logic)
         const formatted = arr
           .map((c) => {
             const otherUserId =
@@ -206,7 +181,7 @@ const Messages = () => {
               lastMessage: preview,
               updatedAt,
               timestamp: formatTime(updatedAt),
-              unread: Number(c.unread || 0) || 0,
+              unread: 0,
               online: Boolean(c.online),
             };
           })
@@ -215,7 +190,6 @@ const Messages = () => {
 
         setConversations(formatted);
         setSelectedChatId((prev) => prev || formatted[0]?.userId || null);
-        prefetchCache.set("messages:conversations", formatted);
       } catch (e) {
         console.error(e);
         setError("Failed to load conversations.");
@@ -230,12 +204,6 @@ const Messages = () => {
   // ===============================
   useEffect(() => {
     if (!selectedChatId || !accessToken) return;
-
-    // Prefetch cache logic
-    const cached = prefetchCache.get(`messages:thread:${selectedChatId}`);
-    if (cached) {
-      setMessages(cached);
-    }
 
     const fetchMessages = async () => {
       setError("");
@@ -254,18 +222,25 @@ const Messages = () => {
         );
 
         setMessages(normalized);
-        prefetchCache.set(`messages:thread:${selectedChatId}`, normalized);
 
-        // ✅ when you open a chat, jump to most recent
-        shouldAutoScrollRef.current = true;
-        scrollToBottom("auto");
+        // ✅ mark as read (client-side)
+        const lastTime =
+          normalized.length > 0
+            ? normalized[normalized.length - 1].createdAt
+            : new Date().toISOString();
+        lastReadAtRef.current[safeString(selectedChatId)] = lastTime;
 
-        // clear unread for this chat in left panel
         setConversations((prev) =>
           prev.map((c) =>
             c.userId === selectedChatId ? { ...c, unread: 0 } : c
           )
         );
+
+        // ✅ when you open a chat, jump to bottom once
+        shouldAutoScrollRef.current = true;
+        requestAnimationFrame(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
+        });
       } catch (e) {
         console.error(e);
         setMessages([]);
@@ -277,7 +252,15 @@ const Messages = () => {
   }, [selectedChatId, accessToken]);
 
   // ===============================
-  // ✅ POLL OPEN CHAT (backup)
+  // AUTO SCROLL (FIXED: ONLY IF USER IS NEAR BOTTOM)
+  // ===============================
+  useEffect(() => {
+    if (!shouldAutoScrollRef.current) return;
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  // ===============================
+  // ✅ POLL MESSAGES for open chat (fix: no refresh needed)
   // ===============================
   useEffect(() => {
     if (!accessToken || !selectedChatId) return;
@@ -292,10 +275,12 @@ const Messages = () => {
 
         const data = await res.json();
         const arr = Array.isArray(data) ? data : [];
+
         const normalized = arr.map((m, idx) =>
           normalizeMessage(m, m.id ?? `${m.createdAt || Date.now()}-${idx}`)
         );
 
+        // merge new messages only (avoid re-setting whole list)
         setMessages((prev) => {
           const ids = new Set(prev.map((x) => safeString(x.id)));
           const merged = [...prev];
@@ -308,10 +293,17 @@ const Messages = () => {
               added++;
             }
           }
+
+          if (added > 0) {
+            const lastTime = merged[merged.length - 1]?.createdAt;
+            if (lastTime)
+              lastReadAtRef.current[safeString(selectedChatId)] = lastTime;
+          }
+
           return merged;
         });
       } catch {
-        // ignore
+        // ignore polling errors
       }
     };
 
@@ -321,7 +313,7 @@ const Messages = () => {
   }, [accessToken, selectedChatId]);
 
   // ===============================
-  // ✅ POLL CONVERSATIONS (do NOT overwrite unread)
+  // ✅ POLL CONVERSATIONS (fix: unread badge + list refresh)
   // ===============================
   useEffect(() => {
     if (!accessToken) return;
@@ -361,6 +353,16 @@ const Messages = () => {
 
             const old = prevMap.get(otherId);
 
+            // ✅ unread logic: show "1" if there is something newer than last read
+            const lastRead = lastReadAtRef.current[otherId];
+            const hasNew =
+              lastRead && !isNaN(new Date(lastRead))
+                ? new Date(updatedAt) > new Date(lastRead)
+                : false;
+
+            const unread =
+              otherId === openId ? 0 : hasNew ? 1 : Number(old?.unread || 0);
+
             const displayName =
               (safeString(c.username) ? `@${safeString(c.username)}` : "") ||
               safeString(c.name) ||
@@ -377,7 +379,7 @@ const Messages = () => {
               lastMessage: preview,
               updatedAt,
               timestamp: formatTime(updatedAt),
-              unread: otherId === openId ? 0 : Number(old?.unread || 0), // ✅ keep current unread
+              unread,
               online: Boolean(old?.online),
             });
           }
@@ -386,7 +388,7 @@ const Messages = () => {
           return next;
         });
       } catch {
-        // ignore
+        // ignore polling errors
       }
     };
 
@@ -396,7 +398,7 @@ const Messages = () => {
   }, [accessToken]);
 
   // ===============================
-  // SOCKET CONNECT + REALTIME RECEIVE
+  // SOCKET CONNECT (fast path)
   // ===============================
   useEffect(() => {
     if (!accessToken) return;
@@ -426,19 +428,12 @@ const Messages = () => {
 
       const senderId = safeString(message.senderId);
       const receiverId = safeString(message.receiverId);
-
       const otherId = senderId === myId ? receiverId : senderId;
+
       const openChatId = safeString(selectedChatIdRef.current);
       const isChatOpen = openChatId === safeString(otherId);
 
-      // only increase unread for INCOMING messages (not your own sends)
-      const isIncoming = senderId !== myId;
-
-      // Update cache for messages
-      const cacheKey = `messages:thread:${otherId}`;
-      const cached = prefetchCache.get(cacheKey) || [];
-      prefetchCache.set(cacheKey, [...cached, message]);
-
+      // Update conversations immediately
       setConversations((prev) => {
         const preview =
           message.type === "file"
@@ -451,50 +446,31 @@ const Messages = () => {
           if (c.userId !== otherId) return c;
           found = true;
 
-          const incomingUsername = safeString(message.sender?.username);
-          const incomingName = incomingUsername ? `@${incomingUsername}` : null;
-
           return {
             ...c,
-            name: incomingName || c.name,
-            username: incomingUsername || c.username,
-            avatar: (
-              incomingUsername?.[0] ||
-              c.avatar ||
-              otherId?.[0] ||
-              "?"
-            ).toUpperCase(),
             lastMessage: preview,
             updatedAt: message.createdAt || new Date().toISOString(),
             timestamp: formatTime(message.createdAt),
-
-            // ✅ FIX: 1→2→3 for incoming messages (when chat not open)
-            unread: isChatOpen
-              ? 0
-              : isIncoming
-              ? Number(c.unread || 0) + 1
-              : Number(c.unread || 0),
+            unread: isChatOpen ? 0 : 1, // show 1 (your requirement)
           };
         });
 
         if (!found) {
-          const incomingUsername = safeString(message.sender?.username);
-
           updated.unshift({
             userId: otherId,
-            name: incomingUsername
-              ? `@${incomingUsername}`
+            name: message.sender?.username
+              ? `@${message.sender.username}`
               : `User ${shortId(otherId)}`,
-            username: incomingUsername || "",
+            username: safeString(message.sender?.username),
             avatar: (
-              incomingUsername?.[0] ||
+              safeString(message.sender?.username)?.[0] ||
               otherId?.[0] ||
               "?"
             ).toUpperCase(),
             lastMessage: preview,
             updatedAt: message.createdAt || new Date().toISOString(),
             timestamp: formatTime(message.createdAt),
-            unread: isChatOpen ? 0 : isIncoming ? 1 : 0,
+            unread: isChatOpen ? 0 : 1,
             online: false,
           });
         }
@@ -503,13 +479,15 @@ const Messages = () => {
         return updated;
       });
 
-      // If I am viewing the chat, append it immediately
       if (!isChatOpen) return;
 
       setMessages((prev) => {
         if (prev.some((m) => safeString(m.id) === safeString(message.id)))
           return prev;
-        return [...prev, message];
+        const merged = [...prev, message];
+        lastReadAtRef.current[safeString(otherId)] =
+          merged[merged.length - 1]?.createdAt || new Date().toISOString();
+        return merged;
       });
     };
 
@@ -565,24 +543,15 @@ const Messages = () => {
       },
       tempId
     );
+    optimistic.__optimistic = true;
 
     setMessages((prev) => [...prev, optimistic]);
-    // Update cache after optimistic message
-    prefetchCache.set(
-      `messages:thread:${selectedChatId}`,
-      [...(prefetchCache.get(`messages:thread:${selectedChatId}`) || []), optimistic]
-    );
     setMessageInput("");
-
-    let updatedConversation;
-    // ✅ if I send, always jump to bottom
-    shouldAutoScrollRef.current = true;
-    scrollToBottom("smooth");
 
     setConversations((prev) => {
       const existing = prev.find((c) => c.userId === selectedChatId);
 
-      updatedConversation = {
+      const updatedConversation = {
         ...(existing || {}),
         userId: selectedChatId,
         name: existing?.name || `User ${shortId(selectedChatId)}`,
@@ -600,17 +569,6 @@ const Messages = () => {
         ...prev.filter((c) => c.userId !== selectedChatId),
       ];
     });
-    // Update conversations cache as well
-    const convCache = prefetchCache.get("messages:conversations");
-    if (convCache) {
-      prefetchCache.set(
-        "messages:conversations",
-        [
-          updatedConversation,
-          ...convCache.filter(c => c.userId !== selectedChatId)
-        ]
-      );
-    }
 
     try {
       const res = await fetch(`${API_BASE}/messages`, {
@@ -633,13 +591,6 @@ const Messages = () => {
       setMessages((prev) =>
         prev.map((m) => (m.id === tempId ? normalizedSaved : m))
       );
-      // Update cache after replacing optimistic with saved message
-      prefetchCache.set(
-        `messages:thread:${selectedChatId}`,
-        (prefetchCache.get(`messages:thread:${selectedChatId}`) || []).map(m =>
-          m.id === tempId ? normalizedSaved : m
-        )
-      );
     } catch (err) {
       console.error(err);
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
@@ -658,12 +609,14 @@ const Messages = () => {
   const handleFileSelected = async (e) => {
     const file = e.target.files?.[0];
     e.target.value = "";
+
     if (!file || !selectedChatId) return;
 
     setUploading(true);
     setError("");
 
     const tempId = `temp-file-${Date.now()}`;
+
     const optimistic = normalizeMessage(
       {
         id: tempId,
@@ -678,12 +631,9 @@ const Messages = () => {
       },
       tempId
     );
+    optimistic.__optimistic = true;
 
     setMessages((prev) => [...prev, optimistic]);
-
-    // ✅ sending attachment -> go bottom
-    shouldAutoScrollRef.current = true;
-    scrollToBottom("smooth");
 
     setConversations((prev) =>
       prev.map((c) =>
@@ -705,7 +655,9 @@ const Messages = () => {
 
       const res = await fetch(`${API_BASE}/messages/upload`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${accessToken}` },
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
         body: form,
       });
 
@@ -715,6 +667,7 @@ const Messages = () => {
       }
 
       const payload = await res.json();
+
       const normalizedSaved = normalizeMessage(
         {
           ...(payload?.message || {}),
@@ -769,15 +722,22 @@ const Messages = () => {
                 onClick={() => {
                   setSelectedChatId(c.userId);
 
-                  // ✅ when selecting a chat, go to most recent
-                  shouldAutoScrollRef.current = true;
-                  scrollToBottom("auto");
+                  // mark read (client-side)
+                  lastReadAtRef.current[c.userId] = new Date().toISOString();
 
                   setConversations((prev) =>
                     prev.map((x) =>
                       x.userId === c.userId ? { ...x, unread: 0 } : x
                     )
                   );
+
+                  // ✅ ensure opening a chat always scrolls to most recent
+                  shouldAutoScrollRef.current = true;
+                  requestAnimationFrame(() => {
+                    messagesEndRef.current?.scrollIntoView({
+                      behavior: "auto",
+                    });
+                  });
                 }}
               >
                 <div className="conversation-avatar-container">
@@ -845,7 +805,7 @@ const Messages = () => {
                 </div>
               </div>
 
-              {/* ✅ IMPORTANT: this must be the scrollable container */}
+              {/* ✅ SCROLL FIX: attach ref + onScroll here */}
               <div
                 className="messages-container"
                 ref={messagesContainerRef}
@@ -914,6 +874,7 @@ const Messages = () => {
                       </div>
                     );
                   })}
+                  <div ref={messagesEndRef} />
                 </div>
               </div>
 
