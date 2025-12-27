@@ -1,3 +1,23 @@
+// src/Components/Messages/Messages.jsx
+import React, {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { prefetchCache } from "../../utils/prefetchCache";
+import "./Messages.css";
+import {
+  FiSearch,
+  FiMoreVertical,
+  FiSend,
+  FiPaperclip,
+  FiCheck,
+  FiCheckCircle,
+} from "react-icons/fi";
+import { useAuth } from "../../context/AuthContext";
+import { io } from "socket.io-client";
 // ===============================
 // CANONICAL CONVERSATION NORMALIZER
 // ===============================
@@ -30,26 +50,7 @@ function normalizeConversation(raw) {
     timestamp: formatTime(raw.updatedAt || raw.createdAt),
   };
 }
-// src/Components/Messages/Messages.jsx
-import React, {
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import { prefetchCache } from "../../utils/prefetchCache";
-import "./Messages.css";
-import {
-  FiSearch,
-  FiMoreVertical,
-  FiSend,
-  FiPaperclip,
-  FiCheck,
-  FiCheckCircle,
-} from "react-icons/fi";
-import { useAuth } from "../../context/AuthContext";
-import { io } from "socket.io-client";
+
 
 const API_BASE = "http://localhost:5051";
 
