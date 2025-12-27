@@ -646,6 +646,16 @@ body[data-sidebar-open="false"] .post-detail-page {
   color: rgba(255, 255, 255, 0.6);
   text-transform: lowercase;
 }
+
+.author-profile-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.author-profile-link:hover .author-name {
+  text-decoration: underline;
+}
+
 /* Responsive Design */
 @media (max-width: 1200px) {
   .post-content-wrapper {
