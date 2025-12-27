@@ -1,8 +1,9 @@
 // PostDetailPage.jsx
 import React, { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import { supabase } from "../../supabaseClient";
+import { prefetchCache } from "../../utils/prefetchCache";
 import "./PostDetail.css";
 import {
   FiUser,
@@ -21,9 +22,18 @@ import {Link} from "react-router-dom"
 const PostDetail = () => {
   const { id } = useParams(); // Get post ID from URL
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const [post, setPost] = useState(null);
-  const [loading, setLoading] = useState(true);
+  // Allow instant render when navigating from a card by passing state: { post }
+  const statePost = location?.state?.post || null;
+
+  // Simple cache keys
+  const postCacheKey = `post:detail:${id}`;
+  const commentsCacheKey = `post:comments:${id}`;
+
+  const cachedPost = prefetchCache.get(`post:detail:${id}`);
+  const [post, setPost] = useState(cachedPost || null);
+  // loading is only used for skeletons, based on post === null
 
   const [isLiked, setIsLiked] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -43,6 +53,11 @@ const PostDetail = () => {
   // COMMENTS: FETCH
   // ===============================
   const fetchComments = async () => {
+    // Use cache first
+    const cachedComments = prefetchCache.get(`post:comments:${id}`);
+    if (cachedComments) {
+      setComments(cachedComments);
+    }
     try {
       const {
         data: { session },
@@ -59,7 +74,9 @@ const PostDetail = () => {
         }
       );
 
-      setComments(Array.isArray(res.data) ? res.data : []);
+      const nextComments = Array.isArray(res.data) ? res.data : [];
+      setComments(nextComments);
+      prefetchCache.set(`post:comments:${id}`, nextComments);
     } catch (err) {
       console.error("Error fetching comments:", err);
       setComments([]);
@@ -72,7 +89,24 @@ const PostDetail = () => {
   useEffect(() => {
     let isMounted = true;
 
-    async function fetchPost() {
+    // Use cache first before any async calls
+    const cacheKey = `post:detail:${id}`;
+    const cached = prefetchCache.get(cacheKey);
+    if (cached) {
+      setPost(cached);
+      setLikeCount(cached.likes || 0);
+      setViewCount(cached.views || 0);
+      setIsLiked(!!cached.isLiked);
+      setIsFollowing(!!cached.isFollowing);
+    }
+
+    // Seed comments from cache if present (also instant)
+    const cachedComments = prefetchCache.get(`post:comments:${id}`);
+    if (Array.isArray(cachedComments)) {
+      setComments(cachedComments);
+    }
+
+    async function fetchPostFresh() {
       try {
         const {
           data: { session },
@@ -85,51 +119,77 @@ const PostDetail = () => {
 
         const token = session.access_token;
 
-        const response = await axios.get(`http://localhost:5051/posts/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const response = await axios.get(`http://localhost:5051/posts/${id}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
 
         if (!isMounted) return;
 
-        setPost(response.data);
-        setLikeCount(response.data.likes || 0);
-        setViewCount(response.data.views || 0);
+        const fresh = response.data;
 
-        // ✅ load comments after post loads
-        await fetchComments();
+        setPost(fresh);
+        setLikeCount(fresh.likes || 0);
+        setViewCount(fresh.views || 0);
+        setIsLiked(!!fresh.isLiked);
+        setIsFollowing(!!fresh.isFollowing);
 
-        setIsLiked(response.data.isLiked || false);
-        setIsFollowing(response.data.isFollowing || false);
-        setLoading(false);
+        // Cache the fresh detail payload for future instant opens
+        prefetchCache.set(cacheKey, fresh);
 
-        // Increment view count only once per post ID
+        // Load comments AFTER first paint (non-blocking)
+        setTimeout(async () => {
+          try {
+            const res = await axios.get(
+              `http://localhost:5051/posts/${id}/comments`,
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+            const nextComments = Array.isArray(res.data) ? res.data : [];
+            if (!isMounted) return;
+            setComments(nextComments);
+            prefetchCache.set(`post:comments:${id}`, nextComments);
+          } catch (err) {
+            console.error("Error fetching comments:", err);
+          }
+        }, 0);
+
+        // Increment view count AFTER paint (only once per id)
         if (!viewCountedRef.current[id]) {
           viewCountedRef.current[id] = true;
-          const viewResponse = await axios
-            .post(
-              `http://localhost:5051/posts/${id}/view`,
-              {},
-              {
-                headers: { Authorization: `Bearer ${token}` },
-              }
-            )
-            .catch((err) => console.error("Error incrementing view:", err));
+          setTimeout(async () => {
+            try {
+              const viewResponse = await axios.post(
+                `http://localhost:5051/posts/${id}/view`,
+                {},
+                { headers: { Authorization: `Bearer ${token}` } }
+              );
+              if (isMounted && viewResponse?.data?.views) {
+                setViewCount(viewResponse.data.views);
 
-          // Update view count locally with the response
-          if (isMounted && viewResponse?.data?.views) {
-            setViewCount(viewResponse.data.views);
-          }
+                // Keep cache in sync
+                const curr = prefetchCache.get(cacheKey);
+                if (curr) {
+                  prefetchCache.set(cacheKey, { ...curr, views: viewResponse.data.views });
+                }
+              }
+            } catch (err) {
+              console.error("Error incrementing view:", err);
+            }
+          }, 0);
         }
       } catch (error) {
         console.error("Error fetching post:", error);
         if (isMounted) {
-          setPost(null);
-          setLoading(false);
+          // Only show "not found" if we truly have nothing to render
+          if (!prefetchCache.get(cacheKey)) {
+            setPost(null);
+          }
         }
       }
     }
 
-    fetchPost();
+    fetchPostFresh();
 
     return () => {
       isMounted = false;
@@ -327,30 +387,61 @@ const PostDetail = () => {
     return labels[category] || category;
   };
 
-  if (loading) {
+
+  if (!post) {
     return (
       <div className="post-detail-page">
-        <div className="loading-container">
-          <div className="loading-spinner"></div>
-          <p>Loading post...</p>
+        <div className="post-detail-container">
+          <div className="post-header">
+            <button className="back-button" onClick={() => navigate(-1)}>
+              <FiArrowLeft /> Back
+            </button>
+          </div>
+
+          <div className="post-content-wrapper">
+            <div className="post-main-content">
+              {/* Title skeleton */}
+              <div
+                style={{
+                  height: "42px",
+                  width: "70%",
+                  borderRadius: "10px",
+                  background: "rgba(255,255,255,0.08)",
+                  marginBottom: "16px",
+                }}
+              />
+
+              {/* Badges skeleton */}
+              <div style={{ display: "flex", gap: "10px", marginBottom: "24px" }}>
+                <div style={{ height: "24px", width: "120px", borderRadius: "999px", background: "rgba(255,255,255,0.06)" }} />
+                <div style={{ height: "24px", width: "100px", borderRadius: "999px", background: "rgba(255,255,255,0.06)" }} />
+              </div>
+
+              {/* Description skeleton */}
+              <div style={{ marginBottom: "32px" }}>
+                <div style={{ height: "14px", width: "100%", marginBottom: "10px", borderRadius: "6px", background: "rgba(255,255,255,0.05)" }} />
+                <div style={{ height: "14px", width: "95%", marginBottom: "10px", borderRadius: "6px", background: "rgba(255,255,255,0.05)" }} />
+                <div style={{ height: "14px", width: "85%", borderRadius: "6px", background: "rgba(255,255,255,0.05)" }} />
+              </div>
+            </div>
+
+            {/* Sidebar skeleton */}
+            <div className="post-sidebar">
+              <div
+                style={{
+                  height: "260px",
+                  borderRadius: "16px",
+                  background: "rgba(255,255,255,0.04)",
+                }}
+              />
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
-  if (!post) {
-    return (
-      <div className="post-detail-page">
-        <div className="error-container">
-          <h2>Post not found</h2>
-          <p>The post you're looking for doesn't exist or has been removed.</p>
-          <button className="back-btn" onClick={() => navigate(-1)}>
-            <FiArrowLeft /> Go Back
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // (The "not found" error UI will not be shown instantly, only after fetchPostFresh sets post to null and the skeleton was already shown.)
   const profileUsername = post?.User?.username;
   const profilePath = profileUsername ? `/profile/${profileUsername}` : null;
 

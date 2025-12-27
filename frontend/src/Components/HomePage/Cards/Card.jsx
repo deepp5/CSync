@@ -1,9 +1,39 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import "./Card.css";
+import axios from "axios";
+import { supabase } from "../../../supabaseClient";
+import { prefetchCache } from "../../../utils/prefetchCache";
 
 export default function Card(props) {
     const navigate = useNavigate();
+    const API_BASE = "http://localhost:5051";
+
+    const prefetchPost = async () => {
+        const postId = props.post.id;
+        if (!postId) return;
+
+        const cacheKey = `post:${postId}`;
+        if (prefetchCache.get(cacheKey)) return; // already prefetched
+
+        try {
+            const { data } = await supabase.auth.getSession();
+            const token = data?.session?.access_token;
+            if (!token) return;
+
+            const res = await axios.get(`${API_BASE}/posts/${postId}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            if (res?.data) {
+                prefetchCache.set(cacheKey, res.data);
+            }
+        } catch (err) {
+            // silent fail – prefetch should never break UX
+            console.debug("Post prefetch failed:", err);
+        }
+    };
+
     const goToPost = () => {
         navigate(`/post/${props.post.id}`);
     };
@@ -45,7 +75,15 @@ export default function Card(props) {
     };
 
     return (
-        <div className="project-card" role="button" tabIndex={0} onClick={goToPost} onKeyDown={handleKeyDown}>
+        <div
+          className="project-card"
+          role="button"
+          tabIndex={0}
+          onClick={goToPost}
+          onKeyDown={handleKeyDown}
+          onMouseEnter={prefetchPost}
+          onPointerDown={prefetchPost}
+        >
             <div className="cardTop">
                 <h3>{props.post.title}</h3>
                 
