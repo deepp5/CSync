@@ -2,7 +2,7 @@ import React from "react";
 import Aurora from "../Components/LandingPage/Aurora";
 import NavBar from "../Components/LandingPage/NavBar";
 import HomePage from "../Components/LandingPage/HeroPage";
-import AboutUs from "../Components/LandingPage/AboutUs";
+// import AboutUs from "../Components/LandingPage/AboutUs";
 import FeaturesPage from "../Components/LandingPage/Features";
 import FAQ from "../Components/LandingPage/FAQ";
 import ContactUs from "../Components/LandingPage/ContactUs"
@@ -19,7 +19,7 @@ export default function LandingPage(){
             />
             <NavBar/>
             <HomePage/>
-            <AboutUs/>
+            {/* <AboutUs/> */}
             <FeaturesPage/>
             <FAQ/>
             <ContactUs/>

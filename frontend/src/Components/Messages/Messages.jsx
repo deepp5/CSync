@@ -1,5 +1,12 @@
 // src/Components/Messages/Messages.jsx
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { prefetchCache } from "../../utils/prefetchCache";
 import "./Messages.css";
 import {
   FiSearch,
@@ -9,6 +16,7 @@ import {
   FiCheck,
   FiCheckCircle,
 } from "react-icons/fi";
+import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { io } from "socket.io-client";
 
@@ -33,6 +41,39 @@ function formatTime(ts) {
 function shortId(id) {
   if (!id) return "";
   return id.length > 10 ? `${id.slice(0, 6)}…${id.slice(-4)}` : id;
+}
+
+// ===============================
+// CANONICAL CONVERSATION NORMALIZER
+// ===============================
+function normalizeConversation(raw) {
+  const otherUserId =
+    safeString(raw.userId) ||
+    safeString(raw.otherUserId) ||
+    safeString(raw.partnerId);
+
+  if (!otherUserId) return null;
+
+  const name =
+    safeString(raw.name) ||
+    safeString(raw.displayName) ||
+    safeString(raw.user?.name) ||
+    safeString(raw.otherUser?.name) ||
+    safeString(raw.username) ||
+    `User ${otherUserId.slice(0, 6)}`;
+
+  return {
+    userId: otherUserId,
+    id: otherUserId,
+    name, // ✅ canonical
+    username: safeString(raw.username || ""),
+    avatar: (name?.[0] || "?").toUpperCase(),
+    lastMessage: safeString(raw.lastMessage || ""),
+    unread: Number(raw.unread || 0),
+    online: Boolean(raw.online),
+    updatedAt: raw.updatedAt || raw.createdAt || new Date().toISOString(),
+    timestamp: formatTime(raw.updatedAt || raw.createdAt),
+  };
 }
 
 /**
@@ -89,6 +130,17 @@ const Messages = () => {
 
   const [conversations, setConversations] = useState([]);
   const [selectedChatId, setSelectedChatId] = useState(null);
+
+  // 🔐 Persist active chat between navigations
+  useEffect(() => {
+    const saved = sessionStorage.getItem("activeChatId");
+    if (saved) setSelectedChatId(saved);
+  }, []);
+
+  useEffect(() => {
+    if (selectedChatId) sessionStorage.setItem("activeChatId", selectedChatId);
+  }, [selectedChatId]);
+
   const [messages, setMessages] = useState([]);
   const [messageInput, setMessageInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -103,7 +155,7 @@ const Messages = () => {
   const selectedChatIdRef = useRef("");
   const myIdRef = useRef("");
 
-  // ✅ track "last read" per conversation (to show unread = 1)
+  // ✅ track "last read" per conversation
   const lastReadAtRef = useRef({}); // { [userId]: isoString }
 
   useEffect(() => {
@@ -115,16 +167,44 @@ const Messages = () => {
   }, [user?.id]);
 
   // ===============================
-  // ✅ SCROLL ISSUE FIX (ONLY ADDITION)
+  // ✅ SCROLL CONTROL (NO JUMP)
   // ===============================
   const messagesContainerRef = useRef(null);
   const shouldAutoScrollRef = useRef(true);
+  const firstPaintRef = useRef({ chatId: null, done: false });
+
+  useEffect(() => {
+    if (!selectedChatId) return;
+    firstPaintRef.current = { chatId: selectedChatId, done: false };
+    shouldAutoScrollRef.current = true;
+  }, [selectedChatId]);
+
+  useLayoutEffect(() => {
+    const el = messagesContainerRef.current;
+    if (!el || !selectedChatId) return;
+
+    const isFirstPaint =
+      firstPaintRef.current.chatId === selectedChatId &&
+      !firstPaintRef.current.done;
+
+    // first render of this chat -> snap to bottom BEFORE paint
+    if (isFirstPaint) {
+      el.scrollTop = el.scrollHeight;
+      firstPaintRef.current.done = true;
+      return;
+    }
+
+    // after that -> only stay at bottom if user didn't scroll up
+    if (shouldAutoScrollRef.current) {
+      el.scrollTop = el.scrollHeight;
+    }
+  }, [messages, selectedChatId]);
 
   const handleMessagesScroll = () => {
     const el = messagesContainerRef.current;
     if (!el) return;
 
-    const threshold = 80; // px near bottom counts as "at bottom"
+    const threshold = 80;
     const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
     shouldAutoScrollRef.current = distanceFromBottom < threshold;
   };
@@ -137,6 +217,14 @@ const Messages = () => {
 
     const fetchConversations = async () => {
       setError("");
+
+      const cached = prefetchCache.get("messages:conversations");
+      if (cached && cached.length > 0) {
+        setConversations(cached);
+        setSelectedChatId((prev) => prev || cached[0]?.userId || null);
+        return;
+      }
+
       try {
         const res = await fetch(`${API_BASE}/conversations`, {
           headers: { Authorization: `Bearer ${accessToken}` },
@@ -173,23 +261,20 @@ const Messages = () => {
               userId: otherUserId,
               name: displayName,
               username: safeString(c.username) || "",
-              avatar: (
-                displayName?.[0] ||
-                otherUserId?.[0] ||
-                "?"
-              ).toUpperCase(),
               lastMessage: preview,
               updatedAt,
-              timestamp: formatTime(updatedAt),
-              unread: 0,
               online: Boolean(c.online),
+              unread: Number(c.unread || 0) || 0,
+              timestamp: formatTime(updatedAt),
             };
           })
+          .map(normalizeConversation)
           .filter(Boolean)
           .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
 
         setConversations(formatted);
         setSelectedChatId((prev) => prev || formatted[0]?.userId || null);
+        prefetchCache.set("messages:conversations", formatted);
       } catch (e) {
         console.error(e);
         setError("Failed to load conversations.");
@@ -204,6 +289,17 @@ const Messages = () => {
   // ===============================
   useEffect(() => {
     if (!selectedChatId || !accessToken) return;
+
+    const cached = prefetchCache.get(`messages:thread:${selectedChatId}`);
+    if (cached) {
+      setMessages(cached);
+      // still jump to bottom once on open
+      shouldAutoScrollRef.current = true;
+      requestAnimationFrame(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
+      });
+      return;
+    }
 
     const fetchMessages = async () => {
       setError("");
@@ -222,8 +318,8 @@ const Messages = () => {
         );
 
         setMessages(normalized);
+        prefetchCache.set(`messages:thread:${selectedChatId}`, normalized);
 
-        // ✅ mark as read (client-side)
         const lastTime =
           normalized.length > 0
             ? normalized[normalized.length - 1].createdAt
@@ -236,15 +332,13 @@ const Messages = () => {
           )
         );
 
-        // ✅ when you open a chat, jump to bottom once
         shouldAutoScrollRef.current = true;
         requestAnimationFrame(() => {
           messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
         });
       } catch (e) {
         console.error(e);
-        setMessages([]);
-        setError("Failed to load messages.");
+        setError("Failed to refresh messages.");
       }
     };
 
@@ -252,15 +346,7 @@ const Messages = () => {
   }, [selectedChatId, accessToken]);
 
   // ===============================
-  // AUTO SCROLL (FIXED: ONLY IF USER IS NEAR BOTTOM)
-  // ===============================
-  useEffect(() => {
-    if (!shouldAutoScrollRef.current) return;
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  // ===============================
-  // ✅ POLL MESSAGES for open chat (fix: no refresh needed)
+  // POLL MESSAGES (open chat)
   // ===============================
   useEffect(() => {
     if (!accessToken || !selectedChatId) return;
@@ -280,7 +366,6 @@ const Messages = () => {
           normalizeMessage(m, m.id ?? `${m.createdAt || Date.now()}-${idx}`)
         );
 
-        // merge new messages only (avoid re-setting whole list)
         setMessages((prev) => {
           const ids = new Set(prev.map((x) => safeString(x.id)));
           const merged = [...prev];
@@ -298,12 +383,13 @@ const Messages = () => {
             const lastTime = merged[merged.length - 1]?.createdAt;
             if (lastTime)
               lastReadAtRef.current[safeString(selectedChatId)] = lastTime;
+            prefetchCache.set(`messages:thread:${selectedChatId}`, merged);
           }
 
           return merged;
         });
       } catch {
-        // ignore polling errors
+        // ignore
       }
     };
 
@@ -313,7 +399,7 @@ const Messages = () => {
   }, [accessToken, selectedChatId]);
 
   // ===============================
-  // ✅ POLL CONVERSATIONS (fix: unread badge + list refresh)
+  // POLL CONVERSATIONS
   // ===============================
   useEffect(() => {
     if (!accessToken) return;
@@ -328,7 +414,6 @@ const Messages = () => {
 
         const data = await res.json();
         const arr = Array.isArray(data) ? data : [];
-
         const openId = safeString(selectedChatIdRef.current);
 
         setConversations((prev) => {
@@ -340,7 +425,6 @@ const Messages = () => {
               safeString(c.userId) ||
               safeString(c.otherUserId) ||
               safeString(c.partnerId);
-
             if (!otherId) continue;
 
             const legacy = parseLegacyAttachment(safeString(c.lastMessage));
@@ -350,45 +434,47 @@ const Messages = () => {
 
             const updatedAt =
               c.updatedAt || c.createdAt || new Date().toISOString();
-
             const old = prevMap.get(otherId);
 
-            // ✅ unread logic: show "1" if there is something newer than last read
             const lastRead = lastReadAtRef.current[otherId];
             const hasNew =
               lastRead && !isNaN(new Date(lastRead))
                 ? new Date(updatedAt) > new Date(lastRead)
                 : false;
 
-            const unread =
-              otherId === openId ? 0 : hasNew ? 1 : Number(old?.unread || 0);
-
-            const displayName =
-              (safeString(c.username) ? `@${safeString(c.username)}` : "") ||
-              safeString(c.name) ||
-              old?.name ||
-              `User ${otherId.slice(0, 6)}`;
-
             next.push({
               userId: otherId,
-              name: displayName,
+              id: otherId,
+              // ✅ keep canonical name if we already have it
+              name:
+                old?.name ||
+                (safeString(c.username) ? `@${safeString(c.username)}` : "") ||
+                safeString(c.name) ||
+                `User ${otherId.slice(0, 6)}`,
               username: safeString(c.username) || old?.username || "",
               avatar:
                 old?.avatar ||
-                (displayName?.[0] || otherId?.[0] || "?").toUpperCase(),
+                (
+                  (safeString(c.username) ? safeString(c.username)[0] : "") ||
+                  old?.name?.[0] ||
+                  otherId?.[0] ||
+                  "?"
+                ).toUpperCase(),
               lastMessage: preview,
               updatedAt,
               timestamp: formatTime(updatedAt),
-              unread,
+              unread:
+                otherId === openId ? 0 : hasNew ? 1 : Number(old?.unread || 0),
               online: Boolean(old?.online),
             });
           }
 
           next.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+          prefetchCache.set("messages:conversations", next);
           return next;
         });
       } catch {
-        // ignore polling errors
+        // ignore
       }
     };
 
@@ -398,7 +484,7 @@ const Messages = () => {
   }, [accessToken]);
 
   // ===============================
-  // SOCKET CONNECT (fast path)
+  // SOCKET CONNECT
   // ===============================
   useEffect(() => {
     if (!accessToken) return;
@@ -432,8 +518,9 @@ const Messages = () => {
 
       const openChatId = safeString(selectedChatIdRef.current);
       const isChatOpen = openChatId === safeString(otherId);
+      const isIncoming = senderId !== myId;
 
-      // Update conversations immediately
+      // update conversation row + unread count properly
       setConversations((prev) => {
         const preview =
           message.type === "file"
@@ -448,47 +535,62 @@ const Messages = () => {
 
           return {
             ...c,
+            // ✅ DO NOT overwrite canonical name; keep existing c.name
             lastMessage: preview,
             updatedAt: message.createdAt || new Date().toISOString(),
             timestamp: formatTime(message.createdAt),
-            unread: isChatOpen ? 0 : 1, // show 1 (your requirement)
+            unread: isChatOpen
+              ? 0
+              : isIncoming
+              ? Number(c.unread || 0) + 1
+              : Number(c.unread || 0),
           };
         });
 
         if (!found) {
+          const incomingUsername = safeString(message.sender?.username);
+          const name = incomingUsername
+            ? `@${incomingUsername}`
+            : `User ${shortId(otherId)}`;
+
           updated.unshift({
             userId: otherId,
-            name: message.sender?.username
-              ? `@${message.sender.username}`
-              : `User ${shortId(otherId)}`,
-            username: safeString(message.sender?.username),
-            avatar: (
-              safeString(message.sender?.username)?.[0] ||
-              otherId?.[0] ||
-              "?"
-            ).toUpperCase(),
+            id: otherId,
+            name,
+            username: incomingUsername,
+            avatar: (name?.[0] || otherId?.[0] || "?").toUpperCase(),
             lastMessage: preview,
             updatedAt: message.createdAt || new Date().toISOString(),
             timestamp: formatTime(message.createdAt),
-            unread: isChatOpen ? 0 : 1,
+            unread: isChatOpen ? 0 : isIncoming ? 1 : 0,
             online: false,
           });
         }
 
         updated.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+        prefetchCache.set("messages:conversations", updated);
         return updated;
       });
 
-      if (!isChatOpen) return;
+      // update messages list only if that chat is open
+      if (isChatOpen) {
+        setMessages((prev) => {
+          if (prev.some((m) => safeString(m.id) === safeString(message.id)))
+            return prev;
+          const merged = [...prev, message];
 
-      setMessages((prev) => {
-        if (prev.some((m) => safeString(m.id) === safeString(message.id)))
-          return prev;
-        const merged = [...prev, message];
-        lastReadAtRef.current[safeString(otherId)] =
-          merged[merged.length - 1]?.createdAt || new Date().toISOString();
-        return merged;
-      });
+          lastReadAtRef.current[safeString(otherId)] =
+            merged[merged.length - 1]?.createdAt || new Date().toISOString();
+
+          prefetchCache.set(`messages:thread:${otherId}`, merged);
+          return merged;
+        });
+      } else {
+        // still cache for background thread
+        const key = `messages:thread:${otherId}`;
+        const cached = prefetchCache.get(key) || [];
+        prefetchCache.set(key, [...cached, message]);
+      }
     };
 
     socket.on("connect", onConnect);
@@ -512,7 +614,8 @@ const Messages = () => {
     if (!q) return conversations;
     return conversations.filter(
       (c) =>
-        c.name.toLowerCase().includes(q) || c.username.toLowerCase().includes(q)
+        (c.name || "").toLowerCase().includes(q) ||
+        (c.username || "").toLowerCase().includes(q)
     );
   }, [conversations, searchQuery]);
 
@@ -543,20 +646,24 @@ const Messages = () => {
       },
       tempId
     );
-    optimistic.__optimistic = true;
 
-    setMessages((prev) => [...prev, optimistic]);
+    setMessages((prev) => {
+      const next = [...prev, optimistic];
+      prefetchCache.set(`messages:thread:${selectedChatId}`, next);
+      return next;
+    });
+
     setMessageInput("");
+    shouldAutoScrollRef.current = true;
 
+    let updatedConversation;
     setConversations((prev) => {
       const existing = prev.find((c) => c.userId === selectedChatId);
 
-      const updatedConversation = {
+      updatedConversation = {
         ...(existing || {}),
         userId: selectedChatId,
-        name: existing?.name || `User ${shortId(selectedChatId)}`,
-        username: existing?.username || "",
-        avatar: existing?.avatar || (selectedChatId?.[0] || "?").toUpperCase(),
+        id: selectedChatId,
         lastMessage: text,
         updatedAt: optimistic.createdAt,
         timestamp: formatTime(optimistic.createdAt),
@@ -564,10 +671,12 @@ const Messages = () => {
         online: existing?.online || false,
       };
 
-      return [
+      const next = [
         updatedConversation,
         ...prev.filter((c) => c.userId !== selectedChatId),
       ];
+      prefetchCache.set("messages:conversations", next);
+      return next;
     });
 
     try {
@@ -588,9 +697,11 @@ const Messages = () => {
       const saved = await res.json();
       const normalizedSaved = normalizeMessage(saved, saved?.id);
 
-      setMessages((prev) =>
-        prev.map((m) => (m.id === tempId ? normalizedSaved : m))
-      );
+      setMessages((prev) => {
+        const next = prev.map((m) => (m.id === tempId ? normalizedSaved : m));
+        prefetchCache.set(`messages:thread:${selectedChatId}`, next);
+        return next;
+      });
     } catch (err) {
       console.error(err);
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
@@ -609,14 +720,12 @@ const Messages = () => {
   const handleFileSelected = async (e) => {
     const file = e.target.files?.[0];
     e.target.value = "";
-
     if (!file || !selectedChatId) return;
 
     setUploading(true);
     setError("");
 
     const tempId = `temp-file-${Date.now()}`;
-
     const optimistic = normalizeMessage(
       {
         id: tempId,
@@ -631,9 +740,14 @@ const Messages = () => {
       },
       tempId
     );
-    optimistic.__optimistic = true;
 
-    setMessages((prev) => [...prev, optimistic]);
+    setMessages((prev) => {
+      const next = [...prev, optimistic];
+      prefetchCache.set(`messages:thread:${selectedChatId}`, next);
+      return next;
+    });
+
+    shouldAutoScrollRef.current = true;
 
     setConversations((prev) =>
       prev.map((c) =>
@@ -655,9 +769,7 @@ const Messages = () => {
 
       const res = await fetch(`${API_BASE}/messages/upload`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
+        headers: { Authorization: `Bearer ${accessToken}` },
         body: form,
       });
 
@@ -678,9 +790,11 @@ const Messages = () => {
         payload?.message?.id
       );
 
-      setMessages((prev) =>
-        prev.map((m) => (m.id === tempId ? normalizedSaved : m))
-      );
+      setMessages((prev) => {
+        const next = prev.map((m) => (m.id === tempId ? normalizedSaved : m));
+        prefetchCache.set(`messages:thread:${selectedChatId}`, next);
+        return next;
+      });
     } catch (err) {
       console.error(err);
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
@@ -694,21 +808,35 @@ const Messages = () => {
 
   return (
     <div className="messaging-page">
-      <div className="messaging-container">
-        {/* LEFT PANEL */}
-        <aside className="conversations-panel">
-          <div className="conversations-header">
-            <h2 className="conversations-title">Messages</h2>
-          </div>
+      <div className="messaging-bg" aria-hidden="true" />
 
-          <div className="search-container">
-            <FiSearch className="search-icon" />
-            <input
-              className="search-input"
-              placeholder="Search conversations..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+      <div className="messaging-shell">
+        {/* LEFT */}
+        <aside className="conversations-panel">
+          <div className="left-top">
+            <div className="left-title-row">
+              <div>
+                <h2 className="left-title">Messages</h2>
+                <p className="left-subtitle">
+                  Find a conversation, then ship faster.
+                </p>
+              </div>
+
+              <div className="left-chip">
+                <span className="left-chip-dot" />
+                Live
+              </div>
+            </div>
+
+            <div className="left-search">
+              <FiSearch className="left-search-icon" />
+              <input
+                className="left-search-input"
+                placeholder="Search conversations..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
           </div>
 
           <div className="conversations-list">
@@ -716,14 +844,13 @@ const Messages = () => {
               <button
                 key={c.userId}
                 type="button"
-                className={`conversation-item ${
-                  selectedChatId === c.userId ? "active" : ""
+                className={`conv-row ${
+                  selectedChatId === c.userId ? "is-active" : ""
                 }`}
                 onClick={() => {
                   setSelectedChatId(c.userId);
-
-                  // mark read (client-side)
                   lastReadAtRef.current[c.userId] = new Date().toISOString();
+                  shouldAutoScrollRef.current = true;
 
                   setConversations((prev) =>
                     prev.map((x) =>
@@ -731,8 +858,6 @@ const Messages = () => {
                     )
                   );
 
-                  // ✅ ensure opening a chat always scrolls to most recent
-                  shouldAutoScrollRef.current = true;
                   requestAnimationFrame(() => {
                     messagesEndRef.current?.scrollIntoView({
                       behavior: "auto",
@@ -740,21 +865,21 @@ const Messages = () => {
                   });
                 }}
               >
-                <div className="conversation-avatar-container">
-                  <div className="conversation-avatar">{c.avatar}</div>
-                  {c.online && <div className="online-indicator" />}
+                <div className="conv-avatar-wrap">
+                  <div className="conv-avatar">{c.avatar}</div>
+                  {c.online && <div className="conv-online" />}
                 </div>
 
-                <div className="conversation-details">
-                  <div className="conversation-header">
-                    <span className="conversation-name">{c.name}</span>
-                    <span className="conversation-time">{c.timestamp}</span>
+                <div className="conv-meta">
+                  <div className="conv-topline">
+                    <span className="conv-name">{c.name}</span>
+                    <span className="conv-time">{c.timestamp}</span>
                   </div>
 
-                  <div className="conversation-preview">
-                    <span className="last-message">{c.lastMessage || " "}</span>
+                  <div className="conv-bottomline">
+                    <span className="conv-preview">{c.lastMessage || " "}</span>
                     {c.unread > 0 && (
-                      <span className="unread-badge">{c.unread}</span>
+                      <span className="conv-badge">{c.unread}</span>
                     )}
                   </div>
                 </div>
@@ -762,50 +887,55 @@ const Messages = () => {
             ))}
 
             {filteredConversations.length === 0 && (
-              <div className="empty-left">No conversations found</div>
+              <div className="left-empty">No conversations found</div>
             )}
           </div>
 
-          {error && <div className="error-banner">{error}</div>}
+          {error && <div className="left-error">{error}</div>}
         </aside>
 
-        {/* RIGHT PANEL */}
+        {/* RIGHT */}
         <main className="chat-panel">
-          {selectedConversation ? (
+          {selectedConversation && selectedChatId ? (
             <>
               <div className="chat-header">
-                <div className="chat-header-info">
-                  <div className="chat-avatar-container">
-                    <div className="chat-avatar">
+                <Link
+                  to={`/profile/${
+                    selectedConversation?.username ||
+                    selectedConversation?.userId
+                  }`}
+                  className="chat-head-left chat-head-link"
+                >
+                  <div className="chat-head-avatar-wrap">
+                    <div className="chat-head-avatar">
                       {selectedConversation.avatar}
                     </div>
                     {selectedConversation.online && (
-                      <div className="online-indicator" />
+                      <div className="chat-head-online" />
                     )}
                   </div>
 
-                  <div className="chat-user-info">
-                    <h3 className="chat-user-name">
+                  <div className="chat-head-text">
+                    <h3 className="chat-head-name">
                       {selectedConversation.name}
                     </h3>
-                    <p className="chat-user-status">
+                    <p className="chat-head-status">
                       {selectedConversation.online ? "Online" : "Offline"}
                     </p>
                   </div>
-                </div>
+                </Link>
 
-                <div className="chat-actions">
-                  <button
-                    className="chat-action-btn"
-                    type="button"
-                    aria-label="More"
-                  >
-                    <FiMoreVertical />
-                  </button>
-                </div>
+                <button
+                  className="chat-more-btn"
+                  type="button"
+                  aria-label="More"
+                  title="More"
+                >
+                  <FiMoreVertical />
+                </button>
               </div>
 
-              {/* ✅ SCROLL FIX: attach ref + onScroll here */}
+              {/* ✅ SCROLL FIX HERE */}
               <div
                 className="messages-container"
                 ref={messagesContainerRef}
@@ -820,29 +950,26 @@ const Messages = () => {
                     return (
                       <div
                         key={m.id}
-                        className={`message ${
-                          isOwn ? "message-own" : "message-other"
-                        }`}
+                        className={`msg-row ${isOwn ? "own" : "other"}`}
                       >
                         {!isOwn && (
-                          <div className="message-avatar">
+                          <div className="msg-avatar">
                             {selectedConversation.avatar}
                           </div>
                         )}
 
-                        <div className="message-bubble">
+                        <div
+                          className={`msg-bubble ${isOwn ? "own" : "other"}`}
+                        >
                           {isFile ? (
-                            <p className="message-content">
+                            <p className="msg-text">
                               📎{" "}
                               {m.fileUrl ? (
                                 <a
                                   href={m.fileUrl}
                                   target="_blank"
                                   rel="noreferrer"
-                                  style={{
-                                    color: "inherit",
-                                    textDecoration: "underline",
-                                  }}
+                                  className="msg-link"
                                 >
                                   {m.fileName || "Attachment"}
                                 </a>
@@ -851,21 +978,19 @@ const Messages = () => {
                               )}
                             </p>
                           ) : (
-                            <p className="message-content">
-                              {safeString(m.content)}
-                            </p>
+                            <p className="msg-text">{safeString(m.content)}</p>
                           )}
 
-                          <div className="message-footer">
-                            <span className="message-time">
+                          <div className="msg-footer">
+                            <span className="msg-time">
                               {formatTime(m.createdAt)}
                             </span>
                             {isOwn && (
-                              <span className="message-status">
+                              <span className="msg-status">
                                 {m.read ? (
-                                  <FiCheckCircle className="read-icon" />
+                                  <FiCheckCircle className="msg-read" />
                                 ) : (
-                                  <FiCheck className="sent-icon" />
+                                  <FiCheck className="msg-sent" />
                                 )}
                               </span>
                             )}
@@ -878,9 +1003,9 @@ const Messages = () => {
                 </div>
               </div>
 
-              <div className="message-input-container">
+              <div className="composer">
                 <button
-                  className="input-action-btn"
+                  className="composer-icon"
                   type="button"
                   aria-label="Attach"
                   onClick={handleAttachClick}
@@ -897,9 +1022,9 @@ const Messages = () => {
                   onChange={handleFileSelected}
                 />
 
-                <form onSubmit={handleSendMessage} className="message-form">
+                <form onSubmit={handleSendMessage} className="composer-form">
                   <input
-                    className="message-input"
+                    className="composer-input"
                     value={messageInput}
                     onChange={(e) => setMessageInput(e.target.value)}
                     placeholder={
@@ -909,9 +1034,11 @@ const Messages = () => {
                   />
 
                   <button
-                    className="send-btn"
+                    className="composer-send"
                     type="submit"
                     disabled={!messageInput.trim() || uploading}
+                    aria-label="Send"
+                    title="Send"
                   >
                     <FiSend />
                   </button>
@@ -919,11 +1046,14 @@ const Messages = () => {
               </div>
             </>
           ) : (
-            <div className="no-chat-selected">
-              <div className="no-chat-content">
-                <div className="no-chat-icon">💬</div>
-                <h3>Select a conversation</h3>
-                <p>Choose a conversation from the left to start messaging</p>
+            <div className="empty-state">
+              <div className="empty-card">
+                <div className="empty-orb" />
+                <div className="empty-emoji">💬</div>
+                <h3 className="empty-title">Select a conversation</h3>
+                <p className="empty-text">
+                  Choose someone on the left to start messaging.
+                </p>
               </div>
             </div>
           )}

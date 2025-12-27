@@ -3,7 +3,7 @@
 .post-detail-page {
   margin-left: 230px;
   min-height: 100vh;
-  background: #0a0a0a;
+  background: #14141E;
   color: white;
   padding: 40px;
   transition: margin-left 0.3s ease;
@@ -539,6 +539,7 @@ body[data-sidebar-open="false"] .post-detail-page {
 .social-link {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   padding: 10px 14px;
   background: rgba(255, 255, 255, 0.05);
@@ -548,6 +549,7 @@ body[data-sidebar-open="false"] .post-detail-page {
   text-decoration: none;
   font-size: 14px;
   transition: all 0.3s ease;
+  text-align: center;
 }
 
 .social-link:hover {
@@ -646,6 +648,16 @@ body[data-sidebar-open="false"] .post-detail-page {
   color: rgba(255, 255, 255, 0.6);
   text-transform: lowercase;
 }
+
+.author-profile-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.author-profile-link:hover .author-name {
+  text-decoration: underline;
+}
+
 /* Responsive Design */
 @media (max-width: 1200px) {
   .post-content-wrapper {

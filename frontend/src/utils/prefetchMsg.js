@@ -5,7 +5,7 @@ const API_BASE = "http://localhost:5051";
 const inFlight = new Map();
 
 export async function prefetchMessagesWith(userId) {
-  const key = `messages:${userId}`;
+  const key = `messages:thread:${userId}`;
 
   // already cached
   if (prefetchCache.get(key)) return;
@@ -27,7 +27,9 @@ export async function prefetchMessagesWith(userId) {
       if (!res.ok) return;
 
       const dataJson = await res.json();
-      prefetchCache.set(key, dataJson);
+      if (Array.isArray(dataJson)) {
+        prefetchCache.set(key, dataJson);
+      }
     } catch (e) {
       console.error("prefetchMessages error:", e);
     } finally {

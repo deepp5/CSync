@@ -3,7 +3,7 @@
 .my-projects-page {
   margin-left: 230px;
   min-height: 100vh;
-  background: #0a0a0b;
+  background: #14141E;
   color: white;
   padding: 40px;
   transition: margin-left 0.3s ease;
@@ -49,7 +49,7 @@ body[data-sidebar-open="false"] .my-projects-page {
 }
 
 .page-title-mp {
-  font-size: 24px;
+  font-size: 32px;
   font-weight: 700;
   margin: 0 0 12px 0;
   color: #e8e8e8;
@@ -195,13 +195,15 @@ body[data-sidebar-open="false"] .my-projects-page {
   flex-direction: column;
   gap: 16px;
   position: relative;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(2px);
 }
 
 .project-card-manage:hover {
   background: rgba(255, 255, 255, 0.05);
   border-color: rgba(255, 255, 255, 0.15);
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
 }
 
 /* Card Header */
