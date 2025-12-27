@@ -43,6 +43,21 @@ const ProfilePage = () => {
   useEffect(() => {
     const cacheKey = `profile:${username}`;
 
+    // 🔒 Determine ownership ASAP to avoid follow-button flicker
+    supabase.auth.getSession().then(({ data }) => {
+      const sessionUser = data?.session?.user;
+      if (!sessionUser) return;
+
+      const sessionUsername =
+        sessionUser.user_metadata?.username ||
+        sessionUser.email?.split("@")[0];
+
+      if (sessionUsername && sessionUsername === username) {
+        setIsOwnProfile(true);
+        setIsFollowing(false);
+      }
+    });
+
     const fetchFreshProfile = async () => {
       try {
         setLoading(true);
@@ -100,7 +115,6 @@ const ProfilePage = () => {
         setProfile(profileData);
         setPosts(postsRes.data || []);
         setIsFollowing(followingState);
-        setIsOwnProfile(!!own);
         setFollowers(followersData);
         setFollowing(followingData);
 
@@ -126,8 +140,6 @@ const ProfilePage = () => {
           followers: followersData,
           following: followingData,
         });
-        const isOwn = userId && profileData.id === userId;
-        setIsOwnProfile(!!isOwn);
 
         const postsResponse = await axios.get(
           `http://localhost:5051/api/profile/${username}/posts`,
