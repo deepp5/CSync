@@ -1,54 +1,50 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
 import './Settings.css';
-import { 
-  FiUser, 
-  FiLock, 
-  FiEye, 
+import {
+  FiUser,
+  FiLock,
+  FiEye,
   FiLogOut,
   FiCheck
 } from 'react-icons/fi';
 import { prefetchCache } from "../../utils/prefetchCache";
 
+// Canonical default settings shape
+const DEFAULT_SETTINGS = {
+  displayName: "",
+  username: "",
+  email: "",
+  currentPassword: "",
+  newPassword: "",
+  confirmPassword: "",
+  profileVisibility: "FOLLOWERS",
+  showEmail: false,
+  allowMessages: true,
+};
+
 const Settings = () => {
-  const cachedSettings = prefetchCache.get("settings");
+  const cachedSettings = prefetchCache.get("settings") || null;
 
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("account");
-  const [settings, setSettings] = useState(
-    cachedSettings || {
-      // Account Settings
-      displayName: '',
-      username: '',
-      email: '',
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: '',
-      
-      // Privacy Settings
-      profileVisibility: 'FOLLOWERS',
-      showEmail: false,
-      allowMessages: true,
-    }
-  );
+  const [settings, setSettings] = useState(() => ({
+    ...DEFAULT_SETTINGS,
+    ...(cachedSettings || {}),
+  }));
 
   const [saveStatus, setSaveStatus] = useState('');
 
-  // Fetch user settings on mount
   useEffect(() => {
-    if (!cachedSettings) {
-      fetchSettings();
-    } else {
-      // Background refresh
-      fetchSettings();
-    }
+    fetchSettings(true); // background refresh always, no blocking render
   }, []);
 
-  const fetchSettings = async () => {
+  const fetchSettings = async (background = false) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       if (!session) {
         navigate('/login');
         return;
@@ -67,19 +63,16 @@ const Settings = () => {
 
       const data = await response.json();
       const nextSettings = {
-        displayName: data.name || '',
-        username: data.username || '',
-        email: data.email || '',
-        profileVisibility: data.profileVisibility || 'FOLLOWERS',
-        showEmail: data.showEmail || false,
-        allowMessages: data.allowMessages || true,
+        ...DEFAULT_SETTINGS,
+        displayName: data.name || "",
+        username: data.username || "",
+        email: data.email || "",
+        profileVisibility: data.profileVisibility || "FOLLOWERS",
+        showEmail: Boolean(data.showEmail),
+        allowMessages: Boolean(data.allowMessages),
       };
 
-      setSettings(prev => ({
-        ...prev,
-        ...nextSettings,
-      }));
-
+      setSettings(prev => ({ ...prev, ...nextSettings }));
       prefetchCache.set("settings", nextSettings);
       return;
     } catch (error) {
