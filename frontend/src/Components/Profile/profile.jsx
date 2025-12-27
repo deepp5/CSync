@@ -322,7 +322,7 @@ const ProfilePage = () => {
     return (
       <>
         <Sidebar />
-        <div className="ml-[230px] lg:data-[sidebar=false]:ml-[70px] max-[768px]:ml-0 transition-all duration-300 min-h-screen bg-[#0a0a0a] flex items-center justify-center pt-0 max-[768px]:">
+        <div className="ml-[230px] lg:data-[sidebar=false]:ml-[70px] max-[768px]:ml-0 transition-all duration-300 min-h-screen bg-[#14141E] flex items-center justify-center pt-0 max-[768px]:">
           <div className="flex flex-col items-center gap-4">
             <div className="w-16 h-16 border-4 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin"></div>
             <p className="text-white/50 text-lg">Loading profile...</p>
@@ -336,7 +336,7 @@ const ProfilePage = () => {
     return (
       <>
         <Sidebar />
-        <div className="ml-[230px] lg:data-[sidebar=false]:ml-[70px] max-[768px]:ml-0 transition-all duration-300 min-h-screen bg-[#0a0a0a] flex items-center justify-center pt-0 max-[768px]:">
+        <div className="ml-[230px] lg:data-[sidebar=false]:ml-[70px] max-[768px]:ml-0 transition-all duration-300 min-h-screen bg-[#14141E] flex items-center justify-center pt-0 max-[768px]:">
           <div className="text-center">
             <div className="text-6xl mb-4">😔</div>
             <p className="text-red-400 text-xl">{error || "Profile not found"}</p>
@@ -357,9 +357,23 @@ const ProfilePage = () => {
     <>
       <Sidebar />
       
-      <div className="ml-[230px] lg:data-[sidebar=false]:ml-[70px] max-[768px]:ml-0 transition-all duration-300 min-h-screen bg-[#0a0a0a] text-white pt-0 max-[768px]:">
+      <div className="ml-[230px] lg:data-[sidebar=false]:ml-[70px] max-[768px]:ml-0 transition-all duration-300 min-h-screen bg-[#14141E] text-white pt-0 max-[768px]:">
         {/* Compact Hero Header */}
-        <div className="relative bg-gradient-to-br from-purple-900/30 via-blue-900/20 to-cyan-900/30 border-b border-white/10">
+        <div
+          className="relative bg-gradient-to-br from-purple-900/30 via-blue-900/20 to-cyan-900/30 border-b border-white/10"
+          style={{
+            boxShadow: "0 12px 30px rgba(0,0,0,0.45)",
+          }}
+        >
+          {isOwnProfile && !isEditing && (
+            <button
+              onClick={startEdit}
+              className="absolute top-4 right-6 z-20 p-2.5 bg-white/10 hover:bg-white/20 border border-white/20 hover:border-cyan-400/60 rounded-xl transition-all hover:scale-110 backdrop-blur-sm"
+              aria-label="Edit profile"
+            >
+              <FiEdit2 />
+            </button>
+          )}
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(120,119,198,0.1),transparent_50%)]"></div>
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_50%,rgba(33,218,242,0.08),transparent_50%)]"></div>
           
@@ -437,31 +451,25 @@ const ProfilePage = () => {
 
                 {/* Action Buttons */}
                 <div className="flex items-center justify-center lg:justify-start gap-3 flex-wrap">
-                  {isOwnProfile ? (
-                    !isEditing ? (
+                  {isOwnProfile && isEditing && (
+                    <>
                       <button
-                        onClick={startEdit}
-                        className="p-2.5 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-cyan-400/50 rounded-xl transition-all hover:scale-110"
+                        onClick={saveEdit}
+                        className="px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 rounded-xl font-bold transition-all hover:scale-105 flex items-center gap-2 shadow-lg shadow-cyan-500/30 text-sm"
                       >
-                        <FiEdit2 />
+                        <FiCheck /> Save Changes
                       </button>
-                    ) : (
-                      <>
-                        <button
-                          onClick={saveEdit}
-                          className="px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 rounded-xl font-bold transition-all hover:scale-105 flex items-center gap-2 shadow-lg shadow-cyan-500/30 text-sm"
-                        >
-                          <FiCheck /> Save Changes
-                        </button>
-                        <button
-                          onClick={cancelEdit}
-                          className="px-5 py-2.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl font-semibold transition-all flex items-center gap-2 text-sm"
-                        >
-                          <FiX /> Cancel
-                        </button>
-                      </>
-                    )
-                  ) : (
+
+                      <button
+                        onClick={cancelEdit}
+                        className="px-5 py-2.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl font-semibold transition-all flex items-center gap-2 text-sm"
+                      >
+                        <FiX /> Cancel
+                      </button>
+                    </>
+                  )}
+
+                  {!isOwnProfile && (
                     <button
                       onClick={handleFollowToggle}
                       className={`px-6 py-2.5 rounded-xl font-bold transition-all hover:scale-105 text-sm ${
@@ -472,38 +480,6 @@ const ProfilePage = () => {
                     >
                       {isFollowing ? "Following" : "Follow"}
                     </button>
-                  )}
-
-                  {/* Social Links */}
-                  {!isEditing && (
-                    <>
-                      {profile.githubUrl && (
-                        <a
-                          href={profile.githubUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="p-2.5 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-cyan-400/50 rounded-xl transition-all hover:scale-110"
-                        >
-                          <FiGithub className="text-lg" />
-                        </a>
-                      )}
-                      {profile.linkedinUrl && (
-                        <a
-                          href={profile.linkedinUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="p-2.5 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-cyan-400/50 rounded-xl transition-all hover:scale-110"
-                        >
-                          <FiLinkedin className="text-lg" />
-                        </a>
-                      )}
-                      {profile.email && (
-                        <div className="p-2.5 bg-white/5 border border-white/10 rounded-xl flex items-center gap-2 text-sm">
-                          <FiMail className="text-cyan-400" />
-                          <span className="hidden sm:inline">{profile.email}</span>
-                        </div>
-                      )}
-                    </>
                   )}
                 </div>
 

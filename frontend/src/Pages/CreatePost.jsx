@@ -122,6 +122,20 @@ export default function CreatePost() {
     <div className="createpost-container">
       <Sidebar />
       <div className="createpost-content">
+      <div
+          style={{
+            position: "absolute",
+            top: "-270px",
+            left: "-50px",
+            width: "420px",
+            height: "420px",
+            background:
+              "radial-gradient(circle at center, rgba(250, 78, 253, 0.35), rgba(250, 78, 253, 0.15), transparent 70%)",
+            filter: "blur(90px)",
+            pointerEvents: "none",
+            zIndex: -1,
+          }}
+        />
         <div className="createpost-content-wrapper">
           <h1 className="createpost-title">
             {isEditMode ? "Edit Post" : "Create New Post"}

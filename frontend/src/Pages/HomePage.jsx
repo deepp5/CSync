@@ -114,7 +114,7 @@ export default function HomePage() {
               "radial-gradient(circle at center, rgba(250, 78, 253, 0.35), rgba(250, 78, 253, 0.15), transparent 70%)",
             filter: "blur(90px)",
             pointerEvents: "none",
-            zIndex: 0,
+            zIndex: -1,
           }}
         />
         <div className="home-content-wrapper">
@@ -126,12 +126,6 @@ export default function HomePage() {
             onFilterChange={handleFilterChange}
             onSearchChange={handleSearchChange}
           />
-
-          {/* <div className="results-info">
-            {filteredPosts.length}{" "}
-            {filteredPosts.length === 1 ? "project" : "projects"} found
-          </div> */}
-
           <Grid posts={filteredPosts} />
         </div>
       </div>

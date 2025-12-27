@@ -1,11 +1,15 @@
 .createpost-container {
+    position: relative;
+    overflow: hidden;
     display: flex;
-    background: #0a0a0b;    
+    background: #14141E;
     min-height: 100vh;
     width: 100%;
 }
 
 .createpost-content {
+    position: relative;
+    z-index: 1;
     flex: 1;
     margin-left: 230px;
     padding: 40px;

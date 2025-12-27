@@ -231,8 +231,23 @@ export default function MyProjects() {
   };
 
   return (
-    <div className="my-projects-page">
-      <div className="my-projects-container">
+    <div className="my-projects-page" style={{ position: "relative", overflow: "hidden" }}>
+      {/* Ambient glow - top left */}
+      <div
+        style={{
+          position: "absolute",
+          top: "-270px",
+          left: "-50px",
+          width: "420px",
+          height: "420px",
+          background:
+            "radial-gradient(circle at center, rgba(250, 78, 253, 0.35), rgba(250, 78, 253, 0.15), transparent 70%)",
+          filter: "blur(90px)",
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      />
+      <div className="my-projects-container" style={{ position: "relative", zIndex: 1 }}>
         {/* Header */}
         <div className="projects-page-header">
           <div className="header-left-mp">
