@@ -36,10 +36,19 @@ body[data-sidebar-open="false"] .messaging-page {
   inset: 0;
   pointer-events: none;
   background:
+    linear-gradient(to bottom, rgba(255,255,255,0.03), transparent 40%),
+    radial-gradient(700px 400px at 50% -10%, rgba(255,255,255,0.04), transparent 60%);
+  opacity: 0.7;
+
+
+  /* position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
     radial-gradient(900px 600px at 12% 10%, rgba(33, 218, 242, 0.09), transparent 60%),
     radial-gradient(900px 700px at 88% 85%, rgba(160, 110, 255, 0.10), transparent 60%),
     radial-gradient(520px 520px at 60% 30%, rgba(255, 255, 255, 0.03), transparent 60%);
-  filter: saturate(110%);
+  filter: saturate(110%); */
 }
 
 .messaging-shell {
@@ -366,13 +375,12 @@ body[data-sidebar-open="false"] .messaging-page {
 
 /* Messages container */
 .messages-container {
+  
   flex: 1;
   overflow-y: auto;
   padding: 18px 18px;
-  background:
-    radial-gradient(700px 700px at 70% -10%, rgba(33,218,242,0.08), transparent 60%),
-    radial-gradient(700px 700px at 10% 110%, rgba(160,110,255,0.10), transparent 60%),
-    linear-gradient(180deg, rgba(255,255,255,0.02), transparent 40%);
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent 35%);
+
 }
 
 .messages-list {
