@@ -98,10 +98,25 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="home-container">
+    <div className="home-container" style={{ background: "#14141E" }}>
       <Sidebar />
 
-      <div className="home-content">
+      <div className="home-content" style={{ position: "relative", zIndex: 1 }}>
+        {/* Top-left background glow */}
+        <div
+          style={{
+            position: "absolute",
+            top: "-270px",
+            left: "-50px",
+            width: "420px",
+            height: "420px",
+            background:
+              "radial-gradient(circle at center, rgba(250, 78, 253, 0.35), rgba(250, 78, 253, 0.15), transparent 70%)",
+            filter: "blur(90px)",
+            pointerEvents: "none",
+            zIndex: 0,
+          }}
+        />
         <div className="home-content-wrapper">
           <div className="home-header">
             <h1 className="home-title">Browse Projects</h1>
