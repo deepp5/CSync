@@ -40,7 +40,7 @@ export default function FeaturesPage() {
         desc: "Show skills, bio, and links so teammates can instantly see who you are and what you can do.",
         icon: FiUser,
         accent: "from-emerald-400 via-teal-500 to-cyan-500",
-        bullets: ["Skills + bio", "GitHub + LinkedIn", "Clickable profiles everywhere"],
+        bullets: ["Skills + bio", "GitHub + LinkedIn", "Public profiles"],
       },
       {
         key: "follow",
@@ -49,7 +49,7 @@ export default function FeaturesPage() {
         desc: "Follow people, check their work, and keep up with what they ship. It’s networking without the cringe.",
         icon: FiUsers,
         accent: "from-amber-300 via-orange-500 to-red-500",
-        bullets: ["Grow connections", "Instant count updates", "Profile discovery via lists"],
+        bullets: ["Grow connections", "Profile listing"],
       },
       {
         key: "feedback",
@@ -276,20 +276,21 @@ export default function FeaturesPage() {
                 })}
               </div>
             </div>
-
+{/* Build faster with the right people. */}
+{/* Post a project, follow builders, then message and ship. */}
             {/* CTA (non-card, clean strip) */}
-            <div className="mt-6 rounded-3xl border border-white/10 bg-gradient-to-r from-white/[0.06] to-white/[0.03] px-6 py-6 backdrop-blur-xl">
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                <div>
-                  <div className="text-lg font-extrabold text-white">
-                    Build faster with the right people.
-                  </div>
-                  <div className="mt-1 text-sm text-white/70">
-                    Post a project, follow builders, then message and ship.
-                  </div>
-                </div>
+            <div className="mt-12 rounded-2xl border border-white/10 bg-white/[0.06] px-6 py-6 backdrop-blur-xl">
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div className="min-w-0">
+                        <div className="text-lg font-bold text-white">
+                            Build faster with the right people.
+                        </div>
+                        <div className="mt-1 text-sm text-white/70">
+                            Post a project, follow builders, then message and ship.
+                        </div>
+                    </div>
 
-                <div className="flex gap-3 w-full md:w-auto">
+                <div className="flex w-full flex-col gap-3 sm:flex-row sm:justify-end md:w-auto">
                   <a
                     href="/register"
                     className="flex-1 md:flex-none text-center rounded-2xl bg-white text-black px-5 py-2.5 font-bold text-sm hover:opacity-90 transition"
