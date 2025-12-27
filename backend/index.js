@@ -1,8 +1,10 @@
+// index.js
 import express from "express";
 import http from "http";
 import cors from "cors";
 import dotenv from "dotenv";
 dotenv.config();
+
 import { PrismaClient } from "@prisma/client";
 import { Server } from "socket.io";
 
@@ -11,10 +13,10 @@ import messageRoutes from "./src/routes/messageRoutes.js";
 import conversationRoutes from "./src/routes/conversationRoutes.js";
 import settingsRoutes from "./src/routes/settingsRoutes.js";
 import profileRoutes from "./src/routes/profileRoutes.js";
+import commentRoutes from "./src/routes/commentRoutes.js";
 
 import { verifySupabaseToken } from "./src/utils/authMiddleware.js";
 import { ensureUserExists } from "./src/utils/ensureUser.js";
-import commentRoutes from "./src/routes/commentRoutes.js";
 
 import jwt from "jsonwebtoken";
 import jwksClient from "jwks-rsa";
@@ -25,6 +27,66 @@ import jwksClient from "jwks-rsa";
 const app = express();
 const server = http.createServer(app);
 const prisma = new PrismaClient();
+
+/* =========================
+   HELPERS (FIX UPDATE 500)
+========================= */
+function parsePrismaId(raw) {
+  // supports both Int IDs and String/UUID IDs
+  if (typeof raw !== "string") return raw;
+  if (/^\d+$/.test(raw)) return Number(raw);
+  return raw;
+}
+
+const ALLOWED_CATEGORY = new Set([
+  "WEB_DEVELOPMENT",
+  "MOBILE",
+  "AI_ML",
+  "GAME_DEV",
+  "SYSTEMS",
+  "OTHER",
+]);
+
+const ALLOWED_DIFFICULTY = new Set(["BEGINNER", "INTERMEDIATE", "ADVANCED"]);
+
+const ALLOWED_VISIBILITY = new Set(["PUBLIC", "DRAFT", "PRIVATE"]);
+
+function buildPostUpdateData(body = {}) {
+  const data = {};
+
+  if (typeof body.title === "string") data.title = body.title.trim();
+  if (typeof body.header === "string") data.header = body.header.trim();
+  if (typeof body.description === "string") data.description = body.description;
+
+  // techStack: accept string[] or "React, Node" string
+  if (Array.isArray(body.techStack)) {
+    data.techStack = body.techStack.filter(Boolean).map(String);
+  } else if (typeof body.techStack === "string") {
+    data.techStack = body.techStack
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+
+  if (typeof body.category === "string") data.category = body.category;
+  if (typeof body.difficulty === "string") data.difficulty = body.difficulty;
+  if (typeof body.visibility === "string") data.visibility = body.visibility;
+
+  if (body.deadline !== undefined) {
+    const d = new Date(body.deadline);
+    if (Number.isNaN(d.getTime())) {
+      const err = new Error("Invalid deadline date");
+      err.statusCode = 400;
+      throw err;
+    }
+    data.deadline = d;
+  }
+
+  // DO NOT allow updating these (even if frontend sends them):
+  // id, userId, createdAt, updatedAt, likes, views, User, isLiked, isFollowing
+
+  return data;
+}
 
 /* =========================
    MIDDLEWARE
@@ -42,7 +104,7 @@ app.get("/", (req, res) => {
 app.use("/auth", authRoutes);
 app.use("/messages", messageRoutes);
 app.use("/conversations", conversationRoutes);
-app.use("/posts", commentRoutes);
+app.use("/posts", commentRoutes); // comments routes mounted under /posts
 app.use("/settings", settingsRoutes);
 app.use("/api/profile", profileRoutes);
 
@@ -76,26 +138,19 @@ function getKey(header, callback) {
 /* =========================
    SOCKET AUTH (JWT)
 ========================= */
-/* =========================
-   SOCKET AUTH (JWT)
-========================= */
 io.use((socket, next) => {
   const raw = socket.handshake.auth?.token;
   const token = raw?.startsWith("Bearer ") ? raw.slice(7) : raw;
 
-  if (!token) {
-    return next(new Error("Missing auth token"));
-  }
+  if (!token) return next(new Error("Missing auth token"));
 
-  // Helpful debug (optional)
   const decodedHeader = jwt.decode(token, { complete: true })?.header;
   const alg = decodedHeader?.alg;
-  // console.log("Socket token alg:", alg);
 
   const issuer = `${process.env.SUPABASE_URL}/auth/v1`;
   const audience = "authenticated";
 
-  // ✅ If Supabase ever gives HS256 tokens, support it too
+  // If Supabase ever gives HS256 tokens, support it too
   if (alg === "HS256") {
     const secret = process.env.SUPABASE_JWT_SECRET;
     if (!secret) {
@@ -130,7 +185,7 @@ io.use((socket, next) => {
     return;
   }
 
-  // ✅ Default: RS256/ES256 via JWKS (matches your REST middleware)
+  // Default: RS256/ES256 via JWKS
   jwt.verify(
     token,
     getKey,
@@ -207,7 +262,7 @@ app.get("/posts", verifySupabaseToken, async (req, res) => {
           },
         },
       },
-      orderBy: { createdAt: "desc" }, // Newest first
+      orderBy: { createdAt: "desc" },
     });
 
     res.json(posts);
@@ -222,7 +277,7 @@ app.post("/posts", verifySupabaseToken, async (req, res) => {
     const userId = req.user.id;
     const { email, user_metadata } = req.user;
 
-    // ✅ FIXED: always use ensureUserExists
+    // always use ensureUserExists
     await ensureUserExists(prisma, {
       id: userId,
       email,
@@ -251,16 +306,35 @@ app.post("/posts", verifySupabaseToken, async (req, res) => {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
+    // validate enums (prevents Prisma throwing)
+    if (!ALLOWED_CATEGORY.has(category)) {
+      return res.status(400).json({ error: "Invalid category" });
+    }
+    if (!ALLOWED_DIFFICULTY.has(difficulty)) {
+      return res.status(400).json({ error: "Invalid difficulty" });
+    }
+    const vis = visibility || "DRAFT";
+    if (!ALLOWED_VISIBILITY.has(vis)) {
+      return res.status(400).json({ error: "Invalid visibility" });
+    }
+
+    const d = new Date(deadline);
+    if (Number.isNaN(d.getTime())) {
+      return res.status(400).json({ error: "Invalid deadline date" });
+    }
+
     const post = await prisma.post.create({
       data: {
-        title,
-        header,
+        title: String(title).trim(),
+        header: String(header).trim(),
         description,
-        techStack,
+        techStack: Array.isArray(techStack)
+          ? techStack.filter(Boolean).map(String)
+          : [],
         category,
         difficulty,
-        deadline: new Date(deadline),
-        visibility: visibility || "DRAFT",
+        deadline: d,
+        visibility: vis,
         userId,
       },
     });
@@ -285,50 +359,81 @@ app.get("/posts/me", verifySupabaseToken, async (req, res) => {
   }
 });
 
+/* ✅ FIXED UPDATE: whitelist fields + deadline parsing + enum validation */
 app.put("/posts/:id", verifySupabaseToken, async (req, res) => {
   try {
+    const postId = parsePrismaId(req.params.id);
+
     const post = await prisma.post.findUnique({
-      where: { id: req.params.id },
+      where: { id: postId },
+      select: { id: true, userId: true },
     });
 
-    if (!post) {
-      return res.status(404).json({ error: "Post not found" });
+    if (!post) return res.status(404).json({ error: "Post not found" });
+    if (post.userId !== req.user.id)
+      return res.status(403).json({ error: "Not authorized" });
+
+    const data = buildPostUpdateData(req.body);
+
+    if (Object.keys(data).length === 0) {
+      return res.status(400).json({ error: "No valid fields to update" });
     }
 
-    if (post.userId !== req.user.id) {
-      return res.status(403).json({ error: "Not authorized" });
+    if (data.category && !ALLOWED_CATEGORY.has(data.category)) {
+      return res.status(400).json({ error: "Invalid category" });
+    }
+    if (data.difficulty && !ALLOWED_DIFFICULTY.has(data.difficulty)) {
+      return res.status(400).json({ error: "Invalid difficulty" });
+    }
+    if (data.visibility && !ALLOWED_VISIBILITY.has(data.visibility)) {
+      return res.status(400).json({ error: "Invalid visibility" });
     }
 
     const updated = await prisma.post.update({
-      where: { id: req.params.id },
-      data: req.body,
+      where: { id: postId },
+      data,
     });
 
     res.json(updated);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    const status = err.statusCode || 500;
+    console.error("🔥 UPDATE POST FAILED 🔥", err);
+    res.status(status).json({ error: err.message || "Server error" });
   }
 });
 
+/* ✅ FIXED DELETE: ownership check */
 app.delete("/posts/:id", verifySupabaseToken, async (req, res) => {
   try {
+    const postId = parsePrismaId(req.params.id);
+
+    const post = await prisma.post.findUnique({
+      where: { id: postId },
+      select: { id: true, userId: true },
+    });
+
+    if (!post) return res.status(404).json({ error: "Post not found" });
+    if (post.userId !== req.user.id)
+      return res.status(403).json({ error: "Not authorized" });
+
     await prisma.post.delete({
-      where: { id: req.params.id },
+      where: { id: postId },
     });
 
     res.json({ message: "Post deleted successfully" });
   } catch (err) {
+    console.error("🔥 DELETE POST FAILED 🔥", err);
     res.status(500).json({ error: err.message });
   }
 });
 
 app.get("/posts/:id", verifySupabaseToken, async (req, res) => {
   try {
-    const postId = req.params.id;
+    const postId = parsePrismaId(req.params.id);
     const userId = req.user.id;
 
     const post = await prisma.post.findUnique({
-      where: { id: req.params.id },
+      where: { id: postId },
       include: {
         User: {
           select: {
@@ -344,21 +449,17 @@ app.get("/posts/:id", verifySupabaseToken, async (req, res) => {
       },
     });
 
-    if (!post) {
-      return res.status(404).json({ error: "Post not found" });
-    }
+    if (!post) return res.status(404).json({ error: "Post not found" });
 
-    // Check if current user has liked this post
     const userLike = await prisma.like.findUnique({
       where: {
         postId_userId: {
-          postId: postId,
+          postId: String(postId),
           userId: userId,
         },
       },
     });
 
-    // Check if current user is following the post author
     const userFollow = await prisma.follow.findUnique({
       where: {
         followerId_followingId: {
@@ -382,21 +483,19 @@ app.get("/posts/:id", verifySupabaseToken, async (req, res) => {
 // Increment view count for a post
 app.post("/posts/:id/view", verifySupabaseToken, async (req, res) => {
   try {
-    const postId = req.params.id;
+    const postId = parsePrismaId(req.params.id);
 
-    // Check if post exists
     const post = await prisma.post.findUnique({
       where: { id: postId },
+      select: { id: true, views: true },
     });
 
-    if (!post) {
-      return res.status(404).json({ error: "Post not found" });
-    }
+    if (!post) return res.status(404).json({ error: "Post not found" });
 
-    // Increment view count
     const updatedPost = await prisma.post.update({
       where: { id: postId },
       data: { views: { increment: 1 } },
+      select: { views: true },
     });
 
     res.json({ views: updatedPost.views });
@@ -409,23 +508,20 @@ app.post("/posts/:id/view", verifySupabaseToken, async (req, res) => {
 // Like a post
 app.post("/posts/:id/like", verifySupabaseToken, async (req, res) => {
   try {
-    const postId = req.params.id;
+    const postId = parsePrismaId(req.params.id);
     const userId = req.user.id;
 
-    // Check if post exists
     const post = await prisma.post.findUnique({
       where: { id: postId },
+      select: { id: true, likes: true },
     });
 
-    if (!post) {
-      return res.status(404).json({ error: "Post not found" });
-    }
+    if (!post) return res.status(404).json({ error: "Post not found" });
 
-    // Check if already liked
     const existingLike = await prisma.like.findUnique({
       where: {
         postId_userId: {
-          postId: postId,
+          postId: String(postId),
           userId: userId,
         },
       },
@@ -435,12 +531,11 @@ app.post("/posts/:id/like", verifySupabaseToken, async (req, res) => {
       return res.status(400).json({ error: "Already liked this post" });
     }
 
-    // Create like and increment post likes count
     await prisma.$transaction([
       prisma.like.create({
         data: {
           id: `${postId}_${userId}_${Date.now()}`,
-          postId: postId,
+          postId: String(postId),
           userId: userId,
         },
       }),
@@ -452,6 +547,7 @@ app.post("/posts/:id/like", verifySupabaseToken, async (req, res) => {
 
     const updatedPost = await prisma.post.findUnique({
       where: { id: postId },
+      select: { likes: true },
     });
 
     res.json({ likes: updatedPost.likes, isLiked: true });
@@ -464,14 +560,13 @@ app.post("/posts/:id/like", verifySupabaseToken, async (req, res) => {
 // Unlike a post
 app.delete("/posts/:id/like", verifySupabaseToken, async (req, res) => {
   try {
-    const postId = req.params.id;
+    const postId = parsePrismaId(req.params.id);
     const userId = req.user.id;
 
-    // Check if like exists
     const existingLike = await prisma.like.findUnique({
       where: {
         postId_userId: {
-          postId: postId,
+          postId: String(postId),
           userId: userId,
         },
       },
@@ -481,12 +576,11 @@ app.delete("/posts/:id/like", verifySupabaseToken, async (req, res) => {
       return res.status(400).json({ error: "Haven't liked this post" });
     }
 
-    // Delete like and decrement post likes count
     await prisma.$transaction([
       prisma.like.delete({
         where: {
           postId_userId: {
-            postId: postId,
+            postId: String(postId),
             userId: userId,
           },
         },
@@ -499,6 +593,7 @@ app.delete("/posts/:id/like", verifySupabaseToken, async (req, res) => {
 
     const updatedPost = await prisma.post.findUnique({
       where: { id: postId },
+      select: { likes: true },
     });
 
     res.json({ likes: updatedPost.likes, isLiked: false });
@@ -526,9 +621,7 @@ app.get("/users/:id", verifySupabaseToken, async (req, res) => {
       },
     });
 
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
+    if (!user) return res.status(404).json({ error: "User not found" });
 
     res.json(user);
   } catch (err) {
@@ -543,21 +636,19 @@ app.post("/users/:id/follow", verifySupabaseToken, async (req, res) => {
     const followingId = req.params.id;
     const followerId = req.user.id;
 
-    // Can't follow yourself
     if (followerId === followingId) {
       return res.status(400).json({ error: "Cannot follow yourself" });
     }
 
-    // Check if user exists
     const userToFollow = await prisma.user.findUnique({
       where: { id: followingId },
+      select: { id: true },
     });
 
     if (!userToFollow) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    // Check if already following
     const existingFollow = await prisma.follow.findUnique({
       where: {
         followerId_followingId: {
@@ -567,12 +658,8 @@ app.post("/users/:id/follow", verifySupabaseToken, async (req, res) => {
       },
     });
 
-    if (existingFollow) {
-      // Already following - return success (idempotent)
-      return res.json({ isFollowing: true });
-    }
+    if (existingFollow) return res.json({ isFollowing: true });
 
-    // Create follow
     await prisma.follow.create({
       data: {
         id: `${followerId}_${followingId}_${Date.now()}`,
@@ -594,7 +681,6 @@ app.delete("/users/:id/follow", verifySupabaseToken, async (req, res) => {
     const followingId = req.params.id;
     const followerId = req.user.id;
 
-    // Check if follow exists
     const existingFollow = await prisma.follow.findUnique({
       where: {
         followerId_followingId: {
@@ -604,12 +690,8 @@ app.delete("/users/:id/follow", verifySupabaseToken, async (req, res) => {
       },
     });
 
-    if (!existingFollow) {
-      // Not following - return success (idempotent)
-      return res.json({ isFollowing: false });
-    }
+    if (!existingFollow) return res.json({ isFollowing: false });
 
-    // Delete follow
     await prisma.follow.delete({
       where: {
         followerId_followingId: {
@@ -621,6 +703,7 @@ app.delete("/users/:id/follow", verifySupabaseToken, async (req, res) => {
 
     res.json({ isFollowing: false });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: err.message });
   }
 });

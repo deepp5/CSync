@@ -1,6 +1,6 @@
 // PostDetailPage.jsx
 import React, { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import { supabase } from "../../supabaseClient";
 import { prefetchCache } from "../../utils/prefetchCache";
@@ -17,10 +17,14 @@ import {
   FiLinkedin,
 } from "react-icons/fi";
 import { IoIosArrowForward } from "react-icons/io";
-import {Link} from "react-router-dom"
+
+function safeString(v) {
+  if (v === null || v === undefined) return "";
+  return String(v);
+}
 
 const PostDetail = () => {
-  const { id } = useParams(); // Get post ID from URL
+  const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -46,7 +50,6 @@ const PostDetail = () => {
   const [replyTo, setReplyTo] = useState(null);
   const [isSaved, setIsSaved] = useState(false);
 
-  // Track if we've already counted the view for this post
   const viewCountedRef = useRef({});
 
   // ===============================
@@ -129,54 +132,25 @@ const PostDetail = () => {
 
         const fresh = response.data;
 
-        setPost(fresh);
-        setLikeCount(fresh.likes || 0);
-        setViewCount(fresh.views || 0);
-        setIsLiked(!!fresh.isLiked);
-        setIsFollowing(!!fresh.isFollowing);
+        await fetchComments();
 
         // Cache the fresh detail payload for future instant opens
         prefetchCache.set(cacheKey, fresh);
 
-        // Load comments AFTER first paint (non-blocking)
-        setTimeout(async () => {
-          try {
-            const res = await axios.get(
-              `http://localhost:5051/posts/${id}/comments`,
-              { headers: { Authorization: `Bearer ${token}` } }
-            );
-            const nextComments = Array.isArray(res.data) ? res.data : [];
-            if (!isMounted) return;
-            setComments(nextComments);
-            prefetchCache.set(`post:comments:${id}`, nextComments);
-          } catch (err) {
-            console.error("Error fetching comments:", err);
-          }
-        }, 0);
-
-        // Increment view count AFTER paint (only once per id)
         if (!viewCountedRef.current[id]) {
           viewCountedRef.current[id] = true;
-          setTimeout(async () => {
-            try {
-              const viewResponse = await axios.post(
-                `http://localhost:5051/posts/${id}/view`,
-                {},
-                { headers: { Authorization: `Bearer ${token}` } }
-              );
-              if (isMounted && viewResponse?.data?.views) {
-                setViewCount(viewResponse.data.views);
 
-                // Keep cache in sync
-                const curr = prefetchCache.get(cacheKey);
-                if (curr) {
-                  prefetchCache.set(cacheKey, { ...curr, views: viewResponse.data.views });
-                }
-              }
-            } catch (err) {
-              console.error("Error incrementing view:", err);
-            }
-          }, 0);
+          const viewResponse = await axios
+            .post(
+              `http://localhost:5051/posts/${id}/view`,
+              {},
+              { headers: { Authorization: `Bearer ${token}` } }
+            )
+            .catch((err) => console.error("Error incrementing view:", err));
+
+          if (isMounted && viewResponse?.data?.views) {
+            setViewCount(viewResponse.data.views);
+          }
         }
       } catch (error) {
         console.error("Error fetching post:", error);
@@ -197,11 +171,9 @@ const PostDetail = () => {
   }, [id, navigate]);
 
   const handleLike = async () => {
-    // Store previous state for rollback
     const previousIsLiked = isLiked;
     const previousLikeCount = likeCount;
 
-    // OPTIMISTIC UPDATE - Update UI immediately
     setIsLiked(!isLiked);
     setLikeCount(isLiked ? likeCount - 1 : likeCount + 1);
 
@@ -209,8 +181,8 @@ const PostDetail = () => {
       const {
         data: { session },
       } = await supabase.auth.getSession();
+
       if (!session) {
-        // Rollback if not authenticated
         setIsLiked(previousIsLiked);
         setLikeCount(previousLikeCount);
         navigate("/login");
@@ -220,41 +192,33 @@ const PostDetail = () => {
       const token = session.access_token;
 
       if (previousIsLiked) {
-        // Unlike the post
         await axios.delete(`http://localhost:5051/posts/${id}/like`, {
           headers: { Authorization: `Bearer ${token}` },
         });
       } else {
-        // Like the post
         await axios.post(
           `http://localhost:5051/posts/${id}/like`,
           {},
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
+          { headers: { Authorization: `Bearer ${token}` } }
         );
       }
     } catch (error) {
       console.error("Error toggling like:", error);
-      // Rollback on error
       setIsLiked(previousIsLiked);
       setLikeCount(previousLikeCount);
     }
   };
 
   const handleFollow = async () => {
-    // Store previous state for rollback
     const previousIsFollowing = isFollowing;
-
-    // OPTIMISTIC UPDATE - Update UI immediately
     setIsFollowing(!isFollowing);
 
     try {
       const {
         data: { session },
       } = await supabase.auth.getSession();
+
       if (!session) {
-        // Rollback if not authenticated
         setIsFollowing(previousIsFollowing);
         navigate("/login");
         return;
@@ -262,32 +226,28 @@ const PostDetail = () => {
 
       const token = session.access_token;
 
+      const userId = post?.User?.id;
+      if (!userId) return;
+
       if (previousIsFollowing) {
-        // Unfollow the user
-        await axios.delete(
-          `http://localhost:5051/users/${post.User.id}/follow`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
+        await axios.delete(`http://localhost:5051/users/${userId}/follow`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
       } else {
-        // Follow the user
         await axios.post(
-          `http://localhost:5051/users/${post.User.id}/follow`,
+          `http://localhost:5051/users/${userId}/follow`,
           {},
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
+          { headers: { Authorization: `Bearer ${token}` } }
         );
       }
     } catch (error) {
       console.error("Error toggling follow:", error);
-      // Rollback on error
       setIsFollowing(previousIsFollowing);
     }
   };
 
   const handleShare = () => {
+    if (!post) return;
     if (navigator.share) {
       navigator.share({
         title: post.title,
@@ -321,19 +281,12 @@ const PostDetail = () => {
 
       await axios.post(
         `http://localhost:5051/posts/${id}/comments`,
-        {
-          content: newComment.trim(),
-          parentId: replyTo || null,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { content: newComment.trim(), parentId: replyTo || null },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
       setNewComment("");
       setReplyTo(null);
-
-      // ✅ easiest + correct (tree): re-fetch
       await fetchComments();
     } catch (err) {
       console.error("Error creating comment:", err);
@@ -341,8 +294,23 @@ const PostDetail = () => {
     }
   };
 
+  // ✅ UPDATED: open Messages page with this user selected (even if new)
   const handleContactOwner = () => {
-    navigate(`/messages?user=${post.User.id}`);
+    const author = post?.User;
+    const authorId = safeString(author?.id);
+    if (!authorId) return;
+
+    sessionStorage.setItem("activeChatId", authorId);
+    sessionStorage.setItem(
+      "activeChatMeta",
+      JSON.stringify({
+        userId: authorId,
+        username: safeString(author?.username),
+        name: safeString(author?.name),
+      })
+    );
+
+    navigate("/messages");
   };
 
   const getTimeAgo = (dateString) => {
@@ -441,14 +409,26 @@ const PostDetail = () => {
     );
   }
 
-  // (The "not found" error UI will not be shown instantly, only after fetchPostFresh sets post to null and the skeleton was already shown.)
+  if (!post) {
+    return (
+      <div className="post-detail-page">
+        <div className="error-container">
+          <h2>Post not found</h2>
+          <p>The post you're looking for doesn't exist or has been removed.</p>
+          <button className="back-btn" onClick={() => navigate(-1)}>
+            <FiArrowLeft /> Go Back
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const profileUsername = post?.User?.username;
   const profilePath = profileUsername ? `/profile/${profileUsername}` : null;
 
   return (
     <div className="post-detail-page">
       <div className="post-detail-container">
-        {/* Header with back button */}
         <div className="post-header">
           <button className="back-button" onClick={() => navigate(-1)}>
             <FiArrowLeft /> Back
@@ -458,7 +438,6 @@ const PostDetail = () => {
         <div className="post-content-wrapper">
           {/* Main Content */}
           <div className="post-main-content">
-            {/* Title with action buttons on the right */}
             <div className="post-title-row">
               <h1 className="post-title">{post.title}</h1>
               <div className="post-actions-top">
@@ -479,7 +458,6 @@ const PostDetail = () => {
               </div>
             </div>
 
-            {/* Category and Difficulty badges */}
             <div className="post-meta-badges">
               <span className="category-badge">
                 {getCategoryLabel(post.category)}
@@ -493,16 +471,13 @@ const PostDetail = () => {
               </span>
             </div>
 
-            {/* Post Description */}
             <div className="post-description-section">
               <h3 className="description-title">Description:</h3>
               <div className="post-description">{post.description}</div>
             </div>
 
-            {/* Separator */}
             <div className="post-separator"></div>
 
-            {/* Tech Stack ee*/}
             <div className="post-tech-stack">
               <div className="tech-stack-tags">
                 {post.techStack &&
@@ -514,14 +489,12 @@ const PostDetail = () => {
               </div>
             </div>
 
-            {/* Separator */}
             <div className="post-separator"></div>
 
             {/* Comments Section */}
             <div className="comments-section">
               <h3 className="comments-title">Comments ({comments.length})</h3>
 
-              {/* Comment Form */}
               <form className="comment-form" onSubmit={handleCommentSubmit}>
                 {replyTo && (
                   <div className="reply-indicator">
@@ -535,6 +508,7 @@ const PostDetail = () => {
                     </button>
                   </div>
                 )}
+
                 <div className="comment-input-wrapper">
                   <textarea
                     className="comment-input"
@@ -549,7 +523,6 @@ const PostDetail = () => {
                 </div>
               </form>
 
-              {/* Comments List */}
               <div className="comments-list">
                 {comments.map((comment) => (
                   <div key={comment.id} className="comment">
@@ -582,7 +555,6 @@ const PostDetail = () => {
                         </button>
                       </div>
 
-                      {/* Replies */}
                       {comment.replies && comment.replies.length > 0 && (
                         <div className="replies">
                           {comment.replies.map((reply) => (
@@ -641,14 +613,22 @@ const PostDetail = () => {
 
                 {profilePath ? (
                   <Link to={profilePath} className="author-profile-link">
-                    <h4 className="author-name">{post.User?.name || "Anonymous"}</h4>
+                    <h4 className="author-name">
+                      {post.User?.name || "Anonymous"}
+                    </h4>
                   </Link>
                 ) : (
-                  <h4 className="author-name">{post.User?.name || "Anonymous"}</h4>
+                  <h4 className="author-name">
+                    {post.User?.name || "Anonymous"}
+                  </h4>
                 )}
 
-                <p className="author-username">@{post.User?.username || "user"}</p>
-                <p className="author-bio">{post.User?.bio || "No bio available"}</p>
+                <p className="author-username">
+                  @{post.User?.username || "user"}
+                </p>
+                <p className="author-bio">
+                  {post.User?.bio || "No bio available"}
+                </p>
               </div>
 
               <div className="author-social">
@@ -674,6 +654,7 @@ const PostDetail = () => {
                 )}
               </div>
 
+              {/* ✅ UPDATED */}
               <button className="contact-btn" onClick={handleContactOwner}>
                 <FiMail /> Message
               </button>
@@ -686,7 +667,6 @@ const PostDetail = () => {
               </button>
             </div>
 
-            {/* Related Stats */}
             <div className="stats-card">
               <h3 className="sidebar-title">Post Stats</h3>
               <div className="stat-item">
