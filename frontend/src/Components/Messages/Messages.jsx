@@ -16,6 +16,7 @@ import {
   FiCheck,
   FiCheckCircle,
 } from "react-icons/fi";
+import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { io } from "socket.io-client";
 // ===============================
@@ -723,7 +724,10 @@ const handleMessagesScroll = () => {
             <>
               {/* header */}
               <div className="chat-header">
-                <div className="chat-head-left">
+                <Link
+                  to={`/profile/${selectedConversation?.username || selectedConversation?.userId}`}
+                  className="chat-head-left chat-head-link"
+                >
                   <div className="chat-head-avatar-wrap">
                     <div className="chat-head-avatar">
                       {selectedConversation.avatar}
@@ -741,7 +745,7 @@ const handleMessagesScroll = () => {
                       {selectedConversation.online ? "Online" : "Offline"}
                     </p>
                   </div>
-                </div>
+                </Link>
 
                 {/* keep ONLY the "More" button (existing feature) */}
                 <button
