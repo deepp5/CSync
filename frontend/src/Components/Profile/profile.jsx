@@ -527,7 +527,7 @@ const ProfilePage = () => {
         <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
           {/* Bio Card */}
           <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 hover:border-white/20 transition-colors">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-white">
               <div className="w-1 h-6 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-full"></div>
               About
             </h2>
@@ -548,7 +548,7 @@ const ProfilePage = () => {
 
           {/* Skills Card */}
           <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 hover:border-white/20 transition-colors">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-white">
               <div className="w-1 h-6 bg-gradient-to-b from-purple-400 to-pink-500 rounded-full"></div>
               Skills & Expertise
             </h2>
@@ -579,7 +579,7 @@ const ProfilePage = () => {
 
           {/* Projects Section */}
           <div>
-            <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-3 text-white">
               <FiGrid className="text-cyan-400" />
               Projects
               <span className="text-white/40 text-lg font-normal">({posts.length})</span>
