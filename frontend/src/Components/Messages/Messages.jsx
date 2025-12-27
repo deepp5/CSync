@@ -30,6 +30,11 @@ function safeString(v) {
   return String(v);
 }
 
+function stripAt(v) {
+  const s = safeString(v).trim();
+  return s.startsWith("@") ? s.slice(1) : s;
+}
+
 function formatTime(ts) {
   try {
     return new Date(ts).toLocaleTimeString([], {
@@ -108,15 +113,17 @@ function normalizeConversation(raw, prevMap) {
 
   const old = prevMap?.get(otherUserId);
 
-  const username = safeString(raw?.username) || safeString(old?.username) || "";
+  const username =
+    stripAt(raw?.username) ||
+    stripAt(old?.username) ||
+    "";
 
-  const displayName =
-    (username ? `@${username}` : "") ||
-    safeString(raw?.name) ||
-    safeString(raw?.displayName) ||
-    safeString(raw?.user?.name) ||
-    safeString(raw?.otherUser?.name) ||
-    safeString(old?.name) ||
+  const name =
+    stripAt(raw?.name) ||
+    stripAt(raw?.displayName) ||
+    stripAt(raw?.user?.name) ||
+    stripAt(raw?.otherUser?.name) ||
+    stripAt(old?.name) ||
     `User ${otherUserId.slice(0, 6)}`;
 
   const legacy = parseLegacyAttachment(safeString(raw?.lastMessage));
@@ -131,11 +138,11 @@ function normalizeConversation(raw, prevMap) {
   return {
     userId: otherUserId,
     id: otherUserId,
-    name: displayName,
+    name,
     username,
     avatar:
       safeString(old?.avatar) ||
-      (displayName?.[0] || otherUserId?.[0] || "?").toUpperCase(),
+      (name?.[0] || otherUserId?.[0] || "?").toUpperCase(),
     lastMessage: preview || safeString(old?.lastMessage) || "",
     unread: Number(old?.unread || raw?.unread || 0),
     online: Boolean(raw?.online ?? old?.online),
@@ -306,11 +313,10 @@ const Messages = () => {
       meta = JSON.parse(sessionStorage.getItem("activeChatMeta") || "{}");
     } catch {}
 
-    const username = safeString(meta.username);
+    const username = stripAt(meta.username);
     const name =
-      (username ? `@${username}` : "") ||
-      safeString(meta.name) ||
-      `User ${shortId(selectedChatId)}`;
+      stripAt(meta.name) ||
+      (username ? username : `User ${shortId(selectedChatId)}`);
 
     const nowIso = new Date().toISOString();
 
@@ -581,8 +587,8 @@ const Messages = () => {
         });
 
         if (!found) {
-          const username = safeString(message.sender?.username);
-          const name = username ? `@${username}` : `User ${shortId(otherId)}`;
+          const username = stripAt(message.sender?.username);
+          const name = username || `User ${shortId(otherId)}`;
 
           updated.unshift({
             userId: otherId,
@@ -947,10 +953,7 @@ const Messages = () => {
               {/* header */}
               <div className="chat-header">
                 <Link
-                  to={`/profile/${
-                    selectedConversation?.username ||
-                    selectedConversation?.userId
-                  }`}
+                  to={`/profile/${stripAt(selectedConversation?.username) || selectedConversation?.userId}`}
                   className="chat-head-left chat-head-link"
                 >
                   <div className="chat-head-avatar-wrap">
