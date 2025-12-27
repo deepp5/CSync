@@ -635,21 +635,36 @@ const handleMessagesScroll = () => {
 
   return (
     <div className="messaging-page">
-      <div className="messaging-container">
-        {/* LEFT PANEL */}
-        <aside className="conversations-panel">
-          <div className="conversations-header">
-            <h2 className="conversations-title">Messages</h2>
-          </div>
+      {/* background glow */}
+      <div className="messaging-bg" aria-hidden="true" />
 
-          <div className="search-container">
-            <FiSearch className="search-icon" />
-            <input
-              className="search-input"
-              placeholder="Search conversations..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+      <div className="messaging-shell">
+        {/* LEFT / CONVERSATIONS */}
+        <aside className="conversations-panel">
+          <div className="left-top">
+            <div className="left-title-row">
+              <div>
+                <h2 className="left-title">Messages</h2>
+                <p className="left-subtitle">
+                  Find a conversation, then ship faster.
+                </p>
+              </div>
+
+              <div className="left-chip">
+                <span className="left-chip-dot" />
+                Live
+              </div>
+            </div>
+
+            <div className="left-search">
+              <FiSearch className="left-search-icon" />
+              <input
+                className="left-search-input"
+                placeholder="Search conversations..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
           </div>
 
           <div className="conversations-list">
@@ -657,15 +672,12 @@ const handleMessagesScroll = () => {
               <button
                 key={c.userId}
                 type="button"
-                className={`conversation-item ${
-                  selectedChatId === c.userId ? "active" : ""
+                className={`conv-row ${
+                  selectedChatId === c.userId ? "is-active" : ""
                 }`}
                 onClick={() => {
                   setSelectedChatId(c.userId);
-
-                  // ✅ when selecting a chat, go to most recent
                   shouldAutoScrollRef.current = true;
-                  // scrollToBottom("auto");
 
                   setConversations((prev) =>
                     prev.map((x) =>
@@ -674,21 +686,22 @@ const handleMessagesScroll = () => {
                   );
                 }}
               >
-                <div className="conversation-avatar-container">
-                  <div className="conversation-avatar">{c.avatar}</div>
-                  {c.online && <div className="online-indicator" />}
+                <div className="conv-avatar-wrap">
+                  <div className="conv-avatar">{c.avatar}</div>
+                  {c.online && <div className="conv-online" />}
                 </div>
 
-                <div className="conversation-details">
-                  <div className="conversation-header">
-                    <span className="conversation-name">{c.name}</span>
-                    <span className="conversation-time">{c.timestamp}</span>
+                <div className="conv-meta">
+                  <div className="conv-topline">
+                    <span className="conv-name">{c.name}</span>
+                    <span className="conv-time">{c.timestamp}</span>
                   </div>
 
-                  <div className="conversation-preview">
-                    <span className="last-message">{c.lastMessage || " "}</span>
+                  <div className="conv-bottomline">
+                    <span className="conv-preview">{c.lastMessage || " "}</span>
+
                     {c.unread > 0 && (
-                      <span className="unread-badge">{c.unread}</span>
+                      <span className="conv-badge">{c.unread}</span>
                     )}
                   </div>
                 </div>
@@ -696,50 +709,51 @@ const handleMessagesScroll = () => {
             ))}
 
             {filteredConversations.length === 0 && (
-              <div className="empty-left">No conversations found</div>
+              <div className="left-empty">No conversations found</div>
             )}
           </div>
 
-          {error && <div className="error-banner">{error}</div>}
+          {error && <div className="left-error">{error}</div>}
         </aside>
 
-        {/* RIGHT PANEL */}
+        {/* RIGHT / CHAT */}
         <main className="chat-panel">
           {selectedConversation && selectedChatId ? (
             <>
+              {/* header */}
               <div className="chat-header">
-                <div className="chat-header-info">
-                  <div className="chat-avatar-container">
-                    <div className="chat-avatar">
+                <div className="chat-head-left">
+                  <div className="chat-head-avatar-wrap">
+                    <div className="chat-head-avatar">
                       {selectedConversation.avatar}
                     </div>
                     {selectedConversation.online && (
-                      <div className="online-indicator" />
+                      <div className="chat-head-online" />
                     )}
                   </div>
 
-                  <div className="chat-user-info">
-                    <h3 className="chat-user-name">
+                  <div className="chat-head-text">
+                    <h3 className="chat-head-name">
                       {selectedConversation.name}
                     </h3>
-                    <p className="chat-user-status">
+                    <p className="chat-head-status">
                       {selectedConversation.online ? "Online" : "Offline"}
                     </p>
                   </div>
                 </div>
 
-                <div className="chat-actions">
-                  <button
-                    className="chat-action-btn"
-                    type="button"
-                    aria-label="More"
-                  >
-                    <FiMoreVertical />
-                  </button>
-                </div>
+                {/* keep ONLY the "More" button (existing feature) */}
+                <button
+                  className="chat-more-btn"
+                  type="button"
+                  aria-label="More"
+                  title="More"
+                >
+                  <FiMoreVertical />
+                </button>
               </div>
 
-              {/* ✅ IMPORTANT: this must be the scrollable container */}
+              {/* messages */}
               <div
                 className="messages-container"
                 ref={messagesContainerRef}
@@ -747,36 +761,30 @@ const handleMessagesScroll = () => {
               >
                 <div className="messages-list">
                   {messages.map((m) => {
-                    const isOwn =
-                      safeString(m.senderId) === safeString(user?.id);
+                    const isOwn = safeString(m.senderId) === safeString(user?.id);
                     const isFile = m.type === "file";
 
                     return (
                       <div
                         key={m.id}
-                        className={`message ${
-                          isOwn ? "message-own" : "message-other"
-                        }`}
+                        className={`msg-row ${isOwn ? "own" : "other"}`}
                       >
                         {!isOwn && (
-                          <div className="message-avatar">
+                          <div className="msg-avatar">
                             {selectedConversation.avatar}
                           </div>
                         )}
 
-                        <div className="message-bubble">
+                        <div className={`msg-bubble ${isOwn ? "own" : "other"}`}>
                           {isFile ? (
-                            <p className="message-content">
+                            <p className="msg-text">
                               📎{" "}
                               {m.fileUrl ? (
                                 <a
                                   href={m.fileUrl}
                                   target="_blank"
                                   rel="noreferrer"
-                                  style={{
-                                    color: "inherit",
-                                    textDecoration: "underline",
-                                  }}
+                                  className="msg-link"
                                 >
                                   {m.fileName || "Attachment"}
                                 </a>
@@ -785,21 +793,19 @@ const handleMessagesScroll = () => {
                               )}
                             </p>
                           ) : (
-                            <p className="message-content">
-                              {safeString(m.content)}
-                            </p>
+                            <p className="msg-text">{safeString(m.content)}</p>
                           )}
 
-                          <div className="message-footer">
-                            <span className="message-time">
+                          <div className="msg-footer">
+                            <span className="msg-time">
                               {formatTime(m.createdAt)}
                             </span>
                             {isOwn && (
-                              <span className="message-status">
+                              <span className="msg-status">
                                 {m.read ? (
-                                  <FiCheckCircle className="read-icon" />
+                                  <FiCheckCircle className="msg-read" />
                                 ) : (
-                                  <FiCheck className="sent-icon" />
+                                  <FiCheck className="msg-sent" />
                                 )}
                               </span>
                             )}
@@ -811,9 +817,10 @@ const handleMessagesScroll = () => {
                 </div>
               </div>
 
-              <div className="message-input-container">
+              {/* input */}
+              <div className="composer">
                 <button
-                  className="input-action-btn"
+                  className="composer-icon"
                   type="button"
                   aria-label="Attach"
                   onClick={handleAttachClick}
@@ -830,21 +837,21 @@ const handleMessagesScroll = () => {
                   onChange={handleFileSelected}
                 />
 
-                <form onSubmit={handleSendMessage} className="message-form">
+                <form onSubmit={handleSendMessage} className="composer-form">
                   <input
-                    className="message-input"
+                    className="composer-input"
                     value={messageInput}
                     onChange={(e) => setMessageInput(e.target.value)}
-                    placeholder={
-                      uploading ? "Uploading..." : "Type a message..."
-                    }
+                    placeholder={uploading ? "Uploading..." : "Type a message..."}
                     disabled={uploading}
                   />
 
                   <button
-                    className="send-btn"
+                    className="composer-send"
                     type="submit"
                     disabled={!messageInput.trim() || uploading}
+                    aria-label="Send"
+                    title="Send"
                   >
                     <FiSend />
                   </button>
@@ -852,11 +859,14 @@ const handleMessagesScroll = () => {
               </div>
             </>
           ) : (
-            <div className="no-chat-selected">
-              <div className="no-chat-content">
-                <div className="no-chat-icon">💬</div>
-                <h3>Select a conversation</h3>
-                <p>Choose a conversation from the left to start messaging</p>
+            <div className="empty-state">
+              <div className="empty-card">
+                <div className="empty-orb" />
+                <div className="empty-emoji">💬</div>
+                <h3 className="empty-title">Select a conversation</h3>
+                <p className="empty-text">
+                  Choose someone on the left to start messaging.
+                </p>
               </div>
             </div>
           )}
