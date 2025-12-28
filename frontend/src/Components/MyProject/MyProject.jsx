@@ -28,6 +28,9 @@ export default function MyProjects() {
 
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState(null); // { id, title }
+
 
   useEffect(() => {
     async function fetchMyProjects() {
@@ -87,6 +90,8 @@ export default function MyProjects() {
       }
     }
 
+
+
     fetchMyProjects();
   }, []);
 
@@ -115,12 +120,13 @@ export default function MyProjects() {
     setShowMenu(null);
   };
 
-  const handleDeleteProject = async (projectId) => {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this project? This action cannot be undone."
-    );
-    if (!confirmed) return;
+  const requestDeleteProject = (project) => {
+    setPendingDelete({ id: project.id, title: project.title });
+    setConfirmOpen(true);
+    setShowMenu(null);
+  };
 
+  const handleDeleteProject = async (projectId) => {
     try {
       const {
         data: { session },
@@ -135,13 +141,26 @@ export default function MyProjects() {
 
       const updatedProjects = projects.filter((p) => p.id !== projectId);
       setProjects(updatedProjects);
-      prefetchCache.set("myProjects", updatedProjects); // Update cache
+      prefetchCache.set("myProjects", updatedProjects);
       setShowMenu(null);
     } catch (error) {
       console.error("Error deleting project:", error);
       alert("Failed to delete project. Please try again.");
     }
   };
+
+  const confirmDelete = async () => {
+    if (!pendingDelete?.id) return;
+    await handleDeleteProject(pendingDelete.id);
+    setConfirmOpen(false);
+    setPendingDelete(null);
+  };
+
+  const cancelDelete = () => {
+    setConfirmOpen(false);
+    setPendingDelete(null);
+  };
+
 
   const handleChangeStatus = async (projectId, newVisibility) => {
     const project = projects.find((p) => p.id === projectId);
@@ -232,6 +251,44 @@ export default function MyProjects() {
 
   return (
     <div className="my-projects-page" style={{ position: "relative", overflow: "visible" }}>
+      {confirmOpen && (
+        <div className="mp-confirm-overlay" onClick={cancelDelete}>
+          <div
+            className="mp-confirm-modal"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="mpConfirmTitle"
+          >
+            <div className="mp-confirm-top">
+              <div className="mp-confirm-icon">
+                <FiTrash2 />
+              </div>
+              <div className="mp-confirm-copy">
+                <h3 id="mpConfirmTitle" className="mp-confirm-title">
+                  Delete this project?
+                </h3>
+                <p className="mp-confirm-text">
+                  Are you sure you want to delete this project? This action cannot be undone.
+                </p>
+
+                {pendingDelete?.title && (
+                  <div className="mp-confirm-chip">{pendingDelete.title}</div>
+                )}
+              </div>
+            </div>
+
+            <div className="mp-confirm-actions">
+              <button className="mp-confirm-btn ghost" onClick={cancelDelete}>
+                Cancel
+              </button>
+              <button className="mp-confirm-btn danger" onClick={confirmDelete}>
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Ambient glow - top left */}
       <div
         style={{
@@ -440,7 +497,7 @@ export default function MyProjects() {
                             className="menu-item danger"
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleDeleteProject(project.id);
+                              requestDeleteProject(project);
                             }}
                           >
                             <FiTrash2 /> Delete

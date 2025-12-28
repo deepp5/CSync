@@ -568,3 +568,165 @@ body[data-sidebar-open="false"] .my-projects-page {
     gap: 10px;
   }
 }
+
+
+/* ===========================
+   Delete Confirm Modal
+=========================== */
+/* 
+ .mp-confirm-overlay {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  right: 0;
+
+  /* Sidebar-aware: default open /
+  /* left: 230px; /
+
+  z-index: 6000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 22px;
+
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(10px);
+}  */
+
+.mp-confirm-overlay {
+  position: fixed;
+  inset: 0; /* replaces top/bottom/left/right */
+  z-index: 6000;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 22px;
+
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(10px);
+}
+
+
+body[data-sidebar-open="false"] .mp-confirm-overlay {
+  left: 0px;
+}
+
+@media (max-width: 768px) {
+  
+}
+
+.mp-confirm-modal {
+  width: min(520px, 100%);
+  background: rgba(20, 20, 30, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px; /* “square-ish” but still premium */
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.7);
+  padding: 18px 18px 16px;
+}
+
+.mp-confirm-top {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.mp-confirm-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+
+  color: rgba(255, 255, 255, 0.92);
+  background: linear-gradient(135deg, rgba(250, 78, 253, 0.25), rgba(33, 218, 242, 0.18));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.mp-confirm-copy {
+  min-width: 0;
+}
+
+.mp-confirm-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.mp-confirm-text {
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.mp-confirm-chip {
+  margin-top: 10px;
+  display: inline-flex;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.mp-confirm-actions {
+  margin-top: 16px;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.mp-confirm-btn {
+  border: none;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.mp-confirm-btn:active {
+  transform: scale(0.98);
+}
+
+.mp-confirm-btn.ghost {
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.mp-confirm-btn.ghost:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.20);
+}
+
+.mp-confirm-btn.danger {
+  color: #071018;
+  background: linear-gradient(90deg, #ff2222, #ff2222);
+}
+
+.mp-confirm-btn.danger:hover {
+  filter: brightness(1.05);
+}
+
+@media (max-width: 420px) {
+  .mp-confirm-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+  .mp-confirm-btn {
+    width: 100%;
+  }
+  
+}

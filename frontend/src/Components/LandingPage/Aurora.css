@@ -1,5 +1,5 @@
 .aurora-container {
-  position: fixed; /* stay fixed behind everything */
+  position: absolute; /* stay fixed behind everything */
   top: 0;
   left: 0;
   width: 100vw;    /* full viewport width */
