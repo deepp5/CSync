@@ -61,7 +61,7 @@ const Navbar = () => {
           </a>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-8">
+          <div className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
             {navLinks.map((link) => (
               <a
                 key={link.id}
@@ -83,8 +83,9 @@ const Navbar = () => {
             <Link to="/login" className="px-4 py-2 text-sm font-medium text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
               Log in
             </Link>
-            <Link to="/register"
-              className="px-5 py-3 text-white text-[16px] font-semibold rounded-xl cursor-pointer border-0 shadow-[0_4px_15px_rgba(102,126,234,0.3)] transition-all duration-300 ease-in-out bg-gradient-to-br from-[#667eea] to-[#764ba2] hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(102,126,234,0.45)]"
+            <Link
+              to="/register"
+              className="px-5 py-2 text-[15px] font-semibold rounded-lg border border-white/60 text-white bg-white/10 hover:bg-white/20 transition-colors"
             >
               Sign up
             </Link>
