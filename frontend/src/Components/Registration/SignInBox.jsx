@@ -64,6 +64,9 @@ export default function SignInBox({ onSubmit, onGoogle, loading }) {
   return (
     <div className="login-page-container">
       <div className="clear-box-container">
+        <Link to="/" className="back-box">
+          ← Back
+        </Link>
         <div id="logo-container">
           <img src={colorLogo} alt="Logo" />
           <h3 className="title">Sign in to CSync</h3>

@@ -51,6 +51,9 @@ export default function LoginForm({ onSubmit, onGoogle, loading }) {
   return (
     <div className="signup-page-container">
       <div className="signup-clear-box">
+        <Link to="/" className="back-box">
+          ← Back
+        </Link>
         <div className="signup-logo-container">
           <img src={colorLogo} alt="Logo" />
           <h3 className="signup-title">Create your CSync account</h3>

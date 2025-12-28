@@ -200,6 +200,32 @@
   margin-top: 2px;
 }
 
+.back-box {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+
+  padding: 10px 12px;
+  border-radius: 12px;
+
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.9);
+
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+
+  transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+.back-box:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+
 /* Responsive adjustments */
 @media (max-width: 480px) {
   .signup-clear-box {

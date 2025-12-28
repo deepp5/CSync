@@ -15,6 +15,8 @@ import {
   FiPaperclip,
   FiCheck,
   FiCheckCircle,
+  FiArrowLeft,
+  FiTrash2,
 } from "react-icons/fi";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -162,6 +164,7 @@ const Messages = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
 
   // Persist active chat between navigations
   useEffect(() => {
@@ -754,6 +757,72 @@ const Messages = () => {
   };
 
   // --------------------
+  // Menu button (delete user)
+  // --------------------
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (showMoreMenu && !e.target.closest('.chat-more-btn') && !e.target.closest('.chat-more-menu')) {
+        setShowMoreMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showMoreMenu]);
+    
+
+  const handleDeleteChat = async () => {
+    if (!selectedChatId || !accessToken) return;
+
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete this conversation with ${selectedConversation?.name || 'this user'}? This cannot be undone.`
+    );
+
+    if (!confirmDelete) return;
+
+    setShowMoreMenu(false);
+    setError("");
+
+    try {
+      const res = await fetch(`${API_BASE}/conversations/${selectedChatId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to delete conversation");
+      }
+
+      // Remove from state
+      setConversations((prev) => {
+        const updated = prev.filter((c) => c.userId !== selectedChatId);
+        prefetchCache.set("messages:conversations", updated);
+        return updated;
+      });
+
+      // Clear messages cache
+      prefetchCache.delete(`messages:thread:${selectedChatId}`);
+      
+      // Clear last read timestamp
+      delete lastReadAtRef.current[selectedChatId];
+
+      // Reset selection
+      setSelectedChatId(null);
+      setMessages([]);
+
+    } catch (err) {
+      console.error(err);
+      setError("Failed to delete conversation.");
+    }
+  };
+
+
+
+
+
+  // --------------------
   // Attach / upload file (optimistic)
   // --------------------
   const handleAttachClick = () => {
@@ -869,7 +938,7 @@ const Messages = () => {
 
       <div className="messaging-shell">
         {/* LEFT / CONVERSATIONS */}
-        <aside className="conversations-panel">
+        <aside className={`conversations-panel ${selectedChatId ? 'is-hidden' : ''}`}>
           <div className="left-top">
             <div className="left-title-row">
               <div>
@@ -879,10 +948,10 @@ const Messages = () => {
                 </p>
               </div>
 
-              <div className="left-chip">
+              {/* <div className="left-chip">
                 <span className="left-chip-dot" />
                 Live
-              </div>
+              </div> */}
             </div>
 
             <div className="left-search">
@@ -952,37 +1021,63 @@ const Messages = () => {
             <>
               {/* header */}
               <div className="chat-header">
-                <Link
-                  to={`/profile/${stripAt(selectedConversation?.username) || selectedConversation?.userId}`}
-                  className="chat-head-left chat-head-link"
-                >
-                  <div className="chat-head-avatar-wrap">
-                    <div className="chat-head-avatar">
-                      {selectedConversation.avatar}
+                <div className="chat-head-left">
+                  <button
+                    className="chat-back-btn"
+                    type="button"
+                    aria-label="Back"
+                    onClick={() => setSelectedChatId(null)}
+                  >
+                    <FiArrowLeft />
+                  </button>
+                  
+                  <Link
+                    to={`/profile/${stripAt(selectedConversation?.username) || selectedConversation?.userId}`}
+                    className="chat-head-link"
+                    style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}
+                  >
+                    <div className="chat-head-avatar-wrap">
+                      <div className="chat-head-avatar">
+                        {selectedConversation.avatar}
+                      </div>
+                      {selectedConversation.online && (
+                        <div className="chat-head-online" />
+                      )}
                     </div>
-                    {selectedConversation.online && (
-                      <div className="chat-head-online" />
-                    )}
-                  </div>
 
-                  <div className="chat-head-text">
-                    <h3 className="chat-head-name">
-                      {selectedConversation.name}
-                    </h3>
-                    <p className="chat-head-status">
-                      {selectedConversation.online ? "Online" : "Offline"}
-                    </p>
-                  </div>
-                </Link>
+                    <div className="chat-head-text">
+                      <h3 className="chat-head-name">
+                        {selectedConversation.name}
+                      </h3>
+                      <p className="chat-head-status">
+                        {selectedConversation.online ? "Online" : "Offline"}
+                      </p>
+                    </div>
+                  </Link>
+                </div>
 
                 <button
                   className="chat-more-btn"
                   type="button"
                   aria-label="More"
                   title="More"
+                  onClick={() => setShowMoreMenu(!showMoreMenu)}
                 >
                   <FiMoreVertical />
                 </button>
+
+                {/* Dropdown Menu */}
+                {showMoreMenu && (
+                  <div className="chat-more-menu">
+                    <button
+                      className="chat-more-menu-item danger"
+                      onClick={handleDeleteChat}
+                    >
+                      <FiTrash2 />
+                      Delete Conversation
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* messages */}
