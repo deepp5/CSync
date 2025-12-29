@@ -144,7 +144,7 @@ export default function LoginForm({ onSubmit, onGoogle, loading }) {
           </div>
 
           {/* Checkbox */}
-          <div className="signup-checkbox">
+          {/* <div className="signup-checkbox">
             <label>
               <input
                 type="checkbox"
@@ -155,7 +155,7 @@ export default function LoginForm({ onSubmit, onGoogle, loading }) {
               />
               Receive product updates
             </label>
-          </div>
+          </div> */}
 
           {/* Submit */}
           <div className="signup-submit">
