@@ -59,20 +59,50 @@ const HeroPage = () => {
           className="flex flex-col sm:flex-row items-center justify-center gap-4"
           style={{ animation: "fadeIn 0.6s ease-out 0.6s forwards", opacity: 0 }}
         >
-          <Link to="/register"
-            className="group inline-flex items-center gap-2 px-10 py-4 text-lg font-semibold text-black rounded-xl transition-all hover:shadow-xl hover:shadow-cyan-400/30 hover:-translate-y-0.5"
-            style={{ background: "linear-gradient(135deg, #22d3ee 0%, #3b82f6 100%)" }}
-          >
-            Get Started
-            <svg
-              className="w-5 h-5 transition-transform group-hover:translate-x-1"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </Link>
+          <Link
+  to="/register"
+  className="group inline-flex rounded-2xl p-[2px]
+             "
+>
+  <span
+    className="relative inline-flex items-center justify-center gap-2
+               rounded-[14px] px-10 py-4 text-lg font-semibold
+               overflow-hidden
+
+               /* white inside */
+               bg-white/90 text-slate-900
+               border border-white/60
+
+               transition-all duration-200
+               group-hover:-translate-y-0.5
+               group-hover:bg-white
+               group-hover:shadow-[0_18px_60px_rgba(0,0,0,0.35)]"
+  >
+    {/* sweep highlight (subtle on white) */}
+    <span
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0
+                 translate-x-[-120%] group-hover:translate-x-[120%]
+                 transition-transform duration-700 ease-out
+                 bg-[linear-gradient(120deg,transparent,rgba(255,255,255,0.65),transparent)]"
+    />
+
+    <span className="relative z-10">Get Started</span>
+
+    <svg
+      className="relative z-10 w-5 h-5 transition-transform duration-200 group-hover:translate-x-1"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+    </svg>
+  </span>
+</Link>
+
+
+
+
           {/* <button className="px-10 py-4 text-lg font-semibold text-white border border-white/20 rounded-xl bg-transparent hover:bg-white/5 hover:border-white/40 transition-all">
             Explore Projects
           </button> */}

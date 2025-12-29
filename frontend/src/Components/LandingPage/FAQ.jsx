@@ -94,7 +94,7 @@ const FAQ = () => {
                   </svg>
                 </button>
                 <div className={`overflow-hidden transition-all duration-300 ${isOpen ? "max-h-96" : "max-h-0"}`}>
-                  <p className="px-6 pb-6 text-gray-400 leading-relaxed">{item.answer}</p>
+                  <p className="px-6 pb-6 pt-5 text-gray-400 leading-relaxed">{item.answer}</p>
                 </div>
               </div>
             );

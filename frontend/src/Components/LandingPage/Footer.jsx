@@ -32,7 +32,7 @@ export default function Footer() {
                 to="/login"
                 className="rounded-2xl border border-white/15 bg-white/10 px-5 py-2.5 font-semibold text-sm text-white hover:bg-white/15 transition"
               >
-                Sign in
+                Log in
               </Link>
             </div>
           </div>

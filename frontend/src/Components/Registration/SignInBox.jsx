@@ -133,8 +133,11 @@ export default function SignInBox({ onSubmit, onGoogle, loading }) {
 
           {/* SUBMIT */}
           <div className="submit-container">
-            <button type="submit" disabled={loading}>
-              {loading ? "Signing in..." : "Sign in"}
+            <button type="submit" className="signin-pulse-btn" disabled={loading}>
+              <span className="pulse-text">
+                {loading ? "Signing in..." : "Sign In"}
+              </span>
+              <span className="pulse-ring"></span>
             </button>
           </div>
         </form>
