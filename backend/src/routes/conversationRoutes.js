@@ -13,6 +13,9 @@ const prisma = new PrismaClient();
  */
 router.get("/", verifySupabaseToken, async (req, res) => {
   try {
+    // Prevent caching (helps in some dev/proxy setups)
+    res.setHeader("Cache-Control", "no-store");
+
     // Ensure user exists in Prisma DB
     const me = await ensureUserExists(prisma, req.user);
     const meId = me.id;
@@ -36,8 +39,7 @@ router.get("/", verifySupabaseToken, async (req, res) => {
     const convoMap = new Map();
 
     for (const m of messages) {
-      const otherUserId =
-        m.senderId === meId ? m.receiverId : m.senderId;
+      const otherUserId = m.senderId === meId ? m.receiverId : m.senderId;
 
       if (!convoMap.has(otherUserId)) {
         convoMap.set(otherUserId, {
@@ -74,6 +76,8 @@ router.get("/", verifySupabaseToken, async (req, res) => {
         profilePicture: otherUser?.profilePicture || null,
         lastMessage: c.lastMessage,
         createdAt: c.lastMessageAt,
+        // unread currently frontend-only in your app
+        unread: 0,
       };
     });
 

@@ -10,6 +10,9 @@
   box-sizing: border-box;
 }
 
+
+
+
 .signup-clear-box {
   background: rgba(255, 255, 255, 0.07);
   backdrop-filter: blur(20px);
@@ -31,11 +34,17 @@
   transition: all 0.3s ease;
 }
 
-.signup-clear-box:hover {
+/* .signup-clear-box:hover {
   border-color: rgba(255, 255, 255, 0.25);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15),
     inset 0 1px 0 rgba(255, 255, 255, 0.3);
+} */
+
+.signup-clear-box:hover {
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 px 40px rgba(0, 0, 0, 0.15);
 }
+
 
 .signup-logo-container {
   display: flex;
@@ -116,7 +125,7 @@
 /* Reuse the same toggle style */
 .toggle-password {
   position: absolute;
-  top: 34.20%;  
+  top: 35.62%;  
   right: 44px;
   transform: scaleZ(5%);
   background: transparent;
@@ -155,24 +164,127 @@
   margin-top: 10px;
 }
 
-.signup-submit button {
+/* .signup-submit button {
   width: 100%;
   padding: 12px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border: none;
+  background: transparent;
+  border: 2px solid transparent;
   border-radius: 12px;
   color: white;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  position: relative;
+  overflow: hidden;
   transition: all 0.3s ease;
+  z-index: 1;
+} */
+/* 
+.signup-submit button::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 12px;
+  padding: 2px;
+  background: linear-gradient(90deg, #fa4efd, #21daf2, #fa4efd, #21daf2);
+  background-size: 200% 100%;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: borderRotate 3s linear infinite;
+  z-index: -1;
 }
 
-.signup-submit button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+@keyframes borderRotate {
+  0% {
+    background-position: 0% 0%;
+  }
+  100% {
+    background-position: 200% 0%;
+  }
+} */
+
+.signup-launch-btn {
+  width: 100%;
+  padding: 14px 20px;
+  border-radius: 14px;
+  border: none;
+
+  background: rgba(255, 255, 255, 0.10);  /* inside fill */
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
 }
+
+/* Gradient BORDER only */
+.signup-launch-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: 2px;                 /* border thickness */
+  border-radius: 14px;
+  background: linear-gradient(120deg, #fa4efd, #21daf2);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Sweep highlight ON TOP of inside fill */
+.signup-launch-btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    120deg,
+    transparent,
+    rgba(255, 255, 255, 0.25),
+    transparent
+  );
+  transform: translateX(-120%);
+  transition: transform 0.6s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.signup-launch-btn:hover::after {
+  transform: translateX(120%);
+}
+
+.signup-launch-btn:hover {
+  transform: translateY(-3px);
+  /* box-shadow: 0 12px 40px rgba(250, 78, 253, 0.22); */
+  background: rgba(255, 255, 255, 0.13); /* slightly brighter inside on hover */
+}
+
+/* Keep content above sweep */
+.signup-launch-btn span {
+  position: relative;
+  z-index: 2;
+}
+
+.launch-icon {
+  transition: transform 0.3s ease;
+}
+
+.signup-launch-btn:hover .launch-icon {
+  transform: translateY(-3px) rotate(-10deg);
+}
+
+
 
 .auth-toggle-text {
   margin-top: 1.25rem;
@@ -199,6 +311,32 @@
   font-size: 11px;
   margin-top: 2px;
 }
+
+.back-box {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+
+  padding: 10px 12px;
+  border-radius: 12px;
+
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.9);
+
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+
+  transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+.back-box:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
 
 /* Responsive adjustments */
 @media (max-width: 480px) {

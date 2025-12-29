@@ -64,6 +64,9 @@ export default function SignInBox({ onSubmit, onGoogle, loading }) {
   return (
     <div className="login-page-container">
       <div className="clear-box-container">
+        <Link to="/" className="back-box">
+          ← Back
+        </Link>
         <div id="logo-container">
           <img src={colorLogo} alt="Logo" />
           <h3 className="title">Sign in to CSync</h3>
@@ -130,8 +133,11 @@ export default function SignInBox({ onSubmit, onGoogle, loading }) {
 
           {/* SUBMIT */}
           <div className="submit-container">
-            <button type="submit" disabled={loading}>
-              {loading ? "Signing in..." : "Sign in"}
+            <button type="submit" className="signin-pulse-btn" disabled={loading}>
+              <span className="pulse-text">
+                {loading ? "Signing in..." : "Sign In"}
+              </span>
+              <span className="pulse-ring"></span>
             </button>
           </div>
         </form>

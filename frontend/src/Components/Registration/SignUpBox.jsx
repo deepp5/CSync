@@ -51,6 +51,9 @@ export default function LoginForm({ onSubmit, onGoogle, loading }) {
   return (
     <div className="signup-page-container">
       <div className="signup-clear-box">
+        <Link to="/" className="back-box">
+          ← Back
+        </Link>
         <div className="signup-logo-container">
           <img src={colorLogo} alt="Logo" />
           <h3 className="signup-title">Create your CSync account</h3>
@@ -141,7 +144,7 @@ export default function LoginForm({ onSubmit, onGoogle, loading }) {
           </div>
 
           {/* Checkbox */}
-          <div className="signup-checkbox">
+          {/* <div className="signup-checkbox">
             <label>
               <input
                 type="checkbox"
@@ -152,12 +155,13 @@ export default function LoginForm({ onSubmit, onGoogle, loading }) {
               />
               Receive product updates
             </label>
-          </div>
+          </div> */}
 
           {/* Submit */}
           <div className="signup-submit">
-            <button type="submit" disabled={loading}>
-              {loading ? "Creating..." : "Sign up"}
+            <button type="submit" className="signup-launch-btn" disabled={loading}>
+              <span className="launch-icon"></span>
+              <span>{loading ? "Creating..." : "Create Account"}</span>
             </button>
           </div>
         </form>

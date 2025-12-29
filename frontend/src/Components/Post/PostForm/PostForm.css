@@ -3,6 +3,9 @@
   flex-direction: column;
   gap: 20px;
   width: 100%;
+  background: #101018;
+  border-radius: 14px;
+  padding: 24px;
 }
 
 .form-columns {

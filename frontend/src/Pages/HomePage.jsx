@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import { supabase } from "../supabaseClient";
+import { prefetchCache } from "../utils/prefetchCache";
 
 import Sidebar from "../Components/Sidebar/Sidebar";
 import SearchBar from "../Components/HomePage/Search/SearchBar";
@@ -16,6 +17,22 @@ export default function HomePage() {
 
   useEffect(() => {
     const init = async () => {
+      const cached = prefetchCache.get("homeFeed");
+
+      // ⚡ Instant render if prefetched
+      if (cached) {
+        setAllPosts(cached);
+        setFilteredPosts(cached);
+        // still refresh silently in background
+        fetchFresh();
+        return;
+      }
+
+      // No cache → normal fetch
+      await fetchFresh();
+    };
+
+    const fetchFresh = async () => {
       const { data, error } = await supabase.auth.getSession();
 
       if (error) {
@@ -28,17 +45,18 @@ export default function HomePage() {
         return;
       }
 
-      const session = data.session;
-
       try {
         const response = await axios.get("http://localhost:5051/posts", {
           headers: {
-            Authorization: `Bearer ${session.access_token}`,
+            Authorization: `Bearer ${data.session.access_token}`,
           },
         });
 
         setAllPosts(response.data);
         setFilteredPosts(response.data);
+
+        // ✅ update cache
+        prefetchCache.set("homeFeed", response.data);
       } catch (err) {
         console.error("Failed to fetch posts:", err);
       }
@@ -80,10 +98,25 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="home-container">
+    <div className="home-container" style={{ background: "#14141E" }}>
       <Sidebar />
 
-      <div className="home-content">
+      <div className="home-content" style={{ position: "relative", zIndex: 1 }}>
+        {/* Top-left background glow */}
+        <div
+          style={{
+            position: "absolute",
+            top: "-270px",
+            left: "-50px",
+            width: "420px",
+            height: "420px",
+            background:
+              "radial-gradient(circle at center, rgba(250, 78, 253, 0.35), rgba(250, 78, 253, 0.15), transparent 70%)",
+            filter: "blur(90px)",
+            pointerEvents: "none",
+            zIndex: -1,
+          }}
+        />
         <div className="home-content-wrapper">
           <div className="home-header">
             <h1 className="home-title">Browse Projects</h1>
@@ -93,12 +126,6 @@ export default function HomePage() {
             onFilterChange={handleFilterChange}
             onSearchChange={handleSearchChange}
           />
-
-          <div className="results-info">
-            {filteredPosts.length}{" "}
-            {filteredPosts.length === 1 ? "project" : "projects"} found
-          </div>
-
           <Grid posts={filteredPosts} />
         </div>
       </div>

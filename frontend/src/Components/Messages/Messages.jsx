@@ -1,5 +1,12 @@
 // src/Components/Messages/Messages.jsx
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { prefetchCache } from "../../utils/prefetchCache";
 import "./Messages.css";
 import {
   FiSearch,
@@ -8,15 +15,26 @@ import {
   FiPaperclip,
   FiCheck,
   FiCheckCircle,
+  FiArrowLeft,
+  FiTrash2,
 } from "react-icons/fi";
+import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { io } from "socket.io-client";
 
 const API_BASE = "http://localhost:5051";
 
+// --------------------
+// Helpers
+// --------------------
 function safeString(v) {
   if (v === null || v === undefined) return "";
   return String(v);
+}
+
+function stripAt(v) {
+  const s = safeString(v).trim();
+  return s.startsWith("@") ? s.slice(1) : s;
 }
 
 function formatTime(ts) {
@@ -36,7 +54,7 @@ function shortId(id) {
 }
 
 /**
- * ✅ Parses your old "attachment in content" format:
+ * Parses old "attachment in content" format:
  * "📎 filename\nhttps://..."
  */
 function parseLegacyAttachment(content = "") {
@@ -50,13 +68,12 @@ function parseLegacyAttachment(content = "") {
 }
 
 /**
- * ✅ Normalize any message shape into the UI format
+ * Normalize any message shape into the UI format
  */
 function normalizeMessage(raw, fallbackId = "") {
   const content = safeString(raw?.content);
   const legacy = parseLegacyAttachment(content);
 
-  // If backend is returning a "file" message with fields
   const type = raw?.type || (legacy ? "file" : "text");
 
   const fileName =
@@ -75,17 +92,70 @@ function normalizeMessage(raw, fallbackId = "") {
     id: raw?.id ?? fallbackId,
     senderId: safeString(raw?.senderId),
     receiverId: safeString(raw?.receiverId),
-    content, // keep original content for text
+    content,
     createdAt: raw?.createdAt || new Date().toISOString(),
     read: Boolean(raw?.read),
     type,
     fileName,
     fileUrl,
+    sender: raw?.sender || null,
+  };
+}
+
+/**
+ * Canonical conversation normalization (UI-safe)
+ */
+function normalizeConversation(raw, prevMap) {
+  const otherUserId =
+    safeString(raw?.userId) ||
+    safeString(raw?.otherUserId) ||
+    safeString(raw?.partnerId);
+
+  if (!otherUserId) return null;
+
+  const old = prevMap?.get(otherUserId);
+
+  const username =
+    stripAt(raw?.username) ||
+    stripAt(old?.username) ||
+    "";
+
+  const name =
+    stripAt(raw?.name) ||
+    stripAt(raw?.displayName) ||
+    stripAt(raw?.user?.name) ||
+    stripAt(raw?.otherUser?.name) ||
+    stripAt(old?.name) ||
+    `User ${otherUserId.slice(0, 6)}`;
+
+  const legacy = parseLegacyAttachment(safeString(raw?.lastMessage));
+  const preview = legacy ? `📎 ${legacy.name}` : safeString(raw?.lastMessage);
+
+  const updatedAt =
+    raw?.updatedAt ||
+    raw?.createdAt ||
+    old?.updatedAt ||
+    new Date().toISOString();
+
+  return {
+    userId: otherUserId,
+    id: otherUserId,
+    name,
+    username,
+    avatar:
+      safeString(old?.avatar) ||
+      (name?.[0] || otherUserId?.[0] || "?").toUpperCase(),
+    lastMessage: preview || safeString(old?.lastMessage) || "",
+    unread: Number(old?.unread || raw?.unread || 0),
+    online: Boolean(raw?.online ?? old?.online),
+    updatedAt,
+    timestamp: formatTime(updatedAt),
   };
 }
 
 const Messages = () => {
   const { user, accessToken, loading } = useAuth();
+  const location = useLocation();
 
   const [conversations, setConversations] = useState([]);
   const [selectedChatId, setSelectedChatId] = useState(null);
@@ -94,101 +164,234 @@ const Messages = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
 
+  // Persist active chat between navigations
+  useEffect(() => {
+    const saved = sessionStorage.getItem("activeChatId");
+    if (saved) setSelectedChatId(saved);
+  }, []);
+
+  useEffect(() => {
+    if (selectedChatId) sessionStorage.setItem("activeChatId", selectedChatId);
+  }, [selectedChatId]);
+
+  // Backward compat: if someone navigates /messages?user=ID
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const u = safeString(params.get("user"));
+    if (!u) return;
+
+    sessionStorage.setItem("activeChatId", u);
+    setSelectedChatId(u);
+  }, [location.search]);
+
+  // refs to avoid stale closures
   const socketRef = useRef(null);
-  const messagesEndRef = useRef(null);
-
-  // ✅ hidden file input for attachments
   const fileInputRef = useRef(null);
+  const selectedChatIdRef = useRef("");
+  const myIdRef = useRef("");
 
-  // ===============================
-  // FETCH CONVERSATIONS
-  // ===============================
+  // unread tracking: last read timestamp per conversation
+  const lastReadAtRef = useRef({}); // { [userId]: isoString }
+
+  useEffect(() => {
+    selectedChatIdRef.current = safeString(selectedChatId);
+  }, [selectedChatId]);
+
+  useEffect(() => {
+    myIdRef.current = safeString(user?.id);
+  }, [user?.id]);
+
+  // --------------------
+  // Scroll control (NO JUMP)
+  // --------------------
+  const messagesContainerRef = useRef(null);
+  const shouldAutoScrollRef = useRef(true);
+  const firstPaintRef = useRef({ chatId: null, done: false });
+
+  useEffect(() => {
+    if (!selectedChatId) return;
+    firstPaintRef.current = { chatId: selectedChatId, done: false };
+    shouldAutoScrollRef.current = true;
+  }, [selectedChatId]);
+
+  useLayoutEffect(() => {
+    const el = messagesContainerRef.current;
+    if (!el || !selectedChatId) return;
+
+    const isFirstPaint =
+      firstPaintRef.current.chatId === selectedChatId &&
+      !firstPaintRef.current.done;
+
+    if (isFirstPaint) {
+      el.scrollTop = el.scrollHeight;
+      firstPaintRef.current.done = true;
+      return;
+    }
+
+    if (shouldAutoScrollRef.current) {
+      el.scrollTop = el.scrollHeight;
+    }
+  }, [messages, selectedChatId]);
+
+  const handleMessagesScroll = () => {
+    const el = messagesContainerRef.current;
+    if (!el) return;
+
+    const threshold = 80;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    shouldAutoScrollRef.current = distanceFromBottom < threshold;
+  };
+
+  // --------------------
+  // Fetch conversations (cache first, then refresh)
+  // --------------------
   useEffect(() => {
     if (!accessToken) return;
 
     const fetchConversations = async () => {
       setError("");
+
+      const cached = prefetchCache.get("messages:conversations");
+      if (cached && cached.length > 0) {
+        setConversations(cached);
+        setSelectedChatId((prev) => prev || cached[0]?.userId || null);
+      }
+
       try {
         const res = await fetch(`${API_BASE}/conversations`, {
           headers: { Authorization: `Bearer ${accessToken}` },
+          cache: "no-store",
         });
-
         if (!res.ok) throw new Error("Failed to fetch conversations");
+
         const data = await res.json();
         const arr = Array.isArray(data) ? data : [];
 
-        const formatted = arr
-          .map((c) => {
-            const otherUserId =
-              safeString(c.userId) ||
-              safeString(c.otherUserId) ||
-              safeString(c.partnerId);
+        setConversations((prev) => {
+          const prevMap = new Map(prev.map((c) => [c.userId, c]));
+          const formatted = arr
+            .map((c) => normalizeConversation(c, prevMap))
+            .filter(Boolean);
 
-            if (!otherUserId) return null;
+          // ✅ preserve placeholder conversation (new user) if not yet in API
+          const openId = safeString(selectedChatIdRef.current);
+          if (openId && prevMap.has(openId)) {
+            const alreadyIn = formatted.some(
+              (x) => safeString(x.userId) === openId
+            );
+            if (!alreadyIn) formatted.push(prevMap.get(openId));
+          }
 
-            const displayName =
-              (safeString(c.username) ? `@${safeString(c.username)}` : "") ||
-              safeString(c.name) ||
-              `User ${otherUserId.slice(0, 6)}`;
-
-            // ✅ never show raw link in preview
-            const legacy = parseLegacyAttachment(safeString(c.lastMessage));
-            const preview = legacy
-              ? `📎 ${legacy.name}`
-              : safeString(c.lastMessage);
-
-            return {
-              userId: otherUserId,
-              name: displayName,
-              username: safeString(c.username) || "",
-              avatar: (
-                displayName?.[0] ||
-                otherUserId?.[0] ||
-                "?"
-              ).toUpperCase(),
-              lastMessage: preview,
-              updatedAt: c.updatedAt || c.createdAt || new Date().toISOString(),
-              timestamp: formatTime(c.updatedAt || c.createdAt || Date.now()),
-              unread: Number(c.unread || 0),
-              online: Boolean(c.online),
-            };
-          })
-          .filter(Boolean);
-
-        setConversations(formatted);
-        setSelectedChatId((prev) => prev || formatted[0]?.userId || null);
+          formatted.sort(
+            (a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)
+          );
+          prefetchCache.set("messages:conversations", formatted);
+          return formatted;
+        });
       } catch (e) {
         console.error(e);
-        setError("Failed to load conversations.");
+        if (!cached || cached.length === 0)
+          setError("Failed to load conversations.");
       }
     };
 
     fetchConversations();
   }, [accessToken]);
 
-  // ===============================
-  // FETCH MESSAGES (CHAT CHANGE)
-  // ===============================
+  // --------------------
+  // Create placeholder conversation if user clicked Message from profile/post
+  // --------------------
+  useEffect(() => {
+    if (!selectedChatId) return;
+
+    const exists = conversations.some(
+      (c) => safeString(c.userId) === safeString(selectedChatId)
+    );
+    if (exists) return;
+
+    let meta = {};
+    try {
+      meta = JSON.parse(sessionStorage.getItem("activeChatMeta") || "{}");
+    } catch {}
+
+    const username = stripAt(meta.username);
+    const name =
+      stripAt(meta.name) ||
+      (username ? username : `User ${shortId(selectedChatId)}`);
+
+    const nowIso = new Date().toISOString();
+
+    setConversations((prev) => {
+      if (prev.some((c) => safeString(c.userId) === safeString(selectedChatId)))
+        return prev;
+
+      const placeholder = {
+        userId: safeString(selectedChatId),
+        id: safeString(selectedChatId),
+        name,
+        username,
+        avatar: (name?.[0] || "?").toUpperCase(),
+        lastMessage: "",
+        unread: 0,
+        online: false,
+        updatedAt: nowIso,
+        timestamp: formatTime(nowIso),
+      };
+
+      const next = [placeholder, ...prev];
+      prefetchCache.set("messages:conversations", next);
+      return next;
+    });
+  }, [selectedChatId, conversations]);
+
+  // --------------------
+  // Fetch messages on chat change (cache first)
+  // --------------------
   useEffect(() => {
     if (!selectedChatId || !accessToken) return;
 
+    setError("");
+
+    const cacheKey = `messages:thread:${selectedChatId}`;
+    const cached = prefetchCache.get(cacheKey);
+    if (cached && Array.isArray(cached)) {
+      setMessages(cached);
+
+      const lastTime =
+        cached.length > 0
+          ? cached[cached.length - 1]?.createdAt
+          : new Date().toISOString();
+      lastReadAtRef.current[safeString(selectedChatId)] = lastTime;
+
+      setConversations((prev) =>
+        prev.map((c) => (c.userId === selectedChatId ? { ...c, unread: 0 } : c))
+      );
+    }
+
     const fetchMessages = async () => {
-      setError("");
       try {
         const res = await fetch(`${API_BASE}/messages/${selectedChatId}`, {
           headers: { Authorization: `Bearer ${accessToken}` },
+          cache: "no-store",
         });
-
         if (!res.ok) throw new Error("Failed to fetch messages");
+
         const data = await res.json();
         const arr = Array.isArray(data) ? data : [];
-
         const normalized = arr.map((m, idx) =>
           normalizeMessage(m, m.id ?? `${m.createdAt || Date.now()}-${idx}`)
         );
 
         setMessages(normalized);
+        prefetchCache.set(cacheKey, normalized);
+
+        const lastTime =
+          normalized.length > 0
+            ? normalized[normalized.length - 1].createdAt
+            : new Date().toISOString();
+        lastReadAtRef.current[safeString(selectedChatId)] = lastTime;
 
         setConversations((prev) =>
           prev.map((c) =>
@@ -197,68 +400,183 @@ const Messages = () => {
         );
       } catch (e) {
         console.error(e);
-        setMessages([]);
-        setError("Failed to load messages.");
+        if (!cached) setError("Failed to load messages.");
       }
     };
 
     fetchMessages();
   }, [selectedChatId, accessToken]);
 
-  // ===============================
-  // AUTO SCROLL
-  // ===============================
+  // --------------------
+  // POLL: open chat messages (no refresh needed)
+  // --------------------
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (!accessToken || !selectedChatId) return;
 
-  // ===============================
-  // SOCKET CONNECT (ONCE)
-  // ===============================
+    const poll = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/messages/${selectedChatId}`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+          cache: "no-store",
+        });
+        if (!res.ok) return;
+
+        const data = await res.json();
+        const arr = Array.isArray(data) ? data : [];
+        const normalized = arr.map((m, idx) =>
+          normalizeMessage(m, m.id ?? `${m.createdAt || Date.now()}-${idx}`)
+        );
+
+        setMessages((prev) => {
+          const ids = new Set(prev.map((x) => safeString(x.id)));
+          const merged = [...prev];
+          let added = 0;
+
+          for (const m of normalized) {
+            const id = safeString(m.id);
+            if (!ids.has(id)) {
+              merged.push(m);
+              added++;
+            }
+          }
+
+          if (added > 0) {
+            const lastTime = merged[merged.length - 1]?.createdAt;
+            if (lastTime)
+              lastReadAtRef.current[safeString(selectedChatId)] = lastTime;
+            prefetchCache.set(`messages:thread:${selectedChatId}`, merged);
+          }
+
+          return merged;
+        });
+
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.userId === selectedChatId ? { ...c, unread: 0 } : c
+          )
+        );
+      } catch {
+        // ignore
+      }
+    };
+
+    poll();
+    const interval = setInterval(poll, 1500);
+    return () => clearInterval(interval);
+  }, [accessToken, selectedChatId]);
+
+  // --------------------
+  // POLL: conversations list + unread badge = 1
+  // --------------------
   useEffect(() => {
     if (!accessToken) return;
 
-    if (!socketRef.current) {
-      socketRef.current = io(API_BASE, {
-        auth: { token: accessToken },
-        transports: ["websocket"],
-      });
+    const poll = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/conversations`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+          cache: "no-store",
+        });
+        if (!res.ok) return;
 
-      socketRef.current.on("connect", () => {
-        console.log("🟢 socket connected:", socketRef.current.id);
-      });
+        const data = await res.json();
+        const arr = Array.isArray(data) ? data : [];
 
-      socketRef.current.on("connect_error", (e) => {
-        console.log("🔴 socket connect_error:", e.message);
-      });
-    }
+        const openId = safeString(selectedChatIdRef.current);
+
+        setConversations((prev) => {
+          const prevMap = new Map(prev.map((c) => [c.userId, c]));
+          const next = [];
+
+          for (const raw of arr) {
+            const conv = normalizeConversation(raw, prevMap);
+            if (!conv) continue;
+
+            const otherId = conv.userId;
+            const lastRead = lastReadAtRef.current[otherId];
+
+            const hasNew =
+              lastRead && !isNaN(new Date(lastRead))
+                ? new Date(conv.updatedAt) > new Date(lastRead)
+                : false;
+
+            const unread = otherId === openId ? 0 : hasNew ? 1 : 0;
+            next.push({ ...conv, unread });
+          }
+
+          // ✅ preserve placeholder/new convo if not yet returned by API
+          if (openId && prevMap.has(openId)) {
+            const alreadyIn = next.some((x) => safeString(x.userId) === openId);
+            if (!alreadyIn) next.push(prevMap.get(openId));
+          }
+
+          next.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+          prefetchCache.set("messages:conversations", next);
+          return next;
+        });
+      } catch {
+        // ignore
+      }
+    };
+
+    poll();
+    const interval = setInterval(poll, 2000);
+    return () => clearInterval(interval);
   }, [accessToken]);
 
-  // ===============================
-  // SOCKET: RECEIVE MESSAGE (REALTIME)
-  // ===============================
+  // --------------------
+  // SOCKET: realtime fast path
+  // --------------------
   useEffect(() => {
-    const socket = socketRef.current;
-    if (!socket || !user?.id) return;
+    if (!accessToken) return;
 
-    const myId = safeString(user.id);
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+      socketRef.current = null;
+    }
+
+    const socket = io(API_BASE, {
+      auth: { token: accessToken },
+      transports: ["websocket", "polling"],
+      reconnection: true,
+    });
+
+    socketRef.current = socket;
+
+    const onConnect = () => console.log("🟢 socket connected:", socket.id);
+    const onConnectError = (e) =>
+      console.log("🔴 socket connect_error:", e.message);
 
     const onNewMessage = (raw) => {
+      const myId = safeString(myIdRef.current);
+      if (!myId) return;
+
       const message = normalizeMessage(raw, raw?.id ?? `socket-${Date.now()}`);
 
       const senderId = safeString(message.senderId);
       const receiverId = safeString(message.receiverId);
       const otherId = senderId === myId ? receiverId : senderId;
 
-      setConversations((prev) => {
-        const isChatOpen = safeString(selectedChatId) === safeString(otherId);
-        let found = false;
+      const openChatId = safeString(selectedChatIdRef.current);
+      const isChatOpen = openChatId === safeString(otherId);
+      const isIncoming = senderId !== myId;
 
+      // cache thread
+      const threadKey = `messages:thread:${otherId}`;
+      const cachedThread = prefetchCache.get(threadKey) || [];
+      if (
+        !cachedThread.some((m) => safeString(m.id) === safeString(message.id))
+      ) {
+        prefetchCache.set(threadKey, [...cachedThread, message]);
+      }
+
+      setConversations((prev) => {
         const preview =
           message.type === "file"
             ? `📎 ${message.fileName || "Attachment"}`
             : safeString(message.content);
 
+        let found = false;
         const updated = prev.map((c) => {
           if (c.userId !== otherId) return c;
           found = true;
@@ -267,44 +585,65 @@ const Messages = () => {
             lastMessage: preview,
             updatedAt: message.createdAt || new Date().toISOString(),
             timestamp: formatTime(message.createdAt),
-            unread: isChatOpen ? 0 : Number(c.unread || 0) + 1,
+            unread: isChatOpen ? 0 : isIncoming ? 1 : Number(c.unread || 0),
           };
         });
 
         if (!found) {
+          const username = stripAt(message.sender?.username);
+          const name = username || `User ${shortId(otherId)}`;
+
           updated.unshift({
             userId: otherId,
-            name: `User ${shortId(otherId)}`,
-            username: "",
-            avatar: (otherId?.[0] || "?").toUpperCase(),
+            id: otherId,
+            name,
+            username,
+            avatar: (name?.[0] || otherId?.[0] || "?").toUpperCase(),
             lastMessage: preview,
             updatedAt: message.createdAt || new Date().toISOString(),
             timestamp: formatTime(message.createdAt),
-            unread: safeString(selectedChatId) === safeString(otherId) ? 0 : 1,
+            unread: isChatOpen ? 0 : isIncoming ? 1 : 0,
             online: false,
           });
         }
 
         updated.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+        prefetchCache.set("messages:conversations", updated);
         return updated;
       });
 
-      if (safeString(selectedChatId) !== safeString(otherId)) return;
+      if (!isChatOpen) return;
 
       setMessages((prev) => {
         if (prev.some((m) => safeString(m.id) === safeString(message.id)))
           return prev;
-        return [...prev, message];
+        const merged = [...prev, message];
+
+        const lastTime =
+          merged[merged.length - 1]?.createdAt || new Date().toISOString();
+        lastReadAtRef.current[safeString(otherId)] = lastTime;
+
+        prefetchCache.set(`messages:thread:${otherId}`, merged);
+        return merged;
       });
     };
 
+    socket.on("connect", onConnect);
+    socket.on("connect_error", onConnectError);
     socket.on("new_message", onNewMessage);
-    return () => socket.off("new_message", onNewMessage);
-  }, [user?.id, selectedChatId]);
 
-  // ===============================
-  // FILTER CONVERSATIONS
-  // ===============================
+    return () => {
+      socket.off("connect", onConnect);
+      socket.off("connect_error", onConnectError);
+      socket.off("new_message", onNewMessage);
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, [accessToken]);
+
+  // --------------------
+  // Derived
+  // --------------------
   const filteredConversations = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return conversations;
@@ -318,9 +657,9 @@ const Messages = () => {
     return conversations.find((c) => c.userId === selectedChatId) || null;
   }, [conversations, selectedChatId]);
 
-  // ===============================
-  // SEND TEXT MESSAGE (OPTIMISTIC)
-  // ===============================
+  // --------------------
+  // Send text (optimistic)
+  // --------------------
   const handleSendMessage = async (e) => {
     e.preventDefault();
     setError("");
@@ -341,9 +680,17 @@ const Messages = () => {
       },
       tempId
     );
-    optimistic.__optimistic = true;
 
+    shouldAutoScrollRef.current = true;
     setMessages((prev) => [...prev, optimistic]);
+
+    const threadKey = `messages:thread:${selectedChatId}`;
+    prefetchCache.set(threadKey, [
+      ...(prefetchCache.get(threadKey) || []),
+      optimistic,
+    ]);
+
+    lastReadAtRef.current[safeString(selectedChatId)] = optimistic.createdAt;
     setMessageInput("");
 
     setConversations((prev) => {
@@ -352,6 +699,7 @@ const Messages = () => {
       const updatedConversation = {
         ...(existing || {}),
         userId: selectedChatId,
+        id: selectedChatId,
         name: existing?.name || `User ${shortId(selectedChatId)}`,
         username: existing?.username || "",
         avatar: existing?.avatar || (selectedChatId?.[0] || "?").toUpperCase(),
@@ -362,10 +710,12 @@ const Messages = () => {
         online: existing?.online || false,
       };
 
-      return [
+      const next = [
         updatedConversation,
         ...prev.filter((c) => c.userId !== selectedChatId),
       ];
+      prefetchCache.set("messages:conversations", next);
+      return next;
     });
 
     try {
@@ -389,6 +739,16 @@ const Messages = () => {
       setMessages((prev) =>
         prev.map((m) => (m.id === tempId ? normalizedSaved : m))
       );
+
+      prefetchCache.set(
+        threadKey,
+        (prefetchCache.get(threadKey) || []).map((m) =>
+          m.id === tempId ? normalizedSaved : m
+        )
+      );
+
+      lastReadAtRef.current[safeString(selectedChatId)] =
+        normalizedSaved.createdAt || new Date().toISOString();
     } catch (err) {
       console.error(err);
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
@@ -396,29 +756,89 @@ const Messages = () => {
     }
   };
 
-  // ===============================
-  // ATTACH: PICK FILE
-  // ===============================
+  // --------------------
+  // Menu button (delete user)
+  // --------------------
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (showMoreMenu && !e.target.closest('.chat-more-btn') && !e.target.closest('.chat-more-menu')) {
+        setShowMoreMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showMoreMenu]);
+    
+
+  const handleDeleteChat = async () => {
+    if (!selectedChatId || !accessToken) return;
+
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete this conversation with ${selectedConversation?.name || 'this user'}? This cannot be undone.`
+    );
+
+    if (!confirmDelete) return;
+
+    setShowMoreMenu(false);
+    setError("");
+
+    try {
+      const res = await fetch(`${API_BASE}/conversations/${selectedChatId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to delete conversation");
+      }
+
+      // Remove from state
+      setConversations((prev) => {
+        const updated = prev.filter((c) => c.userId !== selectedChatId);
+        prefetchCache.set("messages:conversations", updated);
+        return updated;
+      });
+
+      // Clear messages cache
+      prefetchCache.delete(`messages:thread:${selectedChatId}`);
+      
+      // Clear last read timestamp
+      delete lastReadAtRef.current[selectedChatId];
+
+      // Reset selection
+      setSelectedChatId(null);
+      setMessages([]);
+
+    } catch (err) {
+      console.error(err);
+      setError("Failed to delete conversation.");
+    }
+  };
+
+
+
+
+
+  // --------------------
+  // Attach / upload file (optimistic)
+  // --------------------
   const handleAttachClick = () => {
     if (!selectedChatId || uploading) return;
     fileInputRef.current?.click();
   };
 
-  // ===============================
-  // ATTACH: UPLOAD FILE
-  // ===============================
   const handleFileSelected = async (e) => {
     const file = e.target.files?.[0];
-    e.target.value = ""; // allow re-select same file
-
+    e.target.value = "";
     if (!file || !selectedChatId) return;
 
     setUploading(true);
     setError("");
 
     const tempId = `temp-file-${Date.now()}`;
-
-    // optimistic bubble
     const optimistic = normalizeMessage(
       {
         id: tempId,
@@ -433,22 +853,33 @@ const Messages = () => {
       },
       tempId
     );
-    optimistic.__optimistic = true;
 
+    shouldAutoScrollRef.current = true;
     setMessages((prev) => [...prev, optimistic]);
 
-    setConversations((prev) =>
-      prev.map((c) =>
+    const threadKey = `messages:thread:${selectedChatId}`;
+    prefetchCache.set(threadKey, [
+      ...(prefetchCache.get(threadKey) || []),
+      optimistic,
+    ]);
+
+    lastReadAtRef.current[safeString(selectedChatId)] = optimistic.createdAt;
+
+    setConversations((prev) => {
+      const next = prev.map((c) =>
         c.userId === selectedChatId
           ? {
               ...c,
               lastMessage: `📎 ${file.name}`,
               updatedAt: optimistic.createdAt,
               timestamp: formatTime(optimistic.createdAt),
+              unread: 0,
             }
           : c
-      )
-    );
+      );
+      prefetchCache.set("messages:conversations", next);
+      return next;
+    });
 
     try {
       const form = new FormData();
@@ -457,9 +888,7 @@ const Messages = () => {
 
       const res = await fetch(`${API_BASE}/messages/upload`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
+        headers: { Authorization: `Bearer ${accessToken}` },
         body: form,
       });
 
@@ -468,9 +897,7 @@ const Messages = () => {
         throw new Error(`POST /messages/upload failed ${res.status}: ${txt}`);
       }
 
-      // ✅ IMPORTANT: backend returns { message, attachment }
       const payload = await res.json();
-
       const normalizedSaved = normalizeMessage(
         {
           ...(payload?.message || {}),
@@ -484,6 +911,16 @@ const Messages = () => {
       setMessages((prev) =>
         prev.map((m) => (m.id === tempId ? normalizedSaved : m))
       );
+
+      prefetchCache.set(
+        threadKey,
+        (prefetchCache.get(threadKey) || []).map((m) =>
+          m.id === tempId ? normalizedSaved : m
+        )
+      );
+
+      lastReadAtRef.current[safeString(selectedChatId)] =
+        normalizedSaved.createdAt || new Date().toISOString();
     } catch (err) {
       console.error(err);
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
@@ -497,21 +934,35 @@ const Messages = () => {
 
   return (
     <div className="messaging-page">
-      <div className="messaging-container">
-        {/* LEFT PANEL */}
-        <aside className="conversations-panel">
-          <div className="conversations-header">
-            <h2 className="conversations-title">Messages</h2>
-          </div>
+      <div className="messaging-bg" aria-hidden="true" />
 
-          <div className="search-container">
-            <FiSearch className="search-icon" />
-            <input
-              className="search-input"
-              placeholder="Search conversations..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+      <div className="messaging-shell">
+        {/* LEFT / CONVERSATIONS */}
+        <aside className={`conversations-panel ${selectedChatId ? 'is-hidden' : ''}`}>
+          <div className="left-top">
+            <div className="left-title-row">
+              <div>
+                <h2 className="left-title">Messages</h2>
+                <p className="left-subtitle">
+                  Find a conversation, then ship faster.
+                </p>
+              </div>
+
+              {/* <div className="left-chip">
+                <span className="left-chip-dot" />
+                Live
+              </div> */}
+            </div>
+
+            <div className="left-search">
+              <FiSearch className="left-search-icon" />
+              <input
+                className="left-search-input"
+                placeholder="Search conversations..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
           </div>
 
           <div className="conversations-list">
@@ -519,11 +970,15 @@ const Messages = () => {
               <button
                 key={c.userId}
                 type="button"
-                className={`conversation-item ${
-                  selectedChatId === c.userId ? "active" : ""
+                className={`conv-row ${
+                  selectedChatId === c.userId ? "is-active" : ""
                 }`}
                 onClick={() => {
                   setSelectedChatId(c.userId);
+                  shouldAutoScrollRef.current = true;
+
+                  lastReadAtRef.current[c.userId] = new Date().toISOString();
+
                   setConversations((prev) =>
                     prev.map((x) =>
                       x.userId === c.userId ? { ...x, unread: 0 } : x
@@ -531,21 +986,21 @@ const Messages = () => {
                   );
                 }}
               >
-                <div className="conversation-avatar-container">
-                  <div className="conversation-avatar">{c.avatar}</div>
-                  {c.online && <div className="online-indicator" />}
+                <div className="conv-avatar-wrap">
+                  <div className="conv-avatar">{c.avatar}</div>
+                  {c.online && <div className="conv-online" />}
                 </div>
 
-                <div className="conversation-details">
-                  <div className="conversation-header">
-                    <span className="conversation-name">{c.name}</span>
-                    <span className="conversation-time">{c.timestamp}</span>
+                <div className="conv-meta">
+                  <div className="conv-topline">
+                    <span className="conv-name">{c.name}</span>
+                    <span className="conv-time">{c.timestamp}</span>
                   </div>
 
-                  <div className="conversation-preview">
-                    <span className="last-message">{c.lastMessage || " "}</span>
+                  <div className="conv-bottomline">
+                    <span className="conv-preview">{c.lastMessage || " "}</span>
                     {c.unread > 0 && (
-                      <span className="unread-badge">{c.unread}</span>
+                      <span className="conv-badge">{c.unread}</span>
                     )}
                   </div>
                 </div>
@@ -553,83 +1008,113 @@ const Messages = () => {
             ))}
 
             {filteredConversations.length === 0 && (
-              <div className="empty-left">No conversations found</div>
+              <div className="left-empty">No conversations found</div>
             )}
           </div>
 
-          {error && <div className="error-banner">{error}</div>}
+          {error && <div className="left-error">{error}</div>}
         </aside>
 
-        {/* RIGHT PANEL */}
+        {/* RIGHT / CHAT */}
         <main className="chat-panel">
-          {selectedConversation ? (
+          {selectedConversation && selectedChatId ? (
             <>
+              {/* header */}
               <div className="chat-header">
-                <div className="chat-header-info">
-                  <div className="chat-avatar-container">
-                    <div className="chat-avatar">
-                      {selectedConversation.avatar}
-                    </div>
-                    {selectedConversation.online && (
-                      <div className="online-indicator" />
-                    )}
-                  </div>
-
-                  <div className="chat-user-info">
-                    <h3 className="chat-user-name">
-                      {selectedConversation.name}
-                    </h3>
-                    <p className="chat-user-status">
-                      {selectedConversation.online ? "Online" : "Offline"}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="chat-actions">
+                <div className="chat-head-left">
                   <button
-                    className="chat-action-btn"
+                    className="chat-back-btn"
                     type="button"
-                    aria-label="More"
+                    aria-label="Back"
+                    onClick={() => setSelectedChatId(null)}
                   >
-                    <FiMoreVertical />
+                    <FiArrowLeft />
                   </button>
+                  
+                  <Link
+                    to={`/profile/${stripAt(selectedConversation?.username) || selectedConversation?.userId}`}
+                    className="chat-head-link"
+                    style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}
+                  >
+                    <div className="chat-head-avatar-wrap">
+                      <div className="chat-head-avatar">
+                        {selectedConversation.avatar}
+                      </div>
+                      {selectedConversation.online && (
+                        <div className="chat-head-online" />
+                      )}
+                    </div>
+
+                    <div className="chat-head-text">
+                      <h3 className="chat-head-name">
+                        {selectedConversation.name}
+                      </h3>
+                      <p className="chat-head-status">
+                        {selectedConversation.online ? "Online" : "Offline"}
+                      </p>
+                    </div>
+                  </Link>
                 </div>
+
+                <button
+                  className="chat-more-btn"
+                  type="button"
+                  aria-label="More"
+                  title="More"
+                  onClick={() => setShowMoreMenu(!showMoreMenu)}
+                >
+                  <FiMoreVertical />
+                </button>
+
+                {/* Dropdown Menu */}
+                {showMoreMenu && (
+                  <div className="chat-more-menu">
+                    <button
+                      className="chat-more-menu-item danger"
+                      onClick={handleDeleteChat}
+                    >
+                      <FiTrash2 />
+                      Delete Conversation
+                    </button>
+                  </div>
+                )}
               </div>
 
-              <div className="messages-container">
+              {/* messages */}
+              <div
+                className="messages-container"
+                ref={messagesContainerRef}
+                onScroll={handleMessagesScroll}
+              >
                 <div className="messages-list">
                   {messages.map((m) => {
                     const isOwn =
                       safeString(m.senderId) === safeString(user?.id);
-
                     const isFile = m.type === "file";
 
                     return (
                       <div
                         key={m.id}
-                        className={`message ${
-                          isOwn ? "message-own" : "message-other"
-                        }`}
+                        className={`msg-row ${isOwn ? "own" : "other"}`}
                       >
                         {!isOwn && (
-                          <div className="message-avatar">
+                          <div className="msg-avatar">
                             {selectedConversation.avatar}
                           </div>
                         )}
 
-                        <div className="message-bubble">
+                        <div
+                          className={`msg-bubble ${isOwn ? "own" : "other"}`}
+                        >
                           {isFile ? (
-                            <p className="message-content">
+                            <p className="msg-text">
                               📎{" "}
                               {m.fileUrl ? (
                                 <a
                                   href={m.fileUrl}
                                   target="_blank"
                                   rel="noreferrer"
-                                  style={{
-                                    color: "inherit",
-                                    textDecoration: "underline",
-                                  }}
+                                  className="msg-link"
                                 >
                                   {m.fileName || "Attachment"}
                                 </a>
@@ -638,21 +1123,19 @@ const Messages = () => {
                               )}
                             </p>
                           ) : (
-                            <p className="message-content">
-                              {safeString(m.content)}
-                            </p>
+                            <p className="msg-text">{safeString(m.content)}</p>
                           )}
 
-                          <div className="message-footer">
-                            <span className="message-time">
+                          <div className="msg-footer">
+                            <span className="msg-time">
                               {formatTime(m.createdAt)}
                             </span>
                             {isOwn && (
-                              <span className="message-status">
+                              <span className="msg-status">
                                 {m.read ? (
-                                  <FiCheckCircle className="read-icon" />
+                                  <FiCheckCircle className="msg-read" />
                                 ) : (
-                                  <FiCheck className="sent-icon" />
+                                  <FiCheck className="msg-sent" />
                                 )}
                               </span>
                             )}
@@ -661,14 +1144,13 @@ const Messages = () => {
                       </div>
                     );
                   })}
-                  <div ref={messagesEndRef} />
                 </div>
               </div>
 
-              <div className="message-input-container">
-                {/* ✅ Attach */}
+              {/* input */}
+              <div className="composer">
                 <button
-                  className="input-action-btn"
+                  className="composer-icon"
                   type="button"
                   aria-label="Attach"
                   onClick={handleAttachClick}
@@ -678,7 +1160,6 @@ const Messages = () => {
                   <FiPaperclip />
                 </button>
 
-                {/* hidden input */}
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -686,9 +1167,9 @@ const Messages = () => {
                   onChange={handleFileSelected}
                 />
 
-                <form onSubmit={handleSendMessage} className="message-form">
+                <form onSubmit={handleSendMessage} className="composer-form">
                   <input
-                    className="message-input"
+                    className="composer-input"
                     value={messageInput}
                     onChange={(e) => setMessageInput(e.target.value)}
                     placeholder={
@@ -698,9 +1179,11 @@ const Messages = () => {
                   />
 
                   <button
-                    className="send-btn"
+                    className="composer-send"
                     type="submit"
                     disabled={!messageInput.trim() || uploading}
+                    aria-label="Send"
+                    title="Send"
                   >
                     <FiSend />
                   </button>
@@ -708,11 +1191,14 @@ const Messages = () => {
               </div>
             </>
           ) : (
-            <div className="no-chat-selected">
-              <div className="no-chat-content">
-                <div className="no-chat-icon">💬</div>
-                <h3>Select a conversation</h3>
-                <p>Choose a conversation from the left to start messaging</p>
+            <div className="empty-state">
+              <div className="empty-card">
+                <div className="empty-orb" />
+                <div className="empty-emoji">💬</div>
+                <h3 className="empty-title">Select a conversation</h3>
+                <p className="empty-text">
+                  Choose someone on the left to start messaging.
+                </p>
               </div>
             </div>
           )}

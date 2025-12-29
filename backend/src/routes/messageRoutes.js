@@ -4,7 +4,7 @@ import { PrismaClient } from "@prisma/client";
 import { verifySupabaseToken } from "../utils/authMiddleware.js";
 import { ensureUserExists } from "../utils/ensureUser.js";
 
-// ✅ NEW (upload)
+// ✅ upload
 import multer from "multer";
 import crypto from "crypto";
 import path from "path";
@@ -15,10 +15,6 @@ const prisma = new PrismaClient();
 
 /* =========================
    ✅ SUPABASE STORAGE (ADMIN)
-   Requires:
-   - SUPABASE_URL
-   - SUPABASE_SERVICE_ROLE_KEY
-   - SUPABASE_STORAGE_BUCKET (optional, default "message-attachments")
 ========================= */
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -40,15 +36,12 @@ const supabaseAdmin =
 ========================= */
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: {
-    fileSize: 15 * 1024 * 1024, // 15MB
-  },
+  limits: { fileSize: 15 * 1024 * 1024 }, // 15MB
 });
 
 // Helpers
 function safeExt(originalname = "") {
   const ext = path.extname(originalname).toLowerCase();
-  // keep it simple & safe
   if (!ext || ext.length > 10) return "";
   return ext.replace(/[^.a-z0-9]/g, "");
 }
@@ -57,19 +50,33 @@ function makeStoragePath({ senderId, receiverId, originalname }) {
   const ext = safeExt(originalname);
   const rand = crypto.randomBytes(8).toString("hex");
   const ts = Date.now();
-  // folder by sender/receiver helps organization
   return `messages/${senderId}/${receiverId}/${ts}-${rand}${ext}`;
+}
+
+function publicUser(u) {
+  if (!u) return null;
+  return {
+    id: u.id,
+    username: u.username || null,
+    name: u.name || null,
+    profilePicture: u.profilePicture || null,
+  };
 }
 
 /* =========================
    GET MESSAGES
+   GET /messages/:receiverId
 ========================= */
 router.get("/:receiverId", verifySupabaseToken, async (req, res) => {
   try {
-    const me = await prisma.user.findUnique({
-      where: { id: req.user.id },
-    });
+    res.setHeader("Cache-Control", "no-store");
+
+    const me = await ensureUserExists(prisma, req.user);
     const { receiverId } = req.params;
+
+    const after = req.query.after ? new Date(req.query.after) : null;
+    const createdAtFilter =
+      after && !isNaN(after.getTime()) ? { createdAt: { gt: after } } : {};
 
     const messages = await prisma.message.findMany({
       where: {
@@ -77,6 +84,7 @@ router.get("/:receiverId", verifySupabaseToken, async (req, res) => {
           { senderId: me.id, receiverId },
           { senderId: receiverId, receiverId: me.id },
         ],
+        ...createdAtFilter,
       },
       orderBy: { createdAt: "asc" },
     });
@@ -90,16 +98,24 @@ router.get("/:receiverId", verifySupabaseToken, async (req, res) => {
 
 /* =========================
    SEND MESSAGE (SOURCE OF TRUTH)
+   POST /messages
 ========================= */
 router.post("/", verifySupabaseToken, async (req, res) => {
   try {
-    const me = await prisma.user.findUnique({
-      where: { id: req.user.id },
-    });
+    const me = await ensureUserExists(prisma, req.user);
     const { receiverId, content } = req.body;
 
     if (!receiverId || !content) {
       return res.status(400).json({ error: "Missing fields" });
+    }
+
+    // Optional: enforce receiver exists so username will be known
+    const receiver = await prisma.user.findUnique({
+      where: { id: receiverId },
+      select: { id: true },
+    });
+    if (!receiver) {
+      return res.status(404).json({ error: "Receiver not found" });
     }
 
     const message = await prisma.message.create({
@@ -110,14 +126,24 @@ router.post("/", verifySupabaseToken, async (req, res) => {
       },
     });
 
-    // ✅ REALTIME EMIT
+    // Include sender profile in payload
+    const senderProfile = await prisma.user.findUnique({
+      where: { id: me.id },
+      select: { id: true, username: true, name: true, profilePicture: true },
+    });
+
+    const payload = {
+      ...message,
+      sender: publicUser(senderProfile),
+    };
+
+    // ✅ REALTIME EMIT (receiver only to avoid duplicates on sender optimistic UI)
     const io = req.app.get("io");
     if (io) {
-      io.to(receiverId).emit("new_message", message);
-      // io.to(me.id).emit("new_message", message);
+      io.to(receiverId).emit("new_message", payload);
     }
 
-    return res.json(message);
+    return res.json(payload);
   } catch (err) {
     console.error("POST message error:", err);
     res.status(500).json({ error: "Failed to send message" });
@@ -127,10 +153,6 @@ router.post("/", verifySupabaseToken, async (req, res) => {
 /* =========================
    ✅ UPLOAD ATTACHMENT
    POST /messages/upload
-   form-data:
-   - receiverId: string
-   - file: (binary)
-   Creates a Message whose content contains the file URL + filename.
 ========================= */
 router.post(
   "/upload",
@@ -152,23 +174,18 @@ router.post(
         return res.status(400).json({ error: "Missing receiverId" });
       }
 
-      // ✅ Ensure receiver exists (no username)
-      await ensureUserExists(prisma, {
-        id: receiverId,
-        email: `${receiverId}@placeholder.local`,
-        user_metadata: {},
+      const receiver = await prisma.user.findUnique({
+        where: { id: receiverId },
+        select: { id: true },
       });
+      if (!receiver) {
+        return res.status(404).json({ error: "Receiver not found" });
+      }
 
       const file = req.file;
       if (!file) {
         return res.status(400).json({ error: "Missing file" });
       }
-
-      // Optional: basic mime allowlist (edit as you want)
-      // const allowed = ["image/", "application/pdf", "text/"];
-      // if (!allowed.some((a) => file.mimetype.startsWith(a))) {
-      //   return res.status(400).json({ error: "File type not allowed" });
-      // }
 
       const storagePath = makeStoragePath({
         senderId: me.id,
@@ -176,7 +193,6 @@ router.post(
         originalname: file.originalname,
       });
 
-      // Upload to Supabase Storage
       const { error: upErr } = await supabaseAdmin.storage
         .from(BUCKET)
         .upload(storagePath, file.buffer, {
@@ -189,20 +205,11 @@ router.post(
         return res.status(500).json({ error: "Upload failed" });
       }
 
-      // Get URL (works if bucket is PUBLIC)
       const { data: pub } = supabaseAdmin.storage
         .from(BUCKET)
         .getPublicUrl(storagePath);
 
-      const publicUrl = pub?.publicUrl || null;
-
-      // If your bucket is PRIVATE, you can use signed URL instead:
-      // const { data: signed, error: signedErr } = await supabaseAdmin.storage
-      //   .from(BUCKET)
-      //   .createSignedUrl(storagePath, 60 * 60); // 1 hour
-      // const fileUrl = signedErr ? null : signed?.signedUrl;
-
-      const fileUrl = publicUrl;
+      const fileUrl = pub?.publicUrl || null;
 
       if (!fileUrl) {
         return res.status(500).json({
@@ -211,7 +218,6 @@ router.post(
         });
       }
 
-      // ✅ Create message (no schema change): put attachment info into content
       const content = `📎 ${file.originalname}\n${fileUrl}`;
 
       const message = await prisma.message.create({
@@ -222,14 +228,26 @@ router.post(
         },
       });
 
-      // ✅ Realtime emit
+      const senderProfile = await prisma.user.findUnique({
+        where: { id: me.id },
+        select: { id: true, username: true, name: true, profilePicture: true },
+      });
+
+      const payload = {
+        ...message,
+        sender: publicUser(senderProfile),
+        type: "file",
+        fileName: file.originalname,
+        fileUrl,
+      };
+
       const io = req.app.get("io");
       if (io) {
-        io.to(receiverId).emit("new_message", message);
+        io.to(receiverId).emit("new_message", payload);
       }
 
       return res.json({
-        message,
+        message: payload,
         attachment: {
           bucket: BUCKET,
           path: storagePath,

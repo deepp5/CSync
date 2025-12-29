@@ -1,21 +1,38 @@
 /* MyProjectsPage.css */
 
 .my-projects-page {
-  margin-left: 230px !important;
+  margin-left: 230px;
   min-height: 100vh;
-  background: #0a0a0a;
+  background: #14141E;
   color: white;
-  padding: 40px !important;
+  padding: 40px;
   transition: margin-left 0.3s ease;
 }
 
+/* When sidebar is closed on desktop */
 body[data-sidebar-open="false"] .my-projects-page {
   margin-left: 70px;
 }
 
+/* When sidebar is closed on mobile */
+@media (max-width: 768px) {
+  .my-projects-page {
+    margin-left: 0;
+    padding: 40px 20px;
+  }
+  
+  body[data-sidebar-open="true"] .my-projects-page {
+    margin-left: 0;
+  }
+  
+  body[data-sidebar-open="false"] .my-projects-page {
+    margin-left: 0;
+  }
+}
+
 .my-projects-container {
-  max-width: 1400px !important;
-  margin: 0 auto !important;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
 /* Header */
@@ -27,16 +44,32 @@ body[data-sidebar-open="false"] .my-projects-page {
   gap: 20px;
 }
 
-.header-left {
+.header-left-mp {
   flex: 1;
 }
 
-.page-title {
+.page-title-mp {
   font-size: 32px;
   font-weight: 700;
-  margin: 0 0 12px 0 !important;
+  margin: 0 0 12px 0;
   color: #e8e8e8;
   line-height: 1.2;
+  transition: text-align 0.3s ease;
+}
+
+/* Center title on mobile when sidebar is closed */
+@media (max-width: 768px) {
+  body[data-sidebar-open="false"] .page-title-mp {
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    display: flex;
+    /* padding-top: 10px; */
+  }
+  
+  .header-left-mp {
+    font-size: 28px;
+  }
 }
 
 .page-subtitle {
@@ -83,8 +116,8 @@ body[data-sidebar-open="false"] .my-projects-page {
 .search-icon {
   position: absolute;
   left: 16px;
-  top: 47% !important;
-  transform: translateY(-50%) !important;
+  top: 47%;
+  transform: translateY(-50%);
   color: rgba(255, 255, 255, 0.5);
   font-size: 18px;
   pointer-events: none;
@@ -147,7 +180,7 @@ body[data-sidebar-open="false"] .my-projects-page {
 /* Projects Grid */
 .projects-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 24px;
 }
 
@@ -162,13 +195,15 @@ body[data-sidebar-open="false"] .my-projects-page {
   flex-direction: column;
   gap: 16px;
   position: relative;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(2px);
 }
 
 .project-card-manage:hover {
   background: rgba(255, 255, 255, 0.05);
   border-color: rgba(255, 255, 255, 0.15);
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
 }
 
 /* Card Header */
@@ -211,6 +246,27 @@ body[data-sidebar-open="false"] .my-projects-page {
 .card-menu-container {
   position: relative;
 }
+/* Make sure grid allows overlays */
+.projects-grid {
+  position: relative;
+  overflow: visible;
+}
+
+/* Default card stacking */
+.project-card-manage {
+  z-index: 1;
+}
+
+/* When menu is open, lift this card above other cards */
+.project-card-manage.menu-open {
+  z-index: 999;
+}
+
+/* Ensure dropdown always sits above content inside the card */
+.card-menu-dropdown {
+  z-index: 1000;
+}
+
 
 .card-menu-btn {
   width: 32px;
@@ -438,7 +494,7 @@ body[data-sidebar-open="false"] .my-projects-page {
 /* Responsive Design */
 @media (max-width: 1200px) {
   .projects-grid {
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   }
 }
 
@@ -448,7 +504,7 @@ body[data-sidebar-open="false"] .my-projects-page {
   }
 
   .projects-grid {
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 20px;
   }
 }
@@ -457,7 +513,7 @@ body[data-sidebar-open="false"] .my-projects-page {
   .my-projects-page {
     margin-left: 0;
     padding: 20px 15px;
-    padding-top: 80px;
+    padding-top: 40px;
   }
 
   body[data-sidebar-open="false"] .my-projects-page {
@@ -466,11 +522,7 @@ body[data-sidebar-open="false"] .my-projects-page {
 
   .projects-page-header {
     flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .page-title {
-    font-size: 28px;
+    align-items: center;
   }
 
   .create-project-btn {
@@ -502,14 +554,6 @@ body[data-sidebar-open="false"] .my-projects-page {
     padding-top: 70px;
   }
 
-  .page-title {
-    font-size: 24px;
-  }
-
-  .page-subtitle {
-    font-size: 14px;
-  }
-
   .project-card-manage {
     padding: 16px;
   }
@@ -523,4 +567,166 @@ body[data-sidebar-open="false"] .my-projects-page {
     align-items: flex-start;
     gap: 10px;
   }
+}
+
+
+/* ===========================
+   Delete Confirm Modal
+=========================== */
+/* 
+ .mp-confirm-overlay {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  right: 0;
+
+  /* Sidebar-aware: default open /
+  /* left: 230px; /
+
+  z-index: 6000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 22px;
+
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(10px);
+}  */
+
+.mp-confirm-overlay {
+  position: fixed;
+  inset: 0; /* replaces top/bottom/left/right */
+  z-index: 6000;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 22px;
+
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(10px);
+}
+
+
+body[data-sidebar-open="false"] .mp-confirm-overlay {
+  left: 0px;
+}
+
+@media (max-width: 768px) {
+  
+}
+
+.mp-confirm-modal {
+  width: min(520px, 100%);
+  background: rgba(20, 20, 30, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px; /* “square-ish” but still premium */
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.7);
+  padding: 18px 18px 16px;
+}
+
+.mp-confirm-top {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.mp-confirm-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+
+  color: rgba(255, 255, 255, 0.92);
+  background: linear-gradient(135deg, rgba(250, 78, 253, 0.25), rgba(33, 218, 242, 0.18));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.mp-confirm-copy {
+  min-width: 0;
+}
+
+.mp-confirm-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.mp-confirm-text {
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.mp-confirm-chip {
+  margin-top: 10px;
+  display: inline-flex;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.mp-confirm-actions {
+  margin-top: 16px;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.mp-confirm-btn {
+  border: none;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.mp-confirm-btn:active {
+  transform: scale(0.98);
+}
+
+.mp-confirm-btn.ghost {
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.mp-confirm-btn.ghost:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.20);
+}
+
+.mp-confirm-btn.danger {
+  color: #071018;
+  background: linear-gradient(90deg, #ff2222, #ff2222);
+}
+
+.mp-confirm-btn.danger:hover {
+  filter: brightness(1.05);
+}
+
+@media (max-width: 420px) {
+  .mp-confirm-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+  .mp-confirm-btn {
+    width: 100%;
+  }
+  
 }

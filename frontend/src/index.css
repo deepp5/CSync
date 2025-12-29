@@ -2,6 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
-/* html, body {
+/* html, body #root {
     background: #0a0a0b;
   } */
+
+/* 
+  #root{
+    background-color: black;
+  }
+ */
+
+  html, body, #root{
+  margin: 0;
+  overscroll-behavior: none; /* stops the white “bounce” on scroll */
+}

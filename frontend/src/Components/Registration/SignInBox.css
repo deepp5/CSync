@@ -67,9 +67,9 @@
 /* ... existing hover effects ... */
 .clear-box-container:hover {
   border-color: rgba(255, 255, 255, 0.25);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
 }
+
 
 /* Logo Container */
 #logo-container {
@@ -154,24 +154,114 @@
   margin-top: 10px;
 }
 
-.submit-container button {
+/* .submit-container button {
   width: 100%;
   padding: 14px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(6px);
+  border: 2px solid;
+  border-image: linear-gradient(90deg, #fa4efd, #21daf2, #fa4efd, #21daf2) 1;
   border-radius: 12px;
   color: white;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  position: relative;
   transition: all 0.3s ease;
+  animation: borderRotate 3s linear infinite;
+  background-clip: padding-box;
+}
+
+@keyframes borderRotate {
+  0% {
+    border-image-source: linear-gradient(90deg, #fa4efd, #21daf2, #fa4efd, #21daf2);
+  }
+  25% {
+    border-image-source: linear-gradient(90deg, #21daf2, #fa4efd, #21daf2, #fa4efd);
+  }
+  50% {
+    border-image-source: linear-gradient(90deg, #fa4efd, #21daf2, #fa4efd, #21daf2);
+  }
+  75% {
+    border-image-source: linear-gradient(90deg, #21daf2, #fa4efd, #21daf2, #fa4efd);
+  }
+  100% {
+    border-image-source: linear-gradient(90deg, #fa4efd, #21daf2, #fa4efd, #21daf2);
+  }
 }
 
 .submit-container button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 15px rgba(250, 78, 253, 0.3);
+} */
+
+.signin-pulse-btn {
+  width: 100%;
+  padding: 14px;
+  border-radius: 14px;
+  border: none;
+  background: rgba(255, 255, 255, 0.10);   /* inside fill */
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
 }
+
+/* Gradient BORDER only */
+.signin-pulse-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: 2px;                 /* border thickness */
+  border-radius: 14px;
+  background: linear-gradient(135deg, #21daf2, #fa4efd);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Text stays above everything */
+.signin-pulse-btn .pulse-text {
+  position: relative;
+  z-index: 2;
+}
+
+/* Pulse ring effect (border pulse, not fill) */
+.signin-pulse-btn .pulse-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  z-index: 1;
+  pointer-events: none;
+
+  /* we animate a “ring” using box-shadow instead of changing fill */
+  animation: pulseRing 2.5s infinite;
+}
+
+@keyframes pulseRing {
+  0%   { box-shadow: 0 0 0 0 rgba(33, 218, 242, 0.45); opacity: 1; }
+  70%  { box-shadow: 0 0 0 16px rgba(250, 78, 253, 0.00); opacity: 1; }
+  100% { box-shadow: 0 0 0 16px rgba(250, 78, 253, 0.00); opacity: 0; }
+}
+
+.signin-pulse-btn:hover {
+  transform: translateY(-2px);
+  /* box-shadow: 0 10px 35px rgba(33, 218, 242, 0.25); */
+  background: rgba(255, 255, 255, 0.13); /* slightly brighter inside on hover */
+}
+
+
+/* .submit-container button:hover {
+  transform: translateY(-2px);
+} */
 
 /* OR Divider */
 .or {
@@ -262,6 +352,32 @@
   font-size: 12px;
   margin-top: 4px;
 }
+
+.back-box {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+
+  padding: 10px 12px;
+  border-radius: 12px;
+
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.9);
+
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+
+  transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+.back-box:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
 
 /* Responsive Design */
 @media (max-width: 480px) {
