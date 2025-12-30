@@ -29,6 +29,31 @@ const server = http.createServer(app);
 const prisma = new PrismaClient();
 
 /* =========================
+   CORS (FIXED FOR PROD)
+========================= */
+const ALLOWED_ORIGINS = [
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "https://csync.tech",
+  "https://www.csync.tech",
+];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("CORS not allowed"));
+      }
+    },
+    credentials: true,
+  })
+);
+
+app.use(express.json());
+
+/* =========================
    HELPERS (FIX UPDATE 500)
 ========================= */
 function parsePrismaId(raw) {
@@ -97,28 +122,28 @@ app.use(express.json());
 /* =========================
    ROUTES
 ========================= */
-app.get("/", (req, res) => {
+app.get("/", (_req, res) => {
   res.send("Backend working 🚀");
 });
 
 app.use("/auth", authRoutes);
 app.use("/messages", messageRoutes);
 app.use("/conversations", conversationRoutes);
-app.use("/posts", commentRoutes); // comments routes mounted under /posts
+app.use("/posts", commentRoutes);
 app.use("/settings", settingsRoutes);
 app.use("/api/profile", profileRoutes);
 
 /* =========================
-   SOCKET.IO SETUP
+   SOCKET.IO SETUP (FIXED)
 ========================= */
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: ALLOWED_ORIGINS,
     methods: ["GET", "POST"],
+    credentials: true,
   },
 });
 
-// allow REST routes to emit socket events
 app.set("io", io);
 
 /* =========================
@@ -144,73 +169,48 @@ io.use((socket, next) => {
 
   if (!token) return next(new Error("Missing auth token"));
 
-  const decodedHeader = jwt.decode(token, { complete: true })?.header;
-  const alg = decodedHeader?.alg;
+  const decoded = jwt.decode(token, { complete: true });
+  const alg = decoded?.header?.alg;
 
   const issuer = `${process.env.SUPABASE_URL}/auth/v1`;
   const audience = "authenticated";
 
-  // If Supabase ever gives HS256 tokens, support it too
+  // HS256 support
   if (alg === "HS256") {
     const secret = process.env.SUPABASE_JWT_SECRET;
-    if (!secret) {
-      console.error("❌ Missing SUPABASE_JWT_SECRET for HS256 token");
-      return next(new Error("Server missing SUPABASE_JWT_SECRET"));
-    }
+    if (!secret) return next(new Error("Missing SUPABASE_JWT_SECRET"));
 
-    jwt.verify(
+    return jwt.verify(
       token,
       secret,
       { issuer, audience, algorithms: ["HS256"] },
       (err, verified) => {
-        if (err) {
-          console.error("❌ Socket JWT error (HS256):", err.message);
-          return next(new Error("Invalid token"));
-        }
-
-        const rawMeta =
-          verified?.raw_user_meta_data || verified?.user_metadata || {};
+        if (err) return next(new Error("Invalid token"));
 
         socket.supabaseUser = {
           id: verified.sub,
           email: verified.email,
-          user_metadata: verified.user_metadata || rawMeta,
-          raw_user_meta_data: rawMeta,
+          user_metadata: verified.user_metadata || {},
         };
-
-        return next();
+        next();
       }
     );
-
-    return;
   }
 
-  // Default: RS256/ES256 via JWKS
+  // RS256 / JWKS
   jwt.verify(
     token,
     getKey,
-    {
-      issuer,
-      audience,
-      algorithms: ["RS256", "ES256"],
-    },
+    { issuer, audience, algorithms: ["RS256", "ES256"] },
     (err, verified) => {
-      if (err) {
-        console.error("❌ Socket JWT error (JWKS):", err.message);
-        return next(new Error("Invalid token"));
-      }
-
-      const rawMeta =
-        verified?.raw_user_meta_data || verified?.user_metadata || {};
+      if (err) return next(new Error("Invalid token"));
 
       socket.supabaseUser = {
         id: verified.sub,
         email: verified.email,
-        user_metadata: verified.user_metadata || rawMeta,
-        raw_user_meta_data: rawMeta,
+        user_metadata: verified.user_metadata || {},
       };
-
-      return next();
+      next();
     }
   );
 });
@@ -220,19 +220,14 @@ io.use((socket, next) => {
 ========================= */
 io.on("connection", async (socket) => {
   try {
-    // Lazy sync Supabase → Prisma
     const prismaUser = await ensureUserExists(prisma, socket.supabaseUser);
-
     socket.userId = prismaUser.id;
-
-    // Join personal room (used for DMs)
     socket.join(prismaUser.id);
 
     console.log("🟢 Socket connected:", prismaUser.id);
   } catch (err) {
     console.error("❌ Socket user sync failed:", err);
     socket.disconnect();
-    return;
   }
 
   socket.on("disconnect", () => {
@@ -714,5 +709,5 @@ app.delete("/users/:id/follow", verifySupabaseToken, async (req, res) => {
 const PORT = process.env.PORT || 5051;
 
 server.listen(PORT, () => {
-  console.log(`✅ Server running on http://localhost:${PORT}`);
+  console.log(`✅ Server running on port ${PORT}`);
 });
