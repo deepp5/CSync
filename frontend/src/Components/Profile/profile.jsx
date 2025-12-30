@@ -6,6 +6,7 @@ import Sidebar from "../Sidebar/Sidebar";
 import Grid from "../HomePage/Grid/Grid";
 import "./Profile.css";
 import { prefetchCache } from "../../utils/prefetchCache";
+import { API_BASE_URL } from "../../api";
 import { FiEdit2, FiGithub, FiLinkedin, FiMail, FiX, FiCheck, FiMapPin, FiGrid } from "react-icons/fi";
 
 const ProfilePage = () => {
@@ -71,20 +72,20 @@ const ProfilePage = () => {
         setCurrentUserId(userId);
 
         const profileRes = await axios.get(
-          `http://localhost:5051/api/profile/${username}`,
+          `${API_BASE_URL}/api/profile/${username}`,
           { headers: token ? { Authorization: `Bearer ${token}` } : {} }
         );
         const profileData = profileRes.data;
 
         const postsRes = await axios.get(
-          `http://localhost:5051/api/profile/${username}/posts`,
+          `${API_BASE_URL}/api/profile/${username}/posts`,
           { headers: token ? { Authorization: `Bearer ${token}` } : {} }
         );
 
         let followingState = false;
         if (token && userId && profileData.id !== userId) {
           const followRes = await axios.get(
-            `http://localhost:5051/api/profile/${username}/follow-status`,
+            `${API_BASE_URL}/api/profile/${username}/follow-status`,
             { headers: { Authorization: `Bearer ${token}` } }
           );
           followingState = !!followRes.data?.isFollowing;
@@ -95,11 +96,11 @@ const ProfilePage = () => {
         if (token) {
           const [followersRes, followingRes] = await Promise.all([
             axios.get(
-              `http://localhost:5051/api/profile/${username}/followers`,
+              `${API_BASE_URL}/api/profile/${username}/followers`,
               { headers: { Authorization: `Bearer ${token}` } }
             ),
             axios.get(
-              `http://localhost:5051/api/profile/${username}/following`,
+              `${API_BASE_URL}/api/profile/${username}/following`,
               { headers: { Authorization: `Bearer ${token}` } }
             ),
           ]);
@@ -138,14 +139,14 @@ const ProfilePage = () => {
         });
 
         const postsResponse = await axios.get(
-          `http://localhost:5051/api/profile/${username}/posts`,
+          `${API_BASE_URL}/api/profile/${username}/posts`,
           { headers: token ? { Authorization: `Bearer ${token}` } : {} }
         );
         setPosts(postsResponse.data || []);
 
         if (token && userId && profileData.id !== userId) {
           const followResponse = await axios.get(
-            `http://localhost:5051/api/profile/${username}/follow-status`,
+            `${API_BASE_URL}/api/profile/${username}/follow-status`,
             { headers: { Authorization: `Bearer ${token}` } }
           );
           setIsFollowing(!!followResponse.data?.isFollowing);
@@ -153,10 +154,10 @@ const ProfilePage = () => {
 
         if (token) {
           const [followersResponse, followingResponse] = await Promise.all([
-            axios.get(`http://localhost:5051/api/profile/${username}/followers`, {
+            axios.get(`${API_BASE_URL}/api/profile/${username}/followers`, {
               headers: { Authorization: `Bearer ${token}` },
             }),
-            axios.get(`http://localhost:5051/api/profile/${username}/following`, {
+            axios.get(`${API_BASE_URL}/api/profile/${username}/following`, {
               headers: { Authorization: `Bearer ${token}` },
             }),
           ]);
@@ -233,7 +234,7 @@ const ProfilePage = () => {
       const token = session.access_token;
 
       if (isFollowing) {
-        await axios.delete(`http://localhost:5051/api/profile/${username}/follow`, {
+        await axios.delete(`${API_BASE_URL}/api/profile/${username}/follow`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setIsFollowing(false);
@@ -246,7 +247,7 @@ const ProfilePage = () => {
         }));
       } else {
         await axios.post(
-          `http://localhost:5051/api/profile/${username}/follow`,
+          `${API_BASE_URL}/api/profile/${username}/follow`,
           {},
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -298,7 +299,7 @@ const ProfilePage = () => {
         skills: profile.skills || [],
       };
 
-      const res = await axios.put("http://localhost:5051/api/profile/update", payload, {
+      const res = await axios.put("${API_BASE_URL}/api/profile/update", payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -348,7 +349,7 @@ const ProfilePage = () => {
         skills: profile.skills || [],
       };
 
-      const res = await axios.put("http://localhost:5051/api/profile/update", payload, {
+      const res = await axios.put("${API_BASE_URL}/api/profile/update", payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -404,7 +405,7 @@ const ProfilePage = () => {
         skills,
       };
 
-      const res = await axios.put("http://localhost:5051/api/profile/update", payload, {
+      const res = await axios.put("${API_BASE_URL}/api/profile/update", payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -969,14 +970,14 @@ export default ProfilePage;
 
 //         // Profile
 //         const profileRes = await axios.get(
-//           `http://localhost:5051/api/profile/${username}`,
+//           `${API_BASE_URL}/api/profile/${username}`,
 //           { headers: token ? { Authorization: `Bearer ${token}` } : {} }
 //         );
 //         const profileData = profileRes.data;
 
 //         // Posts
 //         const postsRes = await axios.get(
-//           `http://localhost:5051/api/profile/${username}/posts`,
+//           `${API_BASE_URL}/api/profile/${username}/posts`,
 //           { headers: token ? { Authorization: `Bearer ${token}` } : {} }
 //         );
 
@@ -984,7 +985,7 @@ export default ProfilePage;
 //         let followingState = false;
 //         if (token && userId && profileData.id !== userId) {
 //           const followRes = await axios.get(
-//             `http://localhost:5051/api/profile/${username}/follow-status`,
+//             `${API_BASE_URL}/api/profile/${username}/follow-status`,
 //             { headers: { Authorization: `Bearer ${token}` } }
 //           );
 //           followingState = !!followRes.data?.isFollowing;
@@ -996,11 +997,11 @@ export default ProfilePage;
 //         if (token) {
 //           const [followersRes, followingRes] = await Promise.all([
 //             axios.get(
-//               `http://localhost:5051/api/profile/${username}/followers`,
+//               `${API_BASE_URL}/api/profile/${username}/followers`,
 //               { headers: { Authorization: `Bearer ${token}` } }
 //             ),
 //             axios.get(
-//               `http://localhost:5051/api/profile/${username}/following`,
+//               `${API_BASE_URL}/api/profile/${username}/following`,
 //               { headers: { Authorization: `Bearer ${token}` } }
 //             ),
 //           ]);
@@ -1042,14 +1043,14 @@ export default ProfilePage;
 //         });
 
 //         const postsResponse = await axios.get(
-//           `http://localhost:5051/api/profile/${username}/posts`,
+//           `${API_BASE_URL}/api/profile/${username}/posts`,
 //           { headers: token ? { Authorization: `Bearer ${token}` } : {} }
 //         );
 //         setPosts(postsResponse.data || []);
 
 //         if (token && userId && profileData.id !== userId) {
 //           const followResponse = await axios.get(
-//             `http://localhost:5051/api/profile/${username}/follow-status`,
+//             `${API_BASE_URL}/api/profile/${username}/follow-status`,
 //             { headers: { Authorization: `Bearer ${token}` } }
 //           );
 //           setIsFollowing(!!followResponse.data?.isFollowing);
@@ -1057,10 +1058,10 @@ export default ProfilePage;
 
 //         if (token) {
 //           const [followersResponse, followingResponse] = await Promise.all([
-//             axios.get(`http://localhost:5051/api/profile/${username}/followers`, {
+//             axios.get(`${API_BASE_URL}/api/profile/${username}/followers`, {
 //               headers: { Authorization: `Bearer ${token}` },
 //             }),
-//             axios.get(`http://localhost:5051/api/profile/${username}/following`, {
+//             axios.get(`${API_BASE_URL}/api/profile/${username}/following`, {
 //               headers: { Authorization: `Bearer ${token}` },
 //             }),
 //           ]);
@@ -1140,7 +1141,7 @@ export default ProfilePage;
 //       const token = session.access_token;
 
 //       if (isFollowing) {
-//         await axios.delete(`http://localhost:5051/api/profile/${username}/follow`, {
+//         await axios.delete(`${API_BASE_URL}/api/profile/${username}/follow`, {
 //           headers: { Authorization: `Bearer ${token}` },
 //         });
 //         setIsFollowing(false);
@@ -1153,7 +1154,7 @@ export default ProfilePage;
 //         }));
 //       } else {
 //         await axios.post(
-//           `http://localhost:5051/api/profile/${username}/follow`,
+//           `${API_BASE_URL}/api/profile/${username}/follow`,
 //           {},
 //           { headers: { Authorization: `Bearer ${token}` } }
 //         );
@@ -1211,7 +1212,7 @@ export default ProfilePage;
 //         skills,
 //       };
 
-//       const res = await axios.put("http://localhost:5051/api/profile/update", payload, {
+//       const res = await axios.put("${API_BASE_URL}/api/profile/update", payload, {
 //         headers: { Authorization: `Bearer ${token}` },
 //       });
 

@@ -5,6 +5,7 @@ import { supabase } from "../supabaseClient";
 import Sidebar from "../Components/Sidebar/Sidebar";
 import PostForm from "../Components/Post/PostForm/PostForm";
 import "../Components/Post/CreatePost.css";
+import { API_BASE_URL } from "../api";
 
 function Toast({ open, message, onClose, onAction, actionLabel }) {
   if (!open) return null;
@@ -73,7 +74,7 @@ export default function CreatePost() {
       }
 
       const token = session.access_token;
-      const response = await axios.get(`http://localhost:5051/posts/${id}`, {
+      const response = await axios.get(`${API_BASE_URL}/posts/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -111,7 +112,7 @@ export default function CreatePost() {
 
       const token = session.access_token;
 
-      await axios.post("http://localhost:5051/posts", data, {
+      await axios.post("${API_BASE_URL}/posts", data, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -139,7 +140,7 @@ export default function CreatePost() {
 
       const token = session.access_token;
 
-      await axios.put(`http://localhost:5051/posts/${id}`, data, {
+      await axios.put(`${API_BASE_URL}/posts/${id}`, data, {
         headers: { Authorization: `Bearer ${token}` },
       });
 

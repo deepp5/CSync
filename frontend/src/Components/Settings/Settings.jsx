@@ -51,7 +51,7 @@ const Settings = () => {
       }
 
       const token = session.access_token;
-      const response = await fetch('http://localhost:5051/settings', {
+      const response = await fetch('${API_BASE_URL}/settings', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -99,7 +99,7 @@ const Settings = () => {
       }
 
       const token = session.access_token;
-      const response = await fetch('http://localhost:5051/settings/account', {
+      const response = await fetch('${API_BASE_URL}/settings/account', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -159,7 +159,7 @@ const Settings = () => {
       }
 
       const token = session.access_token;
-      const response = await fetch('http://localhost:5051/settings/password', {
+      const response = await fetch('${API_BASE_URL}/settings/password', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -203,7 +203,7 @@ const Settings = () => {
       }
 
       const token = session.access_token;
-      const response = await fetch('http://localhost:5051/settings/privacy', {
+      const response = await fetch('${API_BASE_URL}/settings/privacy', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

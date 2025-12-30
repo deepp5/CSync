@@ -1,7 +1,8 @@
 import { prefetchCache } from "./prefetchCache";
 import { supabase } from "../supabaseClient";
 
-const API_BASE = "http://localhost:5051";
+import { API_BASE_URL } from "../api";
+const API_BASE = `${API_BASE_URL}`;
 const inFlight = new Map();
 
 export async function prefetchMessagesWith(userId) {

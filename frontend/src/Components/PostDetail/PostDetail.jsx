@@ -4,6 +4,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import { supabase } from "../../supabaseClient";
 import "./PostDetail.css";
+import { API_BASE_URL } from "../../api";
 import {
   FiUser,
   FiMail,
@@ -56,7 +57,7 @@ const PostDetail = () => {
       const token = session.access_token;
 
       const res = await axios.get(
-        `http://localhost:5051/posts/${id}/comments`,
+        `${API_BASE_URL}/posts/${id}/comments`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -88,7 +89,7 @@ const PostDetail = () => {
 
         const token = session.access_token;
 
-        const response = await axios.get(`http://localhost:5051/posts/${id}`, {
+        const response = await axios.get(`${API_BASE_URL}/posts/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -109,7 +110,7 @@ const PostDetail = () => {
 
           const viewResponse = await axios
             .post(
-              `http://localhost:5051/posts/${id}/view`,
+              `${API_BASE_URL}/posts/${id}/view`,
               {},
               { headers: { Authorization: `Bearer ${token}` } }
             )
@@ -157,12 +158,12 @@ const PostDetail = () => {
       const token = session.access_token;
 
       if (previousIsLiked) {
-        await axios.delete(`http://localhost:5051/posts/${id}/like`, {
+        await axios.delete(`${API_BASE_URL}/posts/${id}/like`, {
           headers: { Authorization: `Bearer ${token}` },
         });
       } else {
         await axios.post(
-          `http://localhost:5051/posts/${id}/like`,
+          `${API_BASE_URL}/posts/${id}/like`,
           {},
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -195,12 +196,12 @@ const PostDetail = () => {
       if (!userId) return;
 
       if (previousIsFollowing) {
-        await axios.delete(`http://localhost:5051/users/${userId}/follow`, {
+        await axios.delete(`${API_BASE_URL}/users/${userId}/follow`, {
           headers: { Authorization: `Bearer ${token}` },
         });
       } else {
         await axios.post(
-          `http://localhost:5051/users/${userId}/follow`,
+          `${API_BASE_URL}/users/${userId}/follow`,
           {},
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -245,7 +246,7 @@ const PostDetail = () => {
       const token = session.access_token;
 
       await axios.post(
-        `http://localhost:5051/posts/${id}/comments`,
+        `${API_BASE_URL}/posts/${id}/comments`,
         { content: newComment.trim(), parentId: replyTo || null },
         { headers: { Authorization: `Bearer ${token}` } }
       );

@@ -13,7 +13,7 @@ export async function prefetchHome() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      const res = await axios.get("http://localhost:5051/posts", {
+      const res = await axios.get("${API_BASE_URL}/posts", {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
 

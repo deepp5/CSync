@@ -7,7 +7,7 @@ import { prefetchCache } from "../../../utils/prefetchCache";
 
 export default function Card(props) {
     const navigate = useNavigate();
-    const API_BASE = "http://localhost:5051";
+    const API_BASE = "${API_BASE_URL}";
 
     const prefetchPost = async () => {
         const postId = props.post.id;

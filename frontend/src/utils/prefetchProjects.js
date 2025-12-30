@@ -22,7 +22,7 @@ export async function prefetchMyProjects() {
 
       const token = session.access_token;
 
-      const res = await axios.get("http://localhost:5051/posts/me", {
+      const res = await axios.get("${API_BASE_URL}/posts/me", {
         headers: { Authorization: `Bearer ${token}` }
       });
 

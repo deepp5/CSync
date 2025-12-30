@@ -46,7 +46,7 @@ export default function HomePage() {
       }
 
       try {
-        const response = await axios.get("http://localhost:5051/posts", {
+        const response = await axios.get("${API_BASE_URL}/posts", {
           headers: {
             Authorization: `Bearer ${data.session.access_token}`,
           },

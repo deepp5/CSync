@@ -21,8 +21,8 @@ import {
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { io } from "socket.io-client";
-
-const API_BASE = "http://localhost:5051";
+import { API_BASE_URL } from "../../api";
+const API_BASE = `${API_BASE_URL}`;
 
 // --------------------
 // Helpers

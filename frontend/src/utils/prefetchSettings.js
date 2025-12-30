@@ -1,7 +1,8 @@
 import { supabase } from "../supabaseClient";
 import { prefetchCache } from "./prefetchCache";
 
-const API_BASE = "http://localhost:5051";
+import { API_BASE_URL } from "../api";
+const API_BASE = `${API_BASE_URL}`;
 
 // single in-flight promise to dedupe
 let inFlight = null;

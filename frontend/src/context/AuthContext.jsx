@@ -4,8 +4,8 @@ import { prefetchHomeFeed } from "../utils/prefetchHomeFeed";
 import { prefetchProfile } from "../utils/prefetchProfile";
 import { prefetchCache } from "../utils/prefetchCache";
 import { prefetchSettings } from "../utils/prefetchSettings.js";
-
-const API_BASE = "http://localhost:5051";
+import { API_BASE_URL } from "../api";
+const API_BASE = `${API_BASE_URL}`;
 
 async function prefetchMessagesOnLogin(session) {
   try {

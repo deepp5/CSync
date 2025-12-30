@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { supabase } from "../../supabaseClient";
 import { prefetchCache } from "../../utils/prefetchCache";
+import { API_BASE_URL } from "../../api";
 import "./MyProject.css";
 import {
   FiEdit2,
@@ -56,7 +57,7 @@ export default function MyProjects() {
 
         const token = session.access_token;
 
-        const res = await axios.get("http://localhost:5051/posts/me", {
+        const res = await axios.get("${API_BASE_URL}/posts/me", {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -78,7 +79,7 @@ export default function MyProjects() {
 
         const token = session.access_token;
 
-        const res = await axios.get("http://localhost:5051/posts/me", {
+        const res = await axios.get("${API_BASE_URL}/posts/me", {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -135,7 +136,7 @@ export default function MyProjects() {
 
       const token = session.access_token;
 
-      await axios.delete(`http://localhost:5051/posts/${projectId}`, {
+      await axios.delete(`${API_BASE_URL}/posts/${projectId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -184,7 +185,7 @@ export default function MyProjects() {
       const token = session.access_token;
 
       await axios.put(
-        `http://localhost:5051/posts/${projectId}`,
+        `${API_BASE_URL}/posts/${projectId}`,
         {
           ...project,
           techStack: project.techStack,
