@@ -4,10 +4,10 @@ import "./Card.css";
 import axios from "axios";
 import { supabase } from "../../../supabaseClient";
 import { prefetchCache } from "../../../utils/prefetchCache";
-
+import { API_BASE_URL } from "../../../api";
+const API_BASE = `${API_BASE_URL}`;
 export default function Card(props) {
     const navigate = useNavigate();
-    const API_BASE = "${API_BASE_URL}";
 
     const prefetchPost = async () => {
         const postId = props.post.id;

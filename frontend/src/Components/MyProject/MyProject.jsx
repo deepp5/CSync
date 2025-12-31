@@ -5,6 +5,7 @@ import axios from "axios";
 import { supabase } from "../../supabaseClient";
 import { prefetchCache } from "../../utils/prefetchCache";
 import { API_BASE_URL } from "../../api";
+const API_BASE = API_BASE_URL;
 import "./MyProject.css";
 import {
   FiEdit2,
@@ -57,7 +58,7 @@ export default function MyProjects() {
 
         const token = session.access_token;
 
-        const res = await axios.get("${API_BASE_URL}/posts/me", {
+        const res = await axios.get(`${API_BASE}/posts/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -79,7 +80,7 @@ export default function MyProjects() {
 
         const token = session.access_token;
 
-        const res = await axios.get("${API_BASE_URL}/posts/me", {
+        const res = await axios.get(`${API_BASE}/posts/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 

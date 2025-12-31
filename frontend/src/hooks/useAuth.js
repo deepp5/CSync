@@ -1,6 +1,9 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "../supabaseClient";
 
+import { API_BASE_URL } from "../api";
+const API_BASE = API_BASE_URL;
+
 export default function useAuth() {
   const [user, setUser] = useState(null);
   const hasSyncedRef = useRef(false);
@@ -12,7 +15,7 @@ export default function useAuth() {
       hasSyncedRef.current = true;
 
       try {
-        await fetch("${API_BASE_URL}/auth/sync", {
+        await fetch(`${API_BASE}/auth/sync`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${session.access_token}`,

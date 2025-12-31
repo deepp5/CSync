@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
@@ -11,6 +10,7 @@ import {
   FiCheck
 } from 'react-icons/fi';
 import { prefetchCache } from "../../utils/prefetchCache";
+import { API_BASE_URL } from "../../api";
 
 // Canonical default settings shape
 const DEFAULT_SETTINGS = {
@@ -24,6 +24,8 @@ const DEFAULT_SETTINGS = {
   showEmail: false,
   allowMessages: true,
 };
+
+const API_BASE = API_BASE_URL;
 
 const Settings = () => {
   const cachedSettings = prefetchCache.get("settings") || null;
@@ -51,7 +53,7 @@ const Settings = () => {
       }
 
       const token = session.access_token;
-      const response = await fetch('${API_BASE_URL}/settings', {
+      const response = await fetch(`${API_BASE}/settings`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -99,7 +101,7 @@ const Settings = () => {
       }
 
       const token = session.access_token;
-      const response = await fetch('${API_BASE_URL}/settings/account', {
+      const response = await fetch(`${API_BASE}/settings/account`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -159,7 +161,7 @@ const Settings = () => {
       }
 
       const token = session.access_token;
-      const response = await fetch('${API_BASE_URL}/settings/password', {
+      const response = await fetch(`${API_BASE}/settings/password`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -203,7 +205,7 @@ const Settings = () => {
       }
 
       const token = session.access_token;
-      const response = await fetch('${API_BASE_URL}/settings/privacy', {
+      const response = await fetch(`${API_BASE}/settings/privacy`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

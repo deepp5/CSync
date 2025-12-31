@@ -1,7 +1,9 @@
-// utils/prefetchHomeFeed.js
 import axios from "axios";
 import { supabase } from "../supabaseClient";
 import { prefetchCache } from "./prefetchCache";
+import { API_BASE_URL } from "../api";
+
+const API_BASE = API_BASE_URL;
 
 let prefetchPromise = null;
 
@@ -11,11 +13,15 @@ export async function prefetchHomeFeed() {
 
   prefetchPromise = (async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) return;
 
-      const res = await axios.get("${API_BASE_URL}/posts", {
-        headers: { Authorization: `Bearer ${session.access_token}` }
+      const res = await axios.get(`${API_BASE}/posts`, {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
 
       prefetchCache.set("homeFeed", res.data);

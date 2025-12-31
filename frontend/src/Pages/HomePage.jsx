@@ -2,12 +2,15 @@ import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import { supabase } from "../supabaseClient";
 import { prefetchCache } from "../utils/prefetchCache";
+import { API_BASE_URL } from "../api";
 
 import Sidebar from "../Components/Sidebar/Sidebar";
 import SearchBar from "../Components/HomePage/Search/SearchBar";
 import Grid from "../Components/HomePage/Grid/Grid";
 
 import "../Components/HomePage/HomePage.css";
+
+const API_BASE = API_BASE_URL;
 
 export default function HomePage() {
   const [allPosts, setAllPosts] = useState([]);
@@ -46,7 +49,7 @@ export default function HomePage() {
       }
 
       try {
-        const response = await axios.get("${API_BASE_URL}/posts", {
+        const response = await axios.get(`${API_BASE}/posts`, {
           headers: {
             Authorization: `Bearer ${data.session.access_token}`,
           },

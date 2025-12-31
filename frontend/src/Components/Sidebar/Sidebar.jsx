@@ -14,7 +14,9 @@ import {
 import { Link } from "react-router-dom";
 import { prefetchMyProjects } from "../../utils/prefetchProjects";
 import { supabase } from "../../supabaseClient";
+import { API_BASE_URL } from "../../api";
 
+const API_BASE = API_BASE_URL;
 
 const Sidebar = () => {
   const [isOpen, setIsOpen] = useState(true);
@@ -37,7 +39,7 @@ const Sidebar = () => {
       const { data } = await supabase.auth.getSession();
       const token = data?.session?.access_token;
       if(!token) return;
-      const res = await fetch("${API_BASE_URL}/api/profile/me",{
+      const res = await fetch(`${API_BASE}/api/profile/me`,{
         headers: { Authorization: `Bearer ${token}`},
       });
       if(!res.ok) return;

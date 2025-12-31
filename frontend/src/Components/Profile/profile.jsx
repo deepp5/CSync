@@ -7,6 +7,7 @@ import Grid from "../HomePage/Grid/Grid";
 import "./Profile.css";
 import { prefetchCache } from "../../utils/prefetchCache";
 import { API_BASE_URL } from "../../api";
+const API_BASE = API_BASE_URL;
 import { FiEdit2, FiGithub, FiLinkedin, FiMail, FiX, FiCheck, FiMapPin, FiGrid } from "react-icons/fi";
 
 const ProfilePage = () => {
@@ -299,7 +300,7 @@ const ProfilePage = () => {
         skills: profile.skills || [],
       };
 
-      const res = await axios.put("${API_BASE_URL}/api/profile/update", payload, {
+      const res = await axios.put(`${API_BASE}/api/profile/update`, payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -349,7 +350,7 @@ const ProfilePage = () => {
         skills: profile.skills || [],
       };
 
-      const res = await axios.put("${API_BASE_URL}/api/profile/update", payload, {
+      const res = await axios.put(`${API_BASE}/api/profile/update`, payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -405,7 +406,7 @@ const ProfilePage = () => {
         skills,
       };
 
-      const res = await axios.put("${API_BASE_URL}/api/profile/update", payload, {
+      const res = await axios.put(`${API_BASE}/api/profile/update`, payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -1212,7 +1213,7 @@ export default ProfilePage;
 //         skills,
 //       };
 
-//       const res = await axios.put("${API_BASE_URL}/api/profile/update", payload, {
+//       const res = await axios.put(`${API_BASE}/api/profile/update", payload, {
 //         headers: { Authorization: `Bearer ${token}` },
 //       });
 

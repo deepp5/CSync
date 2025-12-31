@@ -6,6 +6,7 @@ import Sidebar from "../Components/Sidebar/Sidebar";
 import PostForm from "../Components/Post/PostForm/PostForm";
 import "../Components/Post/CreatePost.css";
 import { API_BASE_URL } from "../api";
+const API_BASE = API_BASE_URL;
 
 function Toast({ open, message, onClose, onAction, actionLabel }) {
   if (!open) return null;
@@ -112,7 +113,7 @@ export default function CreatePost() {
 
       const token = session.access_token;
 
-      await axios.post("${API_BASE_URL}/posts", data, {
+      await axios.post(`${API_BASE}/posts`, data, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
