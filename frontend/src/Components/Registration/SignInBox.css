@@ -214,6 +214,27 @@
   transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
 }
 
+/* Shine effect (match Sign Up button) */
+.signin-pulse-btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    120deg,
+    transparent,
+    rgba(255, 255, 255, 0.25),
+    transparent
+  );
+  transform: translateX(-120%);
+  transition: transform 0.6s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.signin-pulse-btn:hover::after {
+  transform: translateX(120%);
+}
+
 /* Gradient BORDER only */
 .signin-pulse-btn::before {
   content: "";

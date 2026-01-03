@@ -18,28 +18,18 @@ export default function SignUp() {
         data: { username, school },
       },
     });
-
+    
     if (error) {
       setMessage(error.message);
       setLoading(false);
       return;
     }
 
-    if (!data.session) {
-      setMessage("📬 Check your email to confirm!");
-      return;
-    }
-
-    window.location.href = "/home";
-  };
-
-  const handleGoogleSignup = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/setup`,
-      },
-    });
+    setLoading(false);
+    setMessage("Check your email to confirm your account!");
+    setTimeout(() => {
+      window.location.href = "/login";
+    }, 2000);
   };
 
   return (
@@ -47,10 +37,9 @@ export default function SignUp() {
       <Aurora />
       <LoginForm
         onSubmit={handleSignup}
-        onGoogle={handleGoogleSignup}
         loading={loading}
+        message={message}
       />
-      {message && <p style={{ textAlign: "center" }}>{message}</p>}
     </div>
   );
 }
