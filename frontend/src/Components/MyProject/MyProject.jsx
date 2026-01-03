@@ -5,7 +5,6 @@ import axios from "axios";
 import { supabase } from "../../supabaseClient";
 import { prefetchCache } from "../../utils/prefetchCache";
 import { API_BASE_URL } from "../../api";
-const API_BASE = API_BASE_URL;
 import "./MyProject.css";
 import {
   FiEdit2,
@@ -15,30 +14,39 @@ import {
   FiMoreVertical,
   FiPlus,
   FiSearch,
+  FiFilter,
+  FiCopy,
   FiShare2,
   FiLock,
 } from "react-icons/fi";
+const API_BASE_URL = import.meta.env.VITE_API_BASE || "http://localhost:5051";
 
 export default function MyProjects() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all"); // all, public, private, draft
+  const [selectedProject, setSelectedProject] = useState(null);
   const [showMenu, setShowMenu] = useState(null);
 
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState(null); // { id, title }
 
   useEffect(() => {
     async function fetchMyProjects() {
       try {
+        // ⚡ Check cache first - INSTANT if prefetched!
         const cachedData = prefetchCache.get("myProjects");
         if (cachedData) {
           setProjects(cachedData);
           setLoading(false);
+          // Still fetch fresh data in background
           fetchFreshData();
           return;
         }
 
+        // No cache - fetch normally
         const {
           data: { session },
         } = await supabase.auth.getSession();
@@ -49,7 +57,7 @@ export default function MyProjects() {
 
         const token = session.access_token;
 
-        const res = await axios.get(`${API_BASE}/posts/me`, {
+        const res = await axios.get("${API_BASE_URL}/posts/me", {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -71,10 +79,11 @@ export default function MyProjects() {
 
         const token = session.access_token;
 
-        const res = await axios.get(`${API_BASE}/posts/me`, {
+        const res = await axios.get("${API_BASE_URL}/posts/me", {
           headers: { Authorization: `Bearer ${token}` },
         });
 
+        // Update with fresh data
         setProjects(res.data);
         prefetchCache.set("myProjects", res.data);
       } catch (error) {
@@ -85,6 +94,7 @@ export default function MyProjects() {
     fetchMyProjects();
   }, []);
 
+  // Filter and search projects
   const filteredProjects = projects.filter((project) => {
     const title = (project.title || "").toLowerCase();
     const desc = (project.description || "").toLowerCase();
@@ -93,6 +103,8 @@ export default function MyProjects() {
       title.includes(searchQuery.toLowerCase()) ||
       desc.includes(searchQuery.toLowerCase());
 
+    // NOTE: backend uses "PUBLIC/PRIVATE/DRAFT"
+    // so filterStatus is 'public'/'private'/'draft' -> uppercased
     const matchesFilter =
       filterStatus === "all" ||
       project.visibility === filterStatus.toUpperCase();
@@ -100,14 +112,20 @@ export default function MyProjects() {
     return matchesSearch && matchesFilter;
   });
 
+  // Removed handleViewProject function (in your newer version)
+
   const handleEditProject = (projectId) => {
     navigate(`/edit-project/${projectId}`);
     setShowMenu(null);
   };
 
-  const handleDeleteProject = async (projectId) => {
-    if (!window.confirm("Delete this project permanently?")) return;
+  const requestDeleteProject = (project) => {
+    setPendingDelete({ id: project.id, title: project.title });
+    setConfirmOpen(true);
+    setShowMenu(null);
+  };
 
+  const handleDeleteProject = async (projectId) => {
     try {
       const {
         data: { session },
@@ -116,31 +134,45 @@ export default function MyProjects() {
 
       const token = session.access_token;
 
-      await axios.delete(`${API_BASE}/posts/${projectId}`, {
+      await axios.delete(`${API_BASE_URL}/posts/${projectId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      const updated = projects.filter((p) => p.id !== projectId);
-      setProjects(updated);
-      prefetchCache.set("myProjects", updated);
+      const updatedProjects = projects.filter((p) => p.id !== projectId);
+      setProjects(updatedProjects);
+      prefetchCache.set("myProjects", updatedProjects);
       setShowMenu(null);
     } catch (error) {
       console.error("Error deleting project:", error);
-      alert("Failed to delete project.");
+      alert("Failed to delete project. Please try again.");
     }
+  };
+
+  const confirmDelete = async () => {
+    if (!pendingDelete?.id) return;
+    await handleDeleteProject(pendingDelete.id);
+    setConfirmOpen(false);
+    setPendingDelete(null);
+  };
+
+  const cancelDelete = () => {
+    setConfirmOpen(false);
+    setPendingDelete(null);
   };
 
   const handleChangeStatus = async (projectId, newVisibility) => {
     const project = projects.find((p) => p.id === projectId);
     if (!project) return;
 
-    const optimistic = projects.map((p) =>
+    // ✅ OPTIMISTIC UPDATE - Update UI instantly
+    const updatedProjects = projects.map((p) =>
       p.id === projectId ? { ...p, visibility: newVisibility } : p
     );
-    setProjects(optimistic);
-    prefetchCache.set("myProjects", optimistic);
+    setProjects(updatedProjects);
+    prefetchCache.set("myProjects", updatedProjects); // Update cache
     setShowMenu(null);
 
+    // Then sync with backend in the background
     try {
       const {
         data: { session },
@@ -150,88 +182,373 @@ export default function MyProjects() {
       const token = session.access_token;
 
       await axios.put(
-        `${API_BASE}/posts/${projectId}`,
+        `${API_BASE_URL}/posts/${projectId}`,
         {
           ...project,
+          techStack: project.techStack,
           visibility: newVisibility,
         },
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-    } catch {
-      setProjects(projects);
-      prefetchCache.set("myProjects", projects);
-      alert("Failed to update visibility.");
+    } catch (error) {
+      console.error("Error updating project visibility:", error);
+      // ❌ Revert on failure
+      const revertedProjects = projects.map((p) =>
+        p.id === projectId ? { ...p, visibility: project.visibility } : p
+      );
+      setProjects(revertedProjects);
+      prefetchCache.set("myProjects", revertedProjects); // Update cache with reverted data
+      alert("Failed to update project visibility. Please try again.");
     }
   };
 
-  const handleShareProject = () => {
+  const handleShareProject = (projectId) => {
+    // you had window.location.origin (not project specific). leaving as-is.
     const url = window.location.origin;
-    navigator.clipboard.writeText(url);
-    alert("Link copied!");
+
+    if (navigator.share) {
+      navigator.share({
+        title: "Check out my project!",
+        url: url,
+      });
+    } else {
+      navigator.clipboard.writeText(url);
+      alert("Link copied to clipboard!");
+    }
     setShowMenu(null);
   };
 
-  const getStatusIcon = (v) => {
-    if (v === "PUBLIC") return <FiEye />;
-    if (v === "PRIVATE") return <FiLock />;
+  const getStatusBadge = (visibility) => {
+    const badges = {
+      PUBLIC: { label: "Public", class: "status-public" },
+      PRIVATE: { label: "Private", class: "status-private" },
+      DRAFT: { label: "Draft", class: "status-draft" },
+    };
+    return badges[visibility] || badges.DRAFT;
+  };
+
+  const getStatusIcon = (visibility) => {
+    if (visibility === "PUBLIC") return <FiEye />;
+    if (visibility === "PRIVATE") return <FiLock />;
     return <FiEyeOff />;
   };
 
+  const getTimeAgo = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const days = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+
+    if (days === 0) return "Today";
+    if (days === 1) return "Yesterday";
+    if (days < 7) return `${days} days ago`;
+    if (days < 30) return `${Math.floor(days / 7)} weeks ago`;
+    return date.toLocaleDateString();
+  };
+
   return (
-    <div className="my-projects-page">
-      <div className="my-projects-container">
+    <div
+      className="my-projects-page"
+      style={{ position: "relative", overflow: "visible" }}
+    >
+      {confirmOpen && (
+        <div className="mp-confirm-overlay" onClick={cancelDelete}>
+          <div
+            className="mp-confirm-modal"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="mpConfirmTitle"
+          >
+            <div className="mp-confirm-top">
+              <div className="mp-confirm-icon">
+                <FiTrash2 />
+              </div>
+              <div className="mp-confirm-copy">
+                <h3 id="mpConfirmTitle" className="mp-confirm-title">
+                  Delete this project?
+                </h3>
+                <p className="mp-confirm-text">
+                  Are you sure you want to delete this project? This action
+                  cannot be undone.
+                </p>
+
+                {pendingDelete?.title && (
+                  <div className="mp-confirm-chip">{pendingDelete.title}</div>
+                )}
+              </div>
+            </div>
+
+            <div className="mp-confirm-actions">
+              <button className="mp-confirm-btn ghost" onClick={cancelDelete}>
+                Cancel
+              </button>
+              <button className="mp-confirm-btn danger" onClick={confirmDelete}>
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Ambient glow - top left */}
+      <div
+        style={{
+          position: "absolute",
+          top: "-270px",
+          left: "-50px",
+          width: "420px",
+          height: "420px",
+          background:
+            "radial-gradient(circle at center, rgba(250, 78, 253, 0.35), rgba(250, 78, 253, 0.15), transparent 70%)",
+          filter: "blur(90px)",
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      />
+      <div
+        className="my-projects-container"
+        style={{ position: "relative", zIndex: 1 }}
+      >
+        {/* Header */}
         <div className="projects-page-header">
-          <h1>My Projects</h1>
-          <button onClick={() => navigate("/createpost")}>
+          <div className="header-left-mp">
+            <h1 className="page-title-mp">My Projects</h1>
+          </div>
+          <button
+            className="create-project-btn"
+            onClick={() => navigate("/createpost")}
+          >
             <FiPlus /> New Project
           </button>
         </div>
 
+        {/* Filters and Search */}
         <div className="projects-controls">
-          <FiSearch />
-          <input
-            placeholder="Search projects..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+          <div className="search-bar">
+            <FiSearch className="search-icon" />
+            <input
+              type="text"
+              className="search-input"
+              placeholder="Search projects..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          <div className="filter-tabs">
+            <button
+              className={`filter-tab ${filterStatus === "all" ? "active" : ""}`}
+              onClick={() => setFilterStatus("all")}
+            >
+              All
+            </button>
+            <button
+              className={`filter-tab ${
+                filterStatus === "public" ? "active" : ""
+              }`}
+              onClick={() => setFilterStatus("public")}
+            >
+              Public
+            </button>
+            <button
+              className={`filter-tab ${
+                filterStatus === "private" ? "active" : ""
+              }`}
+              onClick={() => setFilterStatus("private")}
+            >
+              Private
+            </button>
+            <button
+              className={`filter-tab ${
+                filterStatus === "draft" ? "active" : ""
+              }`}
+              onClick={() => setFilterStatus("draft")}
+            >
+              Drafts
+            </button>
+          </div>
         </div>
 
-        {loading ? null : (
+        {/* Projects Grid */}
+        {loading ? (
           <div className="projects-grid">
-            {filteredProjects.map((project) => (
-              <div key={project.id} className="project-card-manage">
-                <div className="card-header-manage">
-                  <span>{getStatusIcon(project.visibility)}</span>
+            {/* Loading state - show nothing or add skeleton cards here */}
+          </div>
+        ) : filteredProjects.length === 0 ? (
+          <div className="no-projects">
+            <div className="no-projects-icon">📁</div>
+            {/* <h3>No projects found</h3> */}
+            <p>
+              {searchQuery
+                ? "Try adjusting your search or filters"
+                : "Start by creating your first project"}
+            </p>
+            {!searchQuery && (
+              <button
+                className="create-first-btn"
+                onClick={() => navigate("/createpost")}
+              >
+                <FiPlus /> Create Your First Project
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="projects-grid">
+            {filteredProjects.map((project) => {
+              const statusBadge = getStatusBadge(project.visibility);
 
-                  <button
-                    onClick={() =>
-                      setShowMenu(showMenu === project.id ? null : project.id)
-                    }
-                  >
-                    <FiMoreVertical />
-                  </button>
+              return (
+                <div
+                  key={project.id}
+                  className={`project-card-manage ${
+                    showMenu === project.id ? "menu-open" : ""
+                  }`}
+                >
+                  {/* Card Header */}
+                  <div className="card-header-manage">
+                    <span className={`status-badge ${statusBadge.class}`}>
+                      {getStatusIcon(project.visibility)}
+                      {statusBadge.label}
+                    </span>
 
-                  {showMenu === project.id && (
-                    <div className="card-menu-dropdown">
-                      <button onClick={() => handleEditProject(project.id)}>
-                        <FiEdit2 /> Edit
+                    <div className="card-menu-container">
+                      <button
+                        className="card-menu-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowMenu(
+                            showMenu === project.id ? null : project.id
+                          );
+                        }}
+                      >
+                        <FiMoreVertical />
                       </button>
-                      <button onClick={() => handleShareProject(project.id)}>
-                        <FiShare2 /> Share
-                      </button>
-                      <button onClick={() => handleDeleteProject(project.id)}>
-                        <FiTrash2 /> Delete
-                      </button>
+
+                      {showMenu === project.id && (
+                        <div className="card-menu-dropdown">
+                          {project.visibility === "DRAFT" && (
+                            <>
+                              <button
+                                className="menu-item"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleChangeStatus(project.id, "PUBLIC");
+                                }}
+                              >
+                                <FiEye /> Make Public
+                              </button>
+                              <button
+                                className="menu-item"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleChangeStatus(project.id, "PRIVATE");
+                                }}
+                              >
+                                <FiEyeOff /> Make Private
+                              </button>
+                              <div className="menu-divider"></div>
+                            </>
+                          )}
+
+                          {project.visibility === "PUBLIC" && (
+                            <>
+                              <button
+                                className="menu-item"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleChangeStatus(project.id, "PRIVATE");
+                                }}
+                              >
+                                <FiEyeOff /> Make Private
+                              </button>
+                              <div className="menu-divider"></div>
+                            </>
+                          )}
+
+                          {project.visibility === "PRIVATE" && (
+                            <>
+                              <button
+                                className="menu-item"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleChangeStatus(project.id, "PUBLIC");
+                                }}
+                              >
+                                <FiEye /> Make Public
+                              </button>
+                              <div className="menu-divider"></div>
+                            </>
+                          )}
+
+                          <button
+                            className="menu-item"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditProject(project.id);
+                            }}
+                          >
+                            <FiEdit2 /> Edit
+                          </button>
+
+                          <button
+                            className="menu-item"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleShareProject(project.id);
+                            }}
+                          >
+                            <FiShare2 /> Share
+                          </button>
+
+                          <div className="menu-divider"></div>
+
+                          <button
+                            className="menu-item danger"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              requestDeleteProject(project);
+                            }}
+                          >
+                            <FiTrash2 /> Delete
+                          </button>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
+                  </div>
 
-                <h3>{project.title}</h3>
-                <p>{project.description}</p>
-              </div>
-            ))}
+                  {/* Card Content */}
+                  <div className="card-content-manage">
+                    <h3 className="card-title-manage">{project.title}</h3>
+                    <p className="card-description-manage">
+                      {project.description}
+                    </p>
+
+                    <div className="card-skills-manage">
+                      {(project.techStack || [])
+                        .slice(0, 3)
+                        .map((skill, index) => (
+                          <span key={index} className="skill-badge">
+                            {skill}
+                          </span>
+                        ))}
+                      {project.techStack && project.techStack.length > 3 && (
+                        <span className="skill-badge more">
+                          +{project.techStack.length - 3}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Card Footer */}
+                  <div className="card-footer-manage">
+                    <span className="update-time">
+                      Updated {getTimeAgo(project.updatedAt)}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
