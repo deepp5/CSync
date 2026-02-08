@@ -353,6 +353,18 @@
   margin-top: 4px;
 }
 
+.auth-error-banner {
+  width: 100%;
+  padding: 12px 16px;
+  background: rgba(255, 107, 107, 0.15);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  border-radius: 10px;
+  color: #ff6b6b;
+  font-size: 14px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
 .back-box {
   position: absolute;
   top: 16px;

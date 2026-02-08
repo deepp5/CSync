@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import colorLogo from "../../assets/colorCSync.png";
 import "./SignInBox.css";
@@ -6,7 +7,7 @@ import { Link } from "react-router-dom";
 import show from "../../assets/ShowPasswordWhite.png";
 import hide from "../../assets/HidePasswordWhite.png";
 
-export default function SignInBox({ onSubmit, onGoogle, loading }) {
+export default function SignInBox({ onSubmit, onGoogle, loading, authError }) {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -14,6 +15,7 @@ export default function SignInBox({ onSubmit, onGoogle, loading }) {
 
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
+  const [touched, setTouched] = useState({});
 
   // -------------------------
   // Handle Input Change
@@ -29,6 +31,46 @@ export default function SignInBox({ onSubmit, onGoogle, loading }) {
   };
 
   // -------------------------
+  // Handle Blur (for field-level validation)
+  // -------------------------
+  const handleBlur = (fieldName) => {
+    setTouched((prev) => ({ ...prev, [fieldName]: true }));
+    validateField(fieldName);
+  };
+
+  // -------------------------
+  // Validate Individual Field
+  // -------------------------
+  const validateField = (fieldName) => {
+    const newErrors = { ...errors };
+
+    switch (fieldName) {
+      case "email":
+        if (!formData.email.trim()) {
+          newErrors.email = "Email is required";
+        } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+          newErrors.email = "Please enter a valid email address";
+        } else {
+          delete newErrors.email;
+        }
+        break;
+
+      case "password":
+        if (!formData.password) {
+          newErrors.password = "Password is required";
+        } else {
+          delete newErrors.password;
+        }
+        break;
+
+      default:
+        break;
+    }
+
+    setErrors(newErrors);
+  };
+
+  // -------------------------
   // Validation
   // -------------------------
   const validateForm = () => {
@@ -37,7 +79,7 @@ export default function SignInBox({ onSubmit, onGoogle, loading }) {
     if (!formData.email.trim()) {
       newErrors.email = "Email is required";
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "Invalid email format";
+      newErrors.email = "Please enter a valid email address";
     }
 
     if (!formData.password) {
@@ -53,6 +95,13 @@ export default function SignInBox({ onSubmit, onGoogle, loading }) {
   // -------------------------
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Mark all fields as touched
+    setTouched({
+      email: true,
+      password: true,
+    });
+
     if (!validateForm()) return;
 
     onSubmit({
@@ -72,6 +121,13 @@ export default function SignInBox({ onSubmit, onGoogle, loading }) {
           <h3 className="title">Sign in to CSync</h3>
         </div>
 
+        {/* Show authentication error from backend (like wrong password) */}
+        {authError && (
+          <div className="auth-error-banner">
+            {authError}
+          </div>
+        )}
+
         {/* EMAIL + PASSWORD FORM */}
         <form className="sign-option" onSubmit={handleSubmit}>
           {/* EMAIL */}
@@ -85,10 +141,11 @@ export default function SignInBox({ onSubmit, onGoogle, loading }) {
               placeholder="Enter your email address"
               value={formData.email}
               onChange={handleInputChange}
+              onBlur={() => handleBlur("email")}
               autoComplete="email"
               disabled={loading}
             />
-            {errors.email && (
+            {touched.email && errors.email && (
               <span className="error-message">{errors.email}</span>
             )}
           </div>
@@ -97,8 +154,7 @@ export default function SignInBox({ onSubmit, onGoogle, loading }) {
           <div className="password-container">
             <label htmlFor="password">Password</label>
             
-
-            <div style={{ position: "relative" }}>
+            <div className="password-wrapper">
               <input
                 type={showPassword ? "text" : "password"}
                 id="password"
@@ -107,6 +163,7 @@ export default function SignInBox({ onSubmit, onGoogle, loading }) {
                 placeholder="Enter your password"
                 value={formData.password}
                 onChange={handleInputChange}
+                onBlur={() => handleBlur("password")}
                 autoComplete="current-password"
                 disabled={loading}
               />
@@ -123,10 +180,9 @@ export default function SignInBox({ onSubmit, onGoogle, loading }) {
                   alt={showPassword ? "Hide Password" : "Show Password"}
                 />
               </button>
-           
             </div>
 
-            {errors.password && (
+            {touched.password && errors.password && (
               <span className="error-message">{errors.password}</span>
             )}
           </div>
@@ -149,7 +205,7 @@ export default function SignInBox({ onSubmit, onGoogle, loading }) {
 
         {/* GOOGLE LOGIN BUTTON */}
         <div className="google-login-container">
-          <button onClick={onGoogle} className="google-login-btn">
+          <button onClick={onGoogle} className="google-login-btn" disabled={loading}>
             {/* Google Icon */}
             <div className="google-icon-wrapper">
               <svg
@@ -182,40 +238,6 @@ export default function SignInBox({ onSubmit, onGoogle, loading }) {
           </button>
         </div>
 
-
-        {/* <div className="google-login-container">
-          <button onClick={onGoogle} className="google-login-btn">
-            {/* Google Icon }
-            <div className="google-icon-wrapper">
-              <svg
-                version="1.1"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 48 48"
-                className="google-icon-svg"
-              >
-                <path
-                  fill="#EA4335"
-                  d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
-                ></path>
-                <path
-                  fill="#4285F4"
-                  d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
-                ></path>
-                <path
-                  fill="#FBBC05"
-                  d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
-                ></path>
-                <path
-                  fill="#34A853"
-                  d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
-                ></path>
-              </svg>
-            </div>
-
-            {/* Google button text }
-            <span className="btn-text">Continue with Google</span>
-          </button>
-        </div> */}
         <p className="auth-toggle-text">
             New to CSync? 
             <Link to="/register" className="auth-toggle-link">Create an account</Link>
@@ -225,3 +247,232 @@ export default function SignInBox({ onSubmit, onGoogle, loading }) {
     </div>
   );
 }
+
+
+// import React, { useState } from "react";
+// import colorLogo from "../../assets/colorCSync.png";
+// import "./SignInBox.css";
+// import {supabase} from "../../supabaseClient"
+// import { Link } from "react-router-dom";
+// import show from "../../assets/ShowPasswordWhite.png";
+// import hide from "../../assets/HidePasswordWhite.png";
+
+// export default function SignInBox({ onSubmit, onGoogle, loading }) {
+//   const [formData, setFormData] = useState({
+//     email: "",
+//     password: "",
+//   });
+
+//   const [errors, setErrors] = useState({});
+//   const [showPassword, setShowPassword] = useState(false);
+
+//   // -------------------------
+//   // Handle Input Change
+//   // -------------------------
+//   const handleInputChange = (e) => {
+//     const { name, value } = e.target;
+
+//     if (errors[name]) {
+//       setErrors((prev) => ({ ...prev, [name]: "" }));
+//     }
+
+//     setFormData((prev) => ({ ...prev, [name]: value }));
+//   };
+
+//   // -------------------------
+//   // Validation
+//   // -------------------------
+//   const validateForm = () => {
+//     const newErrors = {};
+
+//     if (!formData.email.trim()) {
+//       newErrors.email = "Email is required";
+//     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+//       newErrors.email = "Invalid email format";
+//     }
+
+//     if (!formData.password) {
+//       newErrors.password = "Password is required";
+//     }
+
+//     setErrors(newErrors);
+//     return Object.keys(newErrors).length === 0;
+//   };
+
+//   // -------------------------
+//   // Submit to parent
+//   // -------------------------
+//   const handleSubmit = (e) => {
+//     e.preventDefault();
+//     if (!validateForm()) return;
+
+//     onSubmit({
+//       email: formData.email,
+//       password: formData.password,
+//     });
+//   };
+
+//   return (
+//     <div className="login-page-container">
+//       <div className="clear-box-container">
+//         <Link to="/" className="back-box">
+//           ← Back
+//         </Link>
+//         <div id="logo-container">
+//           <img src={colorLogo} alt="Logo" />
+//           <h3 className="title">Sign in to CSync</h3>
+//         </div>
+
+//         {/* EMAIL + PASSWORD FORM */}
+//         <form className="sign-option" onSubmit={handleSubmit}>
+//           {/* EMAIL */}
+//           <div className="username-container">
+//             <label htmlFor="email">Email address</label>
+//             <input
+//               type="email"
+//               id="email"
+//               name="email"
+//               className="username-signIn"
+//               placeholder="Enter your email address"
+//               value={formData.email}
+//               onChange={handleInputChange}
+//               autoComplete="email"
+//               disabled={loading}
+//             />
+//             {errors.email && (
+//               <span className="error-message">{errors.email}</span>
+//             )}
+//           </div>
+
+//           {/* PASSWORD */}
+//           <div className="password-container">
+//             <label htmlFor="password">Password</label>
+            
+
+//             <div style={{ position: "relative" }}>
+//               <input
+//                 type={showPassword ? "text" : "password"}
+//                 id="password"
+//                 name="password"
+//                 className="password"
+//                 placeholder="Enter your password"
+//                 value={formData.password}
+//                 onChange={handleInputChange}
+//                 autoComplete="current-password"
+//                 disabled={loading}
+//               />
+
+//               {/* Toggle password */}
+//               <button
+//                 type="button"
+//                 className="toggle-password-signin"
+//                 onClick={() => setShowPassword(!showPassword)}
+//                 disabled={loading}
+//               >
+//                 <img
+//                   src={showPassword ? hide : show }
+//                   alt={showPassword ? "Hide Password" : "Show Password"}
+//                 />
+//               </button>
+           
+//             </div>
+
+//             {errors.password && (
+//               <span className="error-message">{errors.password}</span>
+//             )}
+//           </div>
+
+//           {/* SUBMIT */}
+//           <div className="submit-container">
+//             <button type="submit" className="signin-pulse-btn" disabled={loading}>
+//               <span className="pulse-text">
+//                 {loading ? "Signing in..." : "Sign In"}
+//               </span>
+//               <span className="pulse-ring"></span>
+//             </button>
+//           </div>
+//         </form>
+
+//         {/* OR separator */}
+//         <div className="or" id="or">
+//           <p>or</p>
+//         </div>
+
+//         {/* GOOGLE LOGIN BUTTON */}
+//         <div className="google-login-container">
+//           <button onClick={onGoogle} className="google-login-btn">
+//             {/* Google Icon */}
+//             <div className="google-icon-wrapper">
+//               <svg
+//                 version="1.1"
+//                 xmlns="http://www.w3.org/2000/svg"
+//                 viewBox="0 0 48 48"
+//                 className="google-icon-svg"
+//               >
+//                 <path
+//                   fill="#EA4335"
+//                   d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
+//                 ></path>
+//                 <path
+//                   fill="#4285F4"
+//                   d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
+//                 ></path>
+//                 <path
+//                   fill="#FBBC05"
+//                   d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
+//                 ></path>
+//                 <path
+//                   fill="#34A853"
+//                   d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
+//                 ></path>
+//               </svg>
+//             </div>
+
+//             {/* Google button text */}
+//             <span className="btn-text">Continue with Google</span>
+//           </button>
+//         </div>
+
+
+//         {/* <div className="google-login-container">
+//           <button onClick={onGoogle} className="google-login-btn">
+//             {/* Google Icon }
+//             <div className="google-icon-wrapper">
+//               <svg
+//                 version="1.1"
+//                 xmlns="http://www.w3.org/2000/svg"
+//                 viewBox="0 0 48 48"
+//                 className="google-icon-svg"
+//               >
+//                 <path
+//                   fill="#EA4335"
+//                   d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
+//                 ></path>
+//                 <path
+//                   fill="#4285F4"
+//                   d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
+//                 ></path>
+//                 <path
+//                   fill="#FBBC05"
+//                   d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
+//                 ></path>
+//                 <path
+//                   fill="#34A853"
+//                   d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
+//                 ></path>
+//               </svg>
+//             </div>
+
+//             {/* Google button text }
+//             <span className="btn-text">Continue with Google</span>
+//           </button>
+//         </div> */}
+//         <p className="auth-toggle-text">
+//             New to CSync? 
+//             <Link to="/register" className="auth-toggle-link">Create an account</Link>
+//         </p>
+
+//       </div>
+//     </div>
+//   );
+// }
