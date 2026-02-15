@@ -8,7 +8,6 @@ router.post("/supabase", async (req, res) => {
   try {
     const event = req.body;
 
-    // We only care about new users
     if (event.type !== "user.created") {
       return res.status(200).json({ received: true });
     }
@@ -19,7 +18,6 @@ router.post("/supabase", async (req, res) => {
       return res.status(400).json({ error: "Invalid user payload" });
     }
 
-    // Create user in Prisma
     await prisma.user.upsert({
       where: { id: user.id },
       update: {},
