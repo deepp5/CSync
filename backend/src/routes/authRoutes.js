@@ -10,11 +10,10 @@ const prisma = new PrismaClient();
  */
 router.post("/sync", verifySupabaseToken, async (req, res) => {
   try {
-    // User is already verified and synced elsewhere
-    res.json(req.user);
+    return res.json(req.user);
   } catch (err) {
     console.error("AUTH SYNC FAILED:", err);
-    res.status(500).json({ error: "User sync failed" });
+    return res.status(500).json({ error: "User sync failed" });
   }
 });
 
