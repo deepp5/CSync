@@ -61,7 +61,7 @@ router.put("/account", verifySupabaseToken, async (req, res) => {
 
     if (username !== undefined) {
       const cleanedUsername = String(username).trim();
-      // allow clearing username by sending empty string
+
       if (cleanedUsername.length === 0) {
         updateData.username = null;
       } else {
@@ -127,14 +127,6 @@ router.put("/privacy", verifySupabaseToken, async (req, res) => {
 
     const updateData = {};
 
-    // if (profileVisibility !== undefined) {
-    //   // Validate enum value
-    //   if (!['FOLLOWERS', 'PRIVATE'].includes(profileVisibility)) {
-    //     return res.status(400).json({ error: "Invalid profile visibility value" });
-    //   }
-    //   updateData.profileVisibility = profileVisibility;
-    // }
-
     if (showEmail !== undefined) {
       updateData.showEmail = showEmail;
     }
@@ -186,8 +178,6 @@ router.put("/password", verifySupabaseToken, async (req, res) => {
         .status(400)
         .json({ error: "Missing user email in auth token" });
     }
-
-    // 1) Verify the current password by attempting a sign-in
     const supabasePublic = createClient(
       process.env.SUPABASE_URL,
       process.env.SUPABASE_ANON_KEY,
@@ -211,7 +201,6 @@ router.put("/password", verifySupabaseToken, async (req, res) => {
       return res.status(400).json({ error: "Current password is incorrect" });
     }
 
-    // 2) Update password via admin API (requires SERVICE_ROLE key)
     const { error: updateError } =
       await supabaseAdmin.auth.admin.updateUserById(userId, {
         password: newPassword,

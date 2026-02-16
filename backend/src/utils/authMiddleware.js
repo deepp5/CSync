@@ -60,7 +60,6 @@ export const verifySupabaseToken = (req, res, next) => {
         return res.status(403).json({ error: "Invalid token" });
       }
 
-      // ✅ Prefer raw_user_meta_data if present, fallback to user_metadata
       const rawMeta =
         decoded?.raw_user_meta_data || decoded?.user_metadata || {};
 
@@ -69,10 +68,9 @@ export const verifySupabaseToken = (req, res, next) => {
         sub: decoded?.sub,
         email: decoded?.email,
         user_metadata: decoded?.user_metadata || rawMeta,
-        raw_user_meta_data: rawMeta, // ✅ this is what your ensureUserExists will prefer
+        raw_user_meta_data: rawMeta,
       };
 
-      // Optional debug (can remove later)
       console.log("[SUCCESS] req.user set to:", {
         id: req.user.id,
         email: req.user.email,
