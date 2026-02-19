@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 
-dotenv.config(); // ✅ load .env first
+dotenv.config();
 
 const SECRET = process.env.JWT_SECRET || "local_dev_secret";
 const payload = { id: 123, name: "Deep" };

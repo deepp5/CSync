@@ -28,9 +28,8 @@ const app = express();
 const server = http.createServer(app);
 const prisma = new PrismaClient();
 
-/* =========================
-   CORS (FIXED FOR PROD)
-========================= */
+// CORS (FIXED FOR PROD)
+
 const ALLOWED_ORIGINS = [
   "http://localhost:5173",
   "http://localhost:3000",
@@ -57,7 +56,6 @@ app.use(express.json());
    HELPERS (FIX UPDATE 500)
 ========================= */
 function parsePrismaId(raw) {
-  // supports both Int IDs and String/UUID IDs
   if (typeof raw !== "string") return raw;
   if (/^\d+$/.test(raw)) return Number(raw);
   return raw;
@@ -83,7 +81,6 @@ function buildPostUpdateData(body = {}) {
   if (typeof body.header === "string") data.header = body.header.trim();
   if (typeof body.description === "string") data.description = body.description;
 
-  // techStack: accept string[] or "React, Node" string
   if (Array.isArray(body.techStack)) {
     data.techStack = body.techStack.filter(Boolean).map(String);
   } else if (typeof body.techStack === "string") {
@@ -106,9 +103,6 @@ function buildPostUpdateData(body = {}) {
     }
     data.deadline = d;
   }
-
-  // DO NOT allow updating these (even if frontend sends them):
-  // id, userId, createdAt, updatedAt, likes, views, User, isLiked, isFollowing
 
   return data;
 }
