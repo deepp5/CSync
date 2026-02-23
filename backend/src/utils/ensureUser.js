@@ -1,31 +1,39 @@
 export async function ensureUserExists(prisma, user) {
-  if (!user?.id || !user?.email) {
-    throw new Error("Invalid user payload");
+  if (!prisma) {
+    throw new Error("Prisma client is required");
   }
 
-  const username =
-    user.username ||
-    user.user_metadata?.username ||
-    `${user.email.split("@")[0]}_${user.id.slice(0, 5)}`;
+  if (!user || typeof user !== "object") {
+    throw new Error("Invalid user object");
+  }
+
+  if (!user.id || !user.email) {
+    throw new Error("User must have id and email");
+  }
+
+  const baseUsername =
+    user.username || user.user_metadata?.username || user.email.split("@")[0];
+
+  const username = `${baseUsername}_${user.id.slice(0, 5)}`;
 
   const name =
     user.name ||
     user.user_metadata?.full_name ||
     user.user_metadata?.name ||
-    username;
+    baseUsername;
+
+  const userData = {
+    email: user.email,
+    name,
+    username,
+  };
 
   return prisma.user.upsert({
     where: { id: user.id },
-    update: {
-      email: user.email,
-      name,
-      username,
-    },
+    update: userData,
     create: {
       id: user.id,
-      email: user.email,
-      name,
-      username,
+      ...userData,
       skills: [],
     },
   });
