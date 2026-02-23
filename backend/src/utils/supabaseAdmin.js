@@ -1,27 +1,25 @@
 import { createClient } from "@supabase/supabase-js";
 
-let supabaseAdmin;
+if (typeof window !== "undefined") {
+  throw new Error("Supabase admin client cannot run in the browser");
+}
 
-export function getSupabaseAdmin() {
-  // Prevent client-side usage
-  if (typeof window !== "undefined") {
-    throw new Error("Supabase admin client must run on server only");
-  }
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (supabaseAdmin) return supabaseAdmin;
+if (!SUPABASE_URL) {
+  throw new Error("SUPABASE_URL environment variable is not defined");
+}
 
-  const SUPABASE_URL = process.env.SUPABASE_URL?.trim().replace(/\/$/, "");
-  const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+if (!SERVICE_ROLE) {
+  throw new Error(
+    "SUPABASE_SERVICE_ROLE_KEY environment variable is not defined"
+  );
+}
 
-  if (!SUPABASE_URL) {
-    throw new Error("Missing SUPABASE_URL");
-  }
-
-  if (!SERVICE_ROLE) {
-    throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
-  }
-
-  supabaseAdmin = createClient(SUPABASE_URL, SERVICE_ROLE, {
+// Prevent multiple instances in dev (hot reload safe)
+if (!global.supabaseAdmin) {
+  global.supabaseAdmin = createClient(SUPABASE_URL, SERVICE_ROLE, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
@@ -30,6 +28,6 @@ export function getSupabaseAdmin() {
   });
 
   console.log("✅ Supabase Admin initialized");
-
-  return supabaseAdmin;
 }
+
+export const getSupabaseAdmin = () => global.supabaseAdmin;
