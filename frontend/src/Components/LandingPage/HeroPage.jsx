@@ -10,7 +10,7 @@ const HeroPage = () => {
     }, 530);
     return () => clearInterval(interval);
   }, []);
-
+//fixeed up some changes within landing page
   return (
     <section
       id="home"
