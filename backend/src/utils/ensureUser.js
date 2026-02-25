@@ -7,40 +7,31 @@ export async function ensureUserExists(prisma, user) {
     throw new Error("Invalid user object");
   }
 
-  const { id, email, user_metadata } = user;
+  const { id, email, user_metadata = {} } = user;
 
   if (!id || !email) {
     throw new Error("User must have id and email");
   }
 
   const baseUsername =
-    user.username || user_metadata?.username || email.split("@")[0];
+    user.username || user_metadata.username || email.split("@")[0];
 
   const generatedUsername = `${baseUsername}_${id.slice(0, 5)}`;
 
   const name =
-    user.name ||
-    user_metadata?.full_name ||
-    user_metadata?.name ||
-    baseUsername;
+    user.name || user_metadata.full_name || user_metadata.name || baseUsername;
 
-  // First check if user exists
-  const existingUser = await prisma.user.findUnique({
+  return prisma.user.upsert({
     where: { id },
-  });
 
-  if (existingUser) {
-    return prisma.user.update({
-      where: { id },
-      data: {
-        email,
-        name,
-      },
-    });
-  }
+    // Only update safe fields
+    update: {
+      email,
+      name,
+    },
 
-  return prisma.user.create({
-    data: {
+    // Only set immutable fields on first creation
+    create: {
       id,
       email,
       name,
