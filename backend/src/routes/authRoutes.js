@@ -1,25 +1,44 @@
 import express from "express";
 import { verifySupabaseToken } from "../utils/authMiddleware.js";
-import { prisma } from "../utils/prismaClient.js"; // centralized prisma
+import { prisma } from "../utils/prismaClient.js";
 
 const router = express.Router();
 
 /**
- * Called immediately after login
- * Verifies token and ensures user is synced
+ * POST /auth/sync
+ * Ensures authenticated Supabase user exists in Prisma DB
  */
 router.post("/sync", verifySupabaseToken, async (req, res) => {
   try {
-    if (!req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
+    if (!req.user?.id || !req.user?.email) {
+      return res.status(401).json({
+        success: false,
+        error: "Unauthorized - Invalid token payload",
+      });
     }
+
+    const { id, email, user_metadata } = req.user;
+
+    // Upsert user (create if not exists, update if exists)
+    const dbUser = await prisma.user.upsert({
+      where: { id },
+      update: {
+        email,
+        username: user_metadata?.username || email.split("@")[0],
+      },
+      create: {
+        id,
+        email,
+        username: user_metadata?.username || email.split("@")[0],
+      },
+    });
 
     return res.status(200).json({
       success: true,
-      user: req.user,
+      user: dbUser,
     });
   } catch (err) {
-    console.error("AUTH SYNC FAILED:", err.message);
+    console.error("AUTH SYNC FAILED:", err);
 
     return res.status(500).json({
       success: false,
