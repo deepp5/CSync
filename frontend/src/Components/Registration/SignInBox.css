@@ -214,27 +214,6 @@
   transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
 }
 
-/* Shine effect (match Sign Up button) */
-.signin-pulse-btn::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    120deg,
-    transparent,
-    rgba(255, 255, 255, 0.25),
-    transparent
-  );
-  transform: translateX(-120%);
-  transition: transform 0.6s ease;
-  pointer-events: none;
-  z-index: 1;
-}
-
-.signin-pulse-btn:hover::after {
-  transform: translateX(120%);
-}
-
 /* Gradient BORDER only */
 .signin-pulse-btn::before {
   content: "";
@@ -263,7 +242,7 @@
   z-index: 1;
   pointer-events: none;
 
-  /* we animate a “ring” using box-shadow instead of changing fill */
+  /* we animate a â€œringâ€ using box-shadow instead of changing fill */
   animation: pulseRing 2.5s infinite;
 }
 
@@ -372,6 +351,18 @@
   color: #ff6b6b;
   font-size: 12px;
   margin-top: 4px;
+}
+
+.auth-error-banner {
+  width: 100%;
+  padding: 12px 16px;
+  background: rgba(255, 107, 107, 0.15);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  border-radius: 10px;
+  color: #ff6b6b;
+  font-size: 14px;
+  margin-bottom: 16px;
+  text-align: center;
 }
 
 .back-box {

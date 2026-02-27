@@ -10,9 +10,6 @@
   box-sizing: border-box;
 }
 
-
-
-
 .signup-clear-box {
   background: rgba(255, 255, 255, 0.07);
   backdrop-filter: blur(20px);
@@ -22,7 +19,7 @@
 
   /* Layout - Compacted for better fit */
   width: 100%;
-  max-width: 400px;
+  max-width: 500px; /* Slightly wider for ease */
   padding: 30px 30px; /* Reduced vertical padding */
   margin: 0 auto;
 
@@ -34,17 +31,10 @@
   transition: all 0.3s ease;
 }
 
-/* .signup-clear-box:hover {
-  border-color: rgba(255, 255, 255, 0.25);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
-} */
-
 .signup-clear-box:hover {
   border-color: rgba(255, 255, 255, 0.25);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
 }
-
 
 .signup-logo-container {
   display: flex;
@@ -94,7 +84,6 @@
 .signup-input {
   width: 100%;
   padding: 10px 14px;
-  padding-right: 40px; /* Space for eye icon */
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(6px);
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -118,35 +107,40 @@
 .password-wrapper {
   position: relative;
   width: 100%;
+  display: flex;
+  align-items: center;
 }
 
-/* Reuse the same toggle style */
-.toggle-password-signup {
+.password-wrapper .signup-input {
+  padding-right: 40px; /* Make space for eye icon */
+}
+
+/* Toggle password button */
+.toggle-password {
   position: absolute;
-  right: 12px;
+  right: 14px;
   top: 50%;
   transform: translateY(-50%);
   background: transparent;
   border: none;
   cursor: pointer;
-  width: 22px;
-  height: 22px;
+  font-size: 1.2rem;
+  padding: 0;
+  color: rgba(255, 255, 255, 0.8);
+  transition: color 0.2s;
+  z-index: 10;
+  width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 5;
 }
 
-.toggle-password-signup img {
-  width: 20px;
-  height: 20px;
-  opacity: 0.85;
+.toggle-password img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
-
-/* .toggle-password:hover {
-  color: #fff;
-  transform: scale(1.1);
-} */
 
 .signup-checkbox {
   display: flex;
@@ -166,46 +160,6 @@
   width: 100%;
   margin-top: 10px;
 }
-
-/* .signup-submit button {
-  width: 100%;
-  padding: 12px 20px;
-  background: transparent;
-  border: 2px solid transparent;
-  border-radius: 12px;
-  color: white;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-  transition: all 0.3s ease;
-  z-index: 1;
-} */
-/* 
-.signup-submit button::before {
-  content: '';
-  position: absolute;
-  inset: -2px;
-  border-radius: 12px;
-  padding: 2px;
-  background: linear-gradient(90deg, #fa4efd, #21daf2, #fa4efd, #21daf2);
-  background-size: 200% 100%;
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  animation: borderRotate 3s linear infinite;
-  z-index: -1;
-}
-
-@keyframes borderRotate {
-  0% {
-    background-position: 0% 0%;
-  }
-  100% {
-    background-position: 200% 0%;
-  }
-} */
 
 .signup-launch-btn {
   width: 100%;
@@ -269,8 +223,12 @@
 
 .signup-launch-btn:hover {
   transform: translateY(-3px);
-  /* box-shadow: 0 12px 40px rgba(250, 78, 253, 0.22); */
   background: rgba(255, 255, 255, 0.13); /* slightly brighter inside on hover */
+}
+
+.signup-launch-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 /* Keep content above sweep */
@@ -287,7 +245,74 @@
   transform: translateY(-3px) rotate(-10deg);
 }
 
+/* OR Divider */
+.or {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  margin: 15px 0;
+  gap: 8px;
+}
 
+.or::before,
+.or::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.or p {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  margin: 0;
+}
+
+/* Google Login Container and Button */
+.google-login-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.google-login-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 12px;
+  background-color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.google-login-btn:hover {
+  background-color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.google-login-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.google-icon-wrapper {
+  position: absolute;
+  left: 16px;
+  width: 20px;
+  height: 20px;
+}
+
+.btn-text {
+  padding-left: 24px;
+  font-weight: 600;
+  color: #333;
+  font-size: 15px;
+}
 
 .auth-toggle-text {
   margin-top: 1.25rem;
@@ -312,7 +337,8 @@
 .error-message {
   color: #ff6b6b;
   font-size: 11px;
-  margin-top: 2px;
+  margin-top: 4px;
+  display: block;
 }
 
 .back-box {
@@ -340,69 +366,47 @@
   border-color: rgba(255, 255, 255, 0.28);
 }
 
-
 /* Responsive adjustments */
 @media (max-width: 480px) {
   .signup-clear-box {
-    max-width: 100%;
-    padding: 25px 20px;
-  }
-}
-
-/* Responsive Design */
-@media (max-width: 480px) {
-  /* ... existing code ... */
-  .signup-input {
-    padding: 10px 14px;
-  }
-
-  .signup-submit button {
-    padding: 12px 18px;
-    font-size: 15px;
-  }
-  
-  .auth-toggle-text { margin-top: 1rem; }
-}
-
-/* Responsive Design */
-@media (max-width: 480px) {
-  .signup-page-container{
-    justify-items: center;
-  }
-  .signup-clear-box {
     max-width: 350px;
-    padding: 30px 25px;
+    padding: 25px 20px;
     margin: 20px;
   }
 
   .signup-title {
-    font-size: 22px;
+    font-size: 20px;
   }
 
   .signup-input {
     padding: 10px 14px;
   }
 
-  .signup-submit button {
+  .password-wrapper .signup-input {
+    padding-right: 40px;
+  }
+
+  .signup-launch-btn {
     padding: 12px 18px;
     font-size: 15px;
+  }
+  
+  .auth-toggle-text { 
+    margin-top: 1rem; 
   }
 }
 
 @media (max-width: 400px) {
-  .signup-page-container{
+  .signup-page-container {
     justify-items: center;
   }
+  
   .signup-clear-box {
     max-width: 320px;
     padding: 25px 20px;
   }
 
   .signup-title {
-    font-size: 20px;
+    font-size: 18px;
   }
-}
-
-.signup-input[type="password"] {
-  padding-right: 42px;
 }
