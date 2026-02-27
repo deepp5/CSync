@@ -267,7 +267,7 @@ export default function SignUpBox({ onSubmit, onGoogle, loading }) {
           {/* Submit */}
           <div className="signup-submit">
             <button type="submit" className="signup-launch-btn" disabled={loading}>
-              <span className="launch-icon">🚀</span>
+              
               <span>{loading ? "Creating..." : "Create Account"}</span>
             </button>
           </div>
