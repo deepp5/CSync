@@ -19,7 +19,7 @@ import {
   FiShare2,
   FiLock,
 } from "react-icons/fi";
-const API_BASE_URL = import.meta.env.VITE_API_BASE || "http://localhost:5051";
+
 
 export default function MyProjects() {
   const navigate = useNavigate();
