@@ -17,12 +17,9 @@ if (!SERVICE_ROLE) {
   );
 }
 
-// Ensure global object exists
-const globalAny = global as any;
-
 // Prevent multiple instances in dev (hot reload safe)
-if (!globalAny.supabaseAdmin) {
-  globalAny.supabaseAdmin = createClient(SUPABASE_URL, SERVICE_ROLE, {
+if (!global.supabaseAdmin) {
+  global.supabaseAdmin = createClient(SUPABASE_URL, SERVICE_ROLE, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
@@ -33,4 +30,4 @@ if (!globalAny.supabaseAdmin) {
   console.log("✅ Supabase Admin initialized");
 }
 
-export const getSupabaseAdmin = () => globalAny.supabaseAdmin;
+export const getSupabaseAdmin = () => global.supabaseAdmin;
