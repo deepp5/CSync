@@ -10,19 +10,19 @@ if (!SECRET) {
 }
 
 const payload = {
-  id: "123", // should be string in most DBs
+  id: "123",
   name: "Deep",
 };
 
 console.log("\n🔐 Creating token...\n");
 
+// Generate token
 const token = jwt.sign(payload, SECRET, {
   expiresIn: "1h",
   algorithm: "HS256",
 });
 
-console.log("✅ Generated Token:\n");
-console.log(token);
+console.log("✅ Generated Token:\n", token);
 
 // Verify token
 console.log("\n🔎 Verifying token...\n");
@@ -34,6 +34,6 @@ try {
 
   console.log("✅ Token is valid:");
   console.log(decoded);
-} catch (err) {
-  console.error("❌ Invalid token:", err.message);
+} catch (error) {
+  console.error("❌ Invalid token:", error.message);
 }
