@@ -7,34 +7,34 @@ export async function ensureUserExists(prisma, user) {
     throw new Error("Invalid user object");
   }
 
-  const { id, email, user_metadata } = user;
-  const metadata = user_metadata || {};
+  const { id, email, user_metadata = {}, username, name } = user;
 
   if (!id || !email) {
     throw new Error("User must have id and email");
   }
 
   const baseUsername =
-    user.username || metadata.username || email.split("@")[0];
+    username || user_metadata.username || email.split("@")[0];
 
-  const generatedUsername = `${baseUsername}_${id.slice(0, 5)}`;
+  const generatedUsername = `${baseUsername}_${id.substring(0, 5)}`;
 
-  const name = user.name || metadata.full_name || metadata.name || baseUsername;
+  const resolvedName =
+    name || user_metadata.full_name || user_metadata.name || baseUsername;
 
   return prisma.user.upsert({
     where: { id },
 
-    // Only update safe fields
+    // update only safe fields
     update: {
       email,
-      name,
+      name: resolvedName,
     },
 
-    // Only set immutable fields on first creation
+    // set immutable fields only when creating
     create: {
       id,
       email,
-      name,
+      name: resolvedName,
       username: generatedUsername,
       skills: [],
     },
