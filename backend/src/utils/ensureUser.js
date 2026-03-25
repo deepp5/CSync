@@ -1,41 +1,45 @@
-export async function ensureUserExists(prisma, user) {
-  if (!prisma) {
-    throw new Error("Prisma client is required");
+export async function ensureUserExists(prismaClient, currentUser) {
+  if (!prismaClient) {
+    throw new Error("Prisma client instance is required");
   }
 
-  if (!user || typeof user !== "object") {
-    throw new Error("Invalid user object");
+  if (!currentUser || typeof currentUser !== "object") {
+    throw new Error("User data is invalid");
   }
 
-  const { id, email, user_metadata = {}, username, name } = user;
+  const {
+    id: userId,
+    email: userEmail,
+    user_metadata: metadata = {},
+    username,
+    name,
+  } = currentUser;
 
-  if (!id || !email) {
-    throw new Error("User must have id and email");
+  if (!userId || !userEmail) {
+    throw new Error("User id and email are required");
   }
 
-  const baseUsername =
-    username || user_metadata.username || email.split("@")[0];
+  const fallbackUsername =
+    username || metadata.username || userEmail.split("@")[0];
 
-  const generatedUsername = `${baseUsername}_${id.substring(0, 5)}`;
+  const finalUsername = `${fallbackUsername}_${userId.slice(0, 5)}`;
 
-  const resolvedName =
-    name || user_metadata.full_name || user_metadata.name || baseUsername;
+  const finalName =
+    name || metadata.full_name || metadata.name || fallbackUsername;
 
-  return prisma.user.upsert({
-    where: { id },
+  return prismaClient.user.upsert({
+    where: { id: userId },
 
-    // update only safe fields
     update: {
-      email,
-      name: resolvedName,
+      email: userEmail,
+      name: finalName,
     },
 
-    // set immutable fields only when creating
     create: {
-      id,
-      email,
-      name: resolvedName,
-      username: generatedUsername,
+      id: userId,
+      email: userEmail,
+      name: finalName,
+      username: finalUsername,
       skills: [],
     },
   });
