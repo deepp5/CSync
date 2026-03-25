@@ -1,56 +1,61 @@
 // src/socket.js
 import jwt from "jsonwebtoken";
 
-let ioInstance = null;
+let activeIO = null;
 
-export function initSocket(io) {
-  if (!process.env.SUPABASE_JWT_SECRET) {
-    throw new Error("SUPABASE_JWT_SECRET is not defined");
+export function initSocket(socketServer) {
+  const socketSecret = process.env.SUPABASE_JWT_SECRET;
+
+  if (!socketSecret) {
+    throw new Error("Missing SUPABASE_JWT_SECRET in environment variables");
   }
 
-  ioInstance = io;
+  activeIO = socketServer;
 
-  io.use((socket, next) => {
+  socketServer.use((clientSocket, next) => {
     try {
-      const token = socket.handshake.auth?.token;
+      const authToken = clientSocket.handshake.auth?.token;
 
-      if (!token) {
-        return next(new Error("Authentication token missing"));
+      if (!authToken) {
+        return next(new Error("Authentication token is required"));
       }
 
-      const decoded = jwt.verify(token, process.env.SUPABASE_JWT_SECRET, {
+      const verifiedToken = jwt.verify(authToken, socketSecret, {
         algorithms: ["HS256"],
       });
 
-      if (!decoded?.sub || !decoded?.email) {
-        return next(new Error("Invalid token payload"));
+      if (!verifiedToken?.sub || !verifiedToken?.email) {
+        return next(new Error("Token payload is invalid"));
       }
 
-      socket.user = {
-        id: decoded.sub,
-        email: decoded.email,
-        username: decoded.user_metadata?.username || null,
+      clientSocket.user = {
+        id: verifiedToken.sub,
+        email: verifiedToken.email,
+        username: verifiedToken.user_metadata?.username || null,
       };
 
       return next();
-    } catch (err) {
-      console.error("❌ Socket authentication failed:", err.message);
+    } catch (error) {
+      console.error("❌ Socket auth error:", error.message);
       return next(new Error("Unauthorized"));
     }
   });
 
-  io.on("connection", (socket) => {
-    console.log(`✅ Socket connected: ${socket.user.id}`);
+  socketServer.on("connection", (clientSocket) => {
+    console.log(`✅ Client connected: ${clientSocket.user.id}`);
 
-    socket.on("disconnect", (reason) => {
-      console.log(`❌ Socket disconnected: ${socket.user?.id} (${reason})`);
+    clientSocket.on("disconnect", (disconnectReason) => {
+      console.log(
+        `❌ Client disconnected: ${clientSocket.user?.id} (${disconnectReason})`
+      );
     });
   });
 }
 
 export function getIO() {
-  if (!ioInstance) {
-    throw new Error("Socket.io not initialized");
+  if (!activeIO) {
+    throw new Error("Socket.io instance has not been initialized");
   }
-  return ioInstance;
+
+  return activeIO;
 }
