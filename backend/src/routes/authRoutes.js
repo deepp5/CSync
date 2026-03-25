@@ -3,46 +3,54 @@ import { PrismaClient } from "@prisma/client";
 import { verifySupabaseToken } from "../utils/authMiddleware.js";
 
 const router = express.Router();
+const prismaClient = new PrismaClient();
 
 /**
  * POST /auth/sync
- * Ensures authenticated Supabase user exists in Prisma DB
+ * Makes sure the authenticated Supabase user exists in Prisma
  */
 router.post("/sync", verifySupabaseToken, async (req, res) => {
   try {
-    if (!req.user?.id || !req.user?.email) {
+    const authUser = req.user;
+
+    if (!authUser?.id || !authUser?.email) {
       return res.status(401).json({
         success: false,
-        error: "Unauthorized - Invalid token payload",
+        error: "Unauthorized - token payload is invalid",
       });
     }
 
-    const { id, email, user_metadata } = req.user;
+    const {
+      id: userId,
+      email: userEmail,
+      user_metadata: metadata = {},
+    } = authUser;
 
-    // Upsert user (create if not exists, update if exists)
-    const dbUser = await prisma.user.upsert({
-      where: { id },
+    const usernameToStore = metadata.username || userEmail.split("@")[0];
+
+    const syncedUser = await prismaClient.user.upsert({
+      where: { id: userId },
       update: {
-        email,
-        username: user_metadata?.username || email.split("@")[0],
+        email: userEmail,
+        username: usernameToStore,
       },
       create: {
-        id,
-        email,
-        username: user_metadata?.username || email.split("@")[0],
+        id: userId,
+        email: userEmail,
+        username: usernameToStore,
       },
     });
 
     return res.status(200).json({
       success: true,
-      user: dbUser,
+      user: syncedUser,
     });
-  } catch (err) {
-    console.error("AUTH SYNC FAILED:", err);
+  } catch (error) {
+    console.error("AUTH SYNC ERROR:", error);
 
     return res.status(500).json({
       success: false,
-      error: "User sync failed",
+      error: "Failed to sync user",
     });
   }
 });
