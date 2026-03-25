@@ -3,37 +3,36 @@ import jwt from "jsonwebtoken";
 
 dotenv.config();
 
-const SECRET = process.env.JWT_SECRET;
+const jwtSecret = process.env.JWT_SECRET;
 
-if (!SECRET) {
-  throw new Error("JWT_SECRET is not defined in environment variables");
+if (!jwtSecret) {
+  throw new Error("Missing JWT_SECRET in environment variables");
 }
 
-const payload = {
+const userData = {
   id: "123",
   name: "Deep",
 };
 
-console.log("\n🔐 Creating token...\n");
+console.log("\n🔐 Generating JWT token...\n");
 
-// Generate token
-const token = jwt.sign(payload, SECRET, {
+const signedToken = jwt.sign(userData, jwtSecret, {
   expiresIn: "1h",
   algorithm: "HS256",
 });
 
-console.log("✅ Generated Token:\n", token);
+console.log("✅ Token created:\n", signedToken);
 
-// Verify token
-console.log("\n🔎 Verifying token...\n");
+console.log("\n🔎 Checking token validity...\n");
 
 try {
-  const decoded = jwt.verify(token, SECRET, {
+  const verifiedData = jwt.verify(signedToken, jwtSecret, {
     algorithms: ["HS256"],
   });
 
-  console.log("✅ Token is valid:");
-  console.log(decoded);
-} catch (error) {
-  console.error("❌ Invalid token:", error.message);
+  console.log("✅ Verified token payload:");
+  console.log(verifiedData);
+} catch (err) {
+  // const error = err as Error;
+  console.error("❌ Token verification failed:", error.message);
 }
